@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <title>E-Commerce</title>
+</head>
+<body>
+
+    <!-- =====================================================
+         HEADER — sin íconos de favoritos, carrito y usuario
+         ===================================================== -->
+    <header class="header-container">
+
+        <a href="index.html" class="logo-container">
+            <img src="logo.png" alt="E-Commerce.com">
+        </a>
+
+        <form class="search-container">
+            <input type="text" placeholder="Estoy buscando..." class="search-input">
+            <button type="submit" class="search-button">
+                <span class="material-symbols-outlined">search</span>
+            </button>
+        </form>
+
+    </header>
+
+    <!-- =====================================================
+         NAV DE CATEGORÍAS
+         ===================================================== -->
+    <nav class="categories-nav">
+        <ul class="categories-ul">
+
+            <!-- Categorías — se llena dinámicamente desde main.js -->
+            <li class="dropdown" id="dropdown-categorias">
+                <a href="#" class="dropdown-trigger">
+                    <span class="material-symbols-outlined">menu</span>
+                    Categorías
+                </a>
+                <ul class="dropdown-menu" id="menu-categorias">
+                    <!-- main.js llena este ul -->
+                </ul>
+            </li>
+
+            <!-- Marcas — se llena dinámicamente desde main.js -->
+            <li class="dropdown" id="dropdown-marcas">
+                <a href="#" class="dropdown-trigger">
+                    Marcas
+                </a>
+                <ul class="dropdown-menu" id="menu-marcas">
+                    <!-- main.js llena este ul -->
+                </ul>
+            </li>
+
+            <!-- Ayuda — scroll al footer -->
+            <li>
+                <a href="#footer" id="link-ayuda">Ayuda</a>
+            </li>
+
+        </ul>
+    </nav>
+
+    <!-- =====================================================
+         CONTENIDO PRINCIPAL
+         ===================================================== -->
+    <main>
+
+  <!-- =====================================================
+       CARRUSEL DE PRODUCTOS DESTACADOS
+       Se llena dinámicamente desde main.js
+       ===================================================== -->
+  <section class="hero-carousel" id="hero-carousel">
+    <div class="carousel-track" id="carousel-track">
+      <!-- Las slides se generan desde main.js -->
+    </div>
+    <button class="carousel-btn carousel-prev" id="carousel-prev">&#8592;</button>
+    <button class="carousel-btn carousel-next" id="carousel-next">&#8594;</button>
+    <div class="carousel-dots" id="carousel-dots"></div>
+</section>
+
+<!-- =====================================================
+    SECCIÓN PROMOCIONES
+    Solo aparece si hay productos en promoción vigente
+    ===================================================== -->
+<section class="highlight-section" id="section-promociones" style="display:none">
+    <div class="highlight-header">
+      <span class="highlight-icon">🔥</span>
+      <h2 class="highlight-title">Promociones</h2>
+      <span class="highlight-badge">Por tiempo limitado</span>
+      <button class="btn-ver-mas" id="btn-ver-mas-promociones">
+        Ver todos →
+      </button>
+    </div>
+    <div class="highlight-track" id="track-promociones"></div>
+  </section>
+
+  <section class="highlight-section" id="section-destacados" style="display:none">
+    <div class="highlight-header">
+      <span class="highlight-icon">⭐</span>
+      <h2 class="highlight-title">Destacados</h2>
+      <button class="btn-ver-mas" id="btn-ver-mas-destacados">
+        Ver todos →
+      </button>
+    </div>
+    <div class="highlight-track" id="track-destacados"></div>
+  </section>
+
+<!-- =====================================================
+    SECCIÓN DESTACADOS
+    Solo aparece si hay productos destacados
+    ===================================================== -->
+<section class="highlight-section" id="section-destacados" style="display:none">
+    <div class="highlight-header">
+      <span class="highlight-icon">⭐</span>
+      <h2 class="highlight-title">Destacados</h2>
+      <button class="btn-ver-mas" id="btn-ver-mas-destacados">
+        Ver todos →
+      </button>
+    </div>
+    <div class="highlight-track" id="track-destacados"></div>
+  </section>
+
+  <!-- =====================================================
+       VISTA FILTRADA (oculta por defecto)
+       Aparece cuando el usuario filtra o busca
+       ===================================================== -->
+  <section class="filter-view" id="filter-view" style="display:none">
+
+    <!-- Header de resultados -->
+    <div class="filter-view-header">
+      <button class="btn-back-home" id="btn-back-home">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Volver al inicio
+      </button>
+      <h2 class="filter-view-title" id="filter-view-title">Resultados</h2>
+      <span class="filter-result-count" id="filter-result-count"></span>
+
+      <span class="filter-result-count" id="filter-result-count"></span>
+    </div>
+
+    <!-- Layout: sidebar + grid -->
+    <div class="filter-layout">
+
+    <!-- SIDEBAR DE FILTROS -->
+        <aside class="filter-sidebar">
+
+        <!-- 1. Ordenar por — siempre primero -->
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">Ordenar por</h3>
+          <select class="sidebar-select" id="sidebar-order">
+            <option value="reciente">Más recientes</option>
+            <option value="az">Nombre A→Z</option>
+            <option value="za">Nombre Z→A</option>
+            <option value="precio-asc">Menor precio</option>
+            <option value="precio-desc">Mayor precio</option>
+          </select>
+        </div>
+
+        <!-- 2. Categorías / Subcategorías -->
+        <div class="sidebar-section">
+          <h3 class="sidebar-title" id="sidebar-cats-title">Categorías</h3>
+          <ul class="sidebar-list" id="sidebar-categories"></ul>
+        </div>
+
+        <!-- 3. Marcas — solo las de los productos filtrados -->
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">Marcas</h3>
+          <ul class="sidebar-list" id="sidebar-brands"></ul>
+        </div>
+
+        <!-- 4. Disponibilidad -->
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">Disponibilidad</h3>
+          <ul class="sidebar-list">
+            <li>
+              <label class="sidebar-check">
+                <input type="checkbox" id="filter-only-stock">
+                <span>Solo en stock</span>
+              </label>
+            </li>
+            <li>
+              <label class="sidebar-check">
+                <input type="checkbox" id="filter-only-oferta">
+                <span>Solo ofertas</span>
+              </label>
+            </li>
+          </ul>
+        </div>
+
+      </aside>
+
+      <!-- GRID DE PRODUCTOS FILTRADOS -->
+      <div class="filter-content">
+        <div class="product-grid" id="filtered-grid"></div>
+        <div id="filtered-pagination" class="catalog-pagination"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =====================================================
+       CATÁLOGO GENERAL (vista de inicio)
+       ===================================================== -->
+  <section class="products-container" id="home-products">
+    <h2 class="section-title">Todos los productos</h2>
+    <div class="product-grid"></div>
+  </section>
+
+</main>
+
+    <!-- =====================================================
+         FOOTER — Ayuda: contacto + FAQ
+         ===================================================== -->
+    <footer id="footer" class="footer">
+
+        <div class="footer-grid">
+
+            <!-- Columna 1: Info del negocio -->
+            <div class="footer-col">
+                <h3 class="footer-title">Sobre nosotros</h3>
+                <p class="footer-text">
+                    Somos un catálogo virtual con los mejores productos
+                    en electrónica, iluminación, aceites y más.
+                </p>
+                <p class="footer-text">
+                    Realizá tu consulta por WhatsApp y te respondemos
+                    a la brevedad.
+                </p>
+            </div>
+
+            <!-- Columna 2: Contacto -->
+            <div class="footer-col">
+                <h3 class="footer-title">Contacto</h3>
+                <ul class="footer-contact">
+                    <li>
+                        <span class="material-symbols-outlined">chat</span>
+                        <a href="https://wa.me/000" target="_blank">WhatsApp: +000</a>
+                    </li>
+                    <li>
+                        <span class="material-symbols-outlined">mail</span>
+                        <a href="mailto:contacto@tutienda.com">contacto@tutienda.com</a>
+                    </li>
+                    <li>
+                        <span class="material-symbols-outlined">location_on</span>
+                        <span>Ciudad del Este, Paraguay</span>
+                    </li>
+                    <li>
+                        <span class="material-symbols-outlined">schedule</span>
+                        <span>Lun–Vie 8:00 a 18:00</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Columna 3: FAQ -->
+            <div class="footer-col">
+                <h3 class="footer-title">Preguntas frecuentes</h3>
+                <div class="faq-list">
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            ¿Cómo hago un pedido?
+                            <span class="material-symbols-outlined">expand_more</span>
+                        </button>
+                        <p class="faq-answer">
+                            Encontrá el producto que te interesa, hacé click en
+                            "Ver detalle" y luego en "Consultar por WhatsApp".
+                            Te vamos a responder con disponibilidad y forma de pago.
+                        </p>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            ¿Hacen envíos?
+                            <span class="material-symbols-outlined">expand_more</span>
+                        </button>
+                        <p class="faq-answer">
+                            Sí, realizamos envíos a todo el país. El costo
+                            varía según la ubicación. Consultanos por WhatsApp
+                            para más información.
+                        </p>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            ¿Cuáles son las formas de pago?
+                            <span class="material-symbols-outlined">expand_more</span>
+                        </button>
+                        <p class="faq-answer">
+                            Aceptamos efectivo, transferencia bancaria y
+                            pagos por billeteras digitales. Consultanos
+                            para más detalles.
+                        </p>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question">
+                            ¿Los precios incluyen IVA?
+                            <span class="material-symbols-outlined">expand_more</span>
+                        </button>
+                        <p class="faq-answer">
+                            Todos los precios mostrados en el catálogo
+                            ya incluyen IVA.
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Barra inferior del footer -->
+        <div class="footer-bottom">
+            <span>© 2026 Tu Tienda. Todos los derechos reservados.</span>
+            <a href="admin.html" class="footer-admin-link">⚙ Administración</a>
+        </div>
+
+    </footer>
+
+
+    <!-- =====================================================
+         MODAL DE DETALLE
+         ===================================================== -->
+    <div id="product-modal" class="modal-overlay">
+        <div class="modal-container">
+            <button id="modal-close" class="modal-close-btn">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <div id="modal-body" class="modal-body"></div>
+        </div>
+    </div>
+
+
+    <!-- =====================================================
+         SCRIPTS
+         ===================================================== -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+<script src="products.js"></script>
+<script src="storage.js"></script>
+<script src="js/state.js"></script>
+<script src="js/render.js"></script>
+<script src="js/filters.js"></script>
+<script src="js/modal.js"></script>
+<script src="js/carousel.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>
