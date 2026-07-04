@@ -19,18 +19,19 @@ let chartClicks = null;
 // antes de recrearlos al cambiar el período
 
 async function loadMetrics() {
-  const period = document.getElementById('metrics-period').value;
-  const token  = localStorage.getItem('admin_token');
+  try {
+    const period = document.getElementById('metrics-period').value;
+    const token  = localStorage.getItem('admin_token');
 
-  const res  = await fetch('/api/metrics/dashboard?period=' + period, {
-    headers: { 'Authorization': 'Bearer ' + token }
-  });
-  const data = await res.json();
+    const res  = await fetch('/api/metrics/dashboard?period=' + period, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
 
-  // --- Cards de totales ---
-  document.getElementById('total-vistas').textContent    = data.totales.vistas;
-  document.getElementById('total-clicks').textContent    = data.totales.clicks;
-  document.getElementById('total-busquedas').textContent = data.totales.busquedas;
+    // --- Cards de totales ---
+    document.getElementById('total-vistas').textContent    = data.totales.vistas;
+    document.getElementById('total-clicks').textContent    = data.totales.clicks;
+    document.getElementById('total-busquedas').textContent = data.totales.busquedas;
 
   // --- Gráfico de vistas ---
   const labelsVistas = data.topVistas.map(function(p) { return p.name; });
@@ -102,8 +103,11 @@ async function loadMetrics() {
   tableBusquedas.innerHTML =
     '<tr><th>Término</th><th>Cantidad</th></tr>' +
     data.topBusquedas.map(function(b) {
-      return '<tr><td>' + b.termino + '</td><td>' + b.cantidad + '</td></tr>';
+      return '<tr><td>' + escapeHTML(b.termino) + '</td><td>' + b.cantidad + '</td></tr>';
     }).join('');
+  } catch (err) {
+    console.error('Error cargando métricas:', err);
+  }
 }
 
 function renderMetricsTable(table, data, field) {
@@ -111,7 +115,7 @@ function renderMetricsTable(table, data, field) {
     '<tr><th>Producto</th><th>' + (field === 'vistas' ? 'Vistas' : 'Clicks') + '</th></tr>' +
     data.map(function(p) {
       return '<tr>' +
-        '<td>' + p.name + '</td>' +
+        '<td>' + escapeHTML(p.name) + '</td>' +
         '<td>' + (parseInt(p[field]) || 0) + '</td>' +
       '</tr>';
     }).join('');
@@ -295,12 +299,36 @@ async function initAdmin() {
   document.getElementById('admin-order').addEventListener('change', function() {
     renderAdminTable(1);
   });
+
+  // Listeners de subcategorías (una sola vez, no en populateCategorySelect)
+  document.getElementById('field-category').addEventListener('change', async function() {
+    const allProducts = await getProducts();
+    const selectedCat = this.value ||
+      document.getElementById('field-new-category').value.trim().toLowerCase();
+    await updateSubcatSelect(selectedCat, allProducts);
+  });
+  document.getElementById('field-new-category').addEventListener('input', async function() {
+    const allProducts = await getProducts();
+    const selectedCat = this.value.trim().toLowerCase();
+    await updateSubcatSelect(selectedCat, allProducts);
+  });
 }
 
 
 // ------------------------------------------------------------
 // SECCIÓN 4: TABLA DE PRODUCTOS
 // ------------------------------------------------------------
+
+// Helper para escapar HTML y prevenir XSS
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 async function renderAdminTable(page) {
   if (page === undefined) page = 1;
   currentAdminPage = page;
@@ -372,15 +400,15 @@ async function renderAdminTable(page) {
         (product.en_promocion ? '<span class="badge badge-promo">Promoción</span>'     : '');
 
       const subcatHTML   = product.subcategoria
-        ? '<span class="td-sub">/ ' + product.subcategoria + '</span>'
+        ? '<span class="td-sub">/ ' + escapeHTML(product.subcategoria) + '</span>'
         : '';
 
-      const nombreSeguro = product.name.replace(/'/g, "\\'");
+      const nombreSeguro = encodeURIComponent(product.name);
 
       tr.innerHTML =
-        '<td><img src="' + product.image + '" alt="' + product.name + '" class="table-thumb"></td>' +
-        '<td class="td-name">'     + product.name     + '</td>' +
-        '<td class="td-category">' + product.category + ' ' + subcatHTML + '</td>' +
+        '<td><img src="' + escapeAttr(product.image) + '" alt="' + escapeHTML(product.name) + '" class="table-thumb"></td>' +
+        '<td class="td-name">'     + escapeHTML(product.name)     + '</td>' +
+        '<td class="td-category">' + escapeHTML(product.category) + ' ' + subcatHTML + '</td>' +
         '<td class="td-price">'    + precioHTML        + '</td>' +
         '<td class="td-estado">'   + estadoHTML        + '</td>' +
         '<td class="td-actions">' +
@@ -435,13 +463,13 @@ function renderAdminCards(paginated) {
       (product.en_oferta    ? '<span class="badge badge-oferta">Oferta</span>'        : '') +
       (product.en_promocion ? '<span class="badge badge-promo">Promoción</span>'      : '');
 
-    const nombreSeguro = product.name.replace(/'/g, "\\'");
+    const nombreSeguro = encodeURIComponent(product.name);
 
     card.innerHTML =
-      '<img src="' + product.image + '" alt="' + product.name + '" class="admin-card-image">' +
+      '<img src="' + escapeAttr(product.image) + '" alt="' + escapeHTML(product.name) + '" class="admin-card-image">' +
       '<div class="admin-card-body">' +
-        '<p class="admin-card-category">' + product.category + '</p>' +
-        '<h4 class="admin-card-name">' + product.name + '</h4>' +
+        '<p class="admin-card-category">' + escapeHTML(product.category) + '</p>' +
+        '<h4 class="admin-card-name">' + escapeHTML(product.name) + '</h4>' +
         '<div>' + precioHTML + '</div>' +
         '<div class="admin-card-badges">' + badgesHTML + '</div>' +
         '<div class="admin-card-actions">' +
@@ -615,7 +643,7 @@ document.getElementById('product-form').addEventListener('submit', async functio
   const category    = newCategory !== '' ? newCategory : selCategory;
 
   if (!category) {
-    alert('Por favor seleccioná o escribí una categoría.');
+    showToast('Por favor seleccioná o escribí una categoría.');
     return;
   }
 
@@ -673,7 +701,7 @@ document.getElementById('product-form').addEventListener('submit', async functio
 // ------------------------------------------------------------
 function confirmDelete(id, name) {
   deleteTargetId = id;
-  document.getElementById('delete-product-name').textContent = name;
+  document.getElementById('delete-product-name').textContent = decodeURIComponent(name);
   document.getElementById('confirm-modal').style.display     = 'flex';
 }
 
@@ -692,6 +720,16 @@ document.getElementById('btn-cancel-delete').addEventListener('click', function(
   deleteTargetId = null;
   document.getElementById('confirm-modal').style.display = 'none';
 });
+
+const confirmOverlay = document.getElementById('confirm-modal');
+if (confirmOverlay) {
+  confirmOverlay.addEventListener('click', function(e) {
+    if (e.target === confirmOverlay) {
+      deleteTargetId = null;
+      document.getElementById('confirm-modal').style.display = 'none';
+    }
+  });
+}
 
 
 // ------------------------------------------------------------
@@ -729,25 +767,9 @@ async function populateCategorySelect() {
   });
 
   // --- Select de subcategorías ---
-  // Se llena dinámicamente cuando el usuario elige una categoría
-  // Por ahora lo dejamos vacío y deshabilitado
   const subcatSelect = document.getElementById('field-subcategoria-select');
   subcatSelect.innerHTML = '<option value="">-- Primero seleccioná una categoría --</option>';
   subcatSelect.disabled  = true;
-
-  // Cuando cambia la categoría en el select, actualizamos subcategorías
-  document.getElementById('field-category').addEventListener('change', async function() {
-    const selectedCat = this.value ||
-      document.getElementById('field-new-category').value.trim().toLowerCase();
-
-    await updateSubcatSelect(selectedCat, allProducts);
-  });
-
-  // También cuando escribe una nueva categoría
-  document.getElementById('field-new-category').addEventListener('input', async function() {
-    const selectedCat = this.value.trim().toLowerCase();
-    await updateSubcatSelect(selectedCat, allProducts);
-  });
 }
 
 // Función que actualiza el select de subcategorías según la categoría
@@ -811,8 +833,14 @@ function setupImagePreview() {
 // SECCIÓN 10: GESTIÓN DE IMÁGENES EN EL ADMIN
 // ------------------------------------------------------------
 async function loadProductImages(productId) {
-  const res    = await fetch('/api/products/' + productId + '/images');
-  const images = await res.json();
+  let images;
+  try {
+    const res = await fetch('/api/products/' + productId + '/images');
+    images = await res.json();
+  } catch (err) {
+    showToast('Error al cargar imágenes');
+    return;
+  }
 
   const container = document.getElementById('images-container');
   if (!container) return;
@@ -823,7 +851,7 @@ async function loadProductImages(productId) {
     const div = document.createElement('div');
     div.className = 'img-item';
     div.innerHTML =
-      '<img src="' + img.url + '" alt="imagen">' +
+      '<img src="' + escapeAttr(img.url) + '" alt="imagen">' +
       '<button onclick="deleteImage(' + img.id + ', ' + productId + ')" class="btn-delete-img">' +
         '<span class="material-symbols-outlined">delete</span>' +
       '</button>';
@@ -832,7 +860,11 @@ async function loadProductImages(productId) {
 }
 
 async function deleteImage(imageId, productId) {
-  await fetch('/api/products/images/' + imageId, { method: 'DELETE' });
+  const res = await fetch('/api/products/images/' + imageId, {
+    method: 'DELETE',
+    headers: { 'Authorization': 'Bearer ' + getToken() }
+  });
+  if (!res.ok) { showToast('Error al eliminar imagen', 'error'); return; }
   await loadProductImages(productId);
   showToast('Imagen eliminada ✓');
 }
@@ -842,11 +874,12 @@ async function uploadImageUrl(productId) {
   const url   = input.value.trim();
   if (!url) return;
 
-  await fetch('/api/products/' + productId + '/images/url', {
+  const res = await fetch('/api/products/' + productId + '/images/url', {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
     body:    JSON.stringify({ url: url, orden: 0 })
   });
+  if (!res.ok) { showToast('Error al agregar imagen', 'error'); return; }
 
   input.value = '';
   await loadProductImages(productId);
@@ -861,12 +894,14 @@ async function uploadImageFile(productId) {
   formData.append('image', input.files[0]);
   // FormData es la forma de enviar archivos por HTTP
 
-  await fetch('/api/products/' + productId + '/images/upload', {
+  const res = await fetch('/api/products/' + productId + '/images/upload', {
     method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + getToken() },
     body:   formData
     // No ponemos Content-Type: el navegador lo setea automáticamente
     // con el boundary correcto para archivos
   });
+  if (!res.ok) { showToast('Error al subir imagen', 'error'); return; }
 
   input.value = '';
   await loadProductImages(productId);
@@ -881,9 +916,11 @@ function showToast(message) {
   const toast = document.getElementById('toast');
   toast.textContent   = message;
   toast.style.display = 'block';
+  toast.style.pointerEvents = 'none';
   toast.classList.add('toast-visible');
   setTimeout(function() {
     toast.classList.remove('toast-visible');
+    toast.style.display = 'none';
   }, 3000);
 }
 
@@ -893,6 +930,11 @@ function showToast(message) {
 // ------------------------------------------------------------
 checkAuth();
 
+
+// ------------------------------------------------------------
+// SECCIÓN 13: CONTROL DE STOCK
+// ------------------------------------------------------------
+let currentStockTab = 'todos';
 
 async function loadStockPanel() {
   const all = await getProducts();
@@ -904,26 +946,266 @@ async function loadStockPanel() {
            p.en_stock;
   });
 
-  const tableSinStock  = document.getElementById('table-sin-stock');
-  const tablePocoStock = document.getElementById('table-poco-stock');
+  renderStockTable(all, sinStock, pocoStock);
+  initStockTabs(all, sinStock, pocoStock);
+  initStockCheckAll();
+  initStockExport(all, sinStock, pocoStock);
+}
 
-  tableSinStock.innerHTML =
-    '<tr><th>Producto</th><th>Categoría</th><th>Acción</th></tr>' +
-    (sinStock.length === 0
-      ? '<tr><td colspan="3" style="color:#aaa">No hay productos sin stock 🎉</td></tr>'
-      : sinStock.map(function(p) {
-          return '<tr><td>' + p.name + '</td><td>' + p.category + '</td>' +
-            '<td><button class="btn-edit" onclick="openEditForm(' + p.id + ')">' +
-            '<span class="material-symbols-outlined">edit</span></button></td></tr>';
-        }).join(''));
+function renderStockTable(all, sinStock, pocoStock) {
+  const tbody  = document.getElementById('stock-tbody');
+  const empty  = document.getElementById('stock-empty');
+  const count  = document.getElementById('stock-count');
+  const checkAll = document.getElementById('check-all-stock');
 
-  tablePocoStock.innerHTML =
-    '<tr><th>Producto</th><th>Stock actual</th><th>Mínimo</th><th>Acción</th></tr>' +
-    (pocoStock.length === 0
-      ? '<tr><td colspan="4" style="color:#aaa">Todo el stock está OK 👍</td></tr>'
-      : pocoStock.map(function(p) {
-          return '<tr><td>' + p.name + '</td><td>' + p.stock_cantidad + '</td><td>' + (p.stock_minimo || 5) + '</td>' +
-            '<td><button class="btn-edit" onclick="openEditForm(' + p.id + ')">' +
-            '<span class="material-symbols-outlined">edit</span></button></td></tr>';
-        }).join(''));
+  let filtered;
+  if (currentStockTab === 'sin-stock') {
+    filtered = sinStock;
+  } else if (currentStockTab === 'poco-stock') {
+    filtered = pocoStock;
+  } else {
+    filtered = sinStock.concat(pocoStock);
+  }
+
+  // Remove duplicates (a product could be both sin-stock and poco-stock)
+  const seen = new Set();
+  filtered = filtered.filter(function(p) {
+    if (seen.has(p.id)) return false;
+    seen.add(p.id);
+    return true;
+  });
+
+  document.getElementById('stock-count').textContent =
+    filtered.length + ' producto' + (filtered.length !== 1 ? 's' : '');
+
+  if (checkAll) checkAll.checked = false;
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    document.getElementById('stock-empty').style.display = 'block';
+    document.getElementById('table-stock').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('stock-empty').style.display = 'none';
+  document.getElementById('table-stock').style.display = '';
+
+  tbody.innerHTML = filtered.map(function(p) {
+    const isSinStock = p.stock_cantidad === 0 || !p.en_stock;
+    const isPocoStock = p.stock_cantidad > 0 && p.stock_cantidad <= (p.stock_minimo || 5);
+    const sugerido = Math.max(0, (p.stock_minimo || 5) * 2 - (p.stock_cantidad || 0));
+
+    const estadoHTML = isSinStock
+      ? '<span class="badge badge-nostock">Sin stock</span>'
+      : isPocoStock
+        ? '<span class="badge badge-destacado">Poco stock</span>'
+        : '<span class="badge badge-stock">En stock</span>';
+
+    return '<tr>' +
+      '<td><input type="checkbox" class="stock-check-item" data-id="' + p.id + '" data-name="' + escapeAttr(p.name) + '" data-category="' + escapeAttr(p.category) + '" data-brand="' + escapeAttr(p.brand || '') + '" data-stock="' + (p.stock_cantidad || 0) + '" data-minimo="' + (p.stock_minimo || 5) + '"></td>' +
+      '<td class="td-name">' + escapeHTML(p.name) + '</td>' +
+      '<td class="td-category">' + escapeHTML(p.category) + '</td>' +
+      '<td>' + (p.stock_cantidad || 0) + '</td>' +
+      '<td>' + (p.stock_minimo || 5) + '</td>' +
+      '<td><input type="number" class="stock-qty-input" value="' + sugerido + '" min="0" data-id="' + p.id + '"></td>' +
+      '<td>' + estadoHTML + '</td>' +
+      '<td class="td-actions">' +
+        '<button class="btn-edit" onclick="openEditForm(' + p.id + ')">' +
+          '<span class="material-symbols-outlined">edit</span>' +
+        '</button>' +
+      '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function escapeAttr(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+var _stockTabsInit = false;
+function initStockTabs(all, sinStock, pocoStock) {
+  if (_stockTabsInit) return;
+  _stockTabsInit = true;
+  document.querySelectorAll('.stock-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      currentStockTab = this.getAttribute('data-stock-tab');
+      document.querySelectorAll('.stock-tab').forEach(function(t) { t.classList.remove('active'); });
+      this.classList.add('active');
+      renderStockTable(all, sinStock, pocoStock);
+    });
+  });
+}
+
+function initStockCheckAll() {
+  const checkAll = document.getElementById('check-all-stock');
+  if (!checkAll) return;
+
+  checkAll.addEventListener('change', function() {
+    const checked = this.checked;
+    document.querySelectorAll('.stock-check-item').forEach(function(cb) {
+      cb.checked = checked;
+    });
+  });
+}
+
+function getSelectedStockItems() {
+  const items = [];
+  document.querySelectorAll('.stock-check-item:checked').forEach(function(cb) {
+    const id = cb.getAttribute('data-id');
+    const qtyInput = document.querySelector('.stock-qty-input[data-id="' + id + '"]');
+    const cantidad = qtyInput ? parseInt(qtyInput.value) || 0 : 0;
+    items.push({
+      id:       id,
+      name:     cb.getAttribute('data-name'),
+      category: cb.getAttribute('data-category'),
+      brand:    cb.getAttribute('data-brand'),
+      stock:    parseInt(cb.getAttribute('data-stock')) || 0,
+      minimo:   parseInt(cb.getAttribute('data-minimo')) || 5,
+      cantidad: cantidad
+    });
+  });
+  return items;
+}
+
+var _stockExportInit = false;
+function initStockExport(all, sinStock, pocoStock) {
+  if (_stockExportInit) return;
+  _stockExportInit = true;
+  const btn     = document.getElementById('btn-export-stock');
+  const btnPrev = document.getElementById('btn-preview-report');
+
+  if (btn) {
+    btn.addEventListener('click', function() {
+      const selected = getSelectedStockItems();
+      if (selected.length === 0) {
+        showToast('Seleccioná al menos un producto para exportar.');
+        return;
+      }
+      exportCSV(selected);
+    });
+  }
+
+  if (btnPrev) {
+    btnPrev.addEventListener('click', function() {
+      const selected = getSelectedStockItems();
+      if (selected.length === 0) {
+        showToast('Seleccioná al menos un producto para exportar.');
+        return;
+      }
+      showStockReportPreview(selected);
+    });
+  }
+}
+
+function exportCSV(selected) {
+  const headers = ['Producto', 'Categoría', 'Marca', 'Stock actual', 'Stock mínimo', 'Cant. a pedir'];
+  const rows = selected.map(function(item) {
+    return '"' + item.name.replace(/"/g, '""') + '","' +
+           item.category.replace(/"/g, '""') + '","' +
+           (item.brand || '').replace(/"/g, '""') + '","' +
+           item.stock + '","' + item.minimo + '","' + item.cantidad + '"';
+  });
+
+  const csv = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'pedido-proveedor-' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showToast(selected.length + ' producto' + (selected.length !== 1 ? 's' : '') + ' exportado(s) ✓');
+}
+
+function showStockReportPreview(selected) {
+  const groups = {};
+  selected.forEach(function(item) {
+    if (!groups[item.category]) groups[item.category] = [];
+    groups[item.category].push(item);
+  });
+  const catKeys = Object.keys(groups).sort();
+
+  const totalItems = selected.length;
+  const totalQty   = selected.reduce(function(sum, item) { return sum + item.cantidad; }, 0);
+  const today      = new Date().toLocaleDateString('es-PY', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+    '<title>Pedido a Proveedor - ' + today + '</title>' +
+    '<style>' +
+    '  * { margin:0; padding:0; box-sizing:border-box; }' +
+    '  body { font-family:"Segoe UI",sans-serif; background:#eee; padding:40px 20px; color:#333; }' +
+    '  .report { max-width:900px; margin:0 auto; background:#fff; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1); overflow:hidden; }' +
+    '  .report-header { background:#822; color:#fff; padding:32px; }' +
+    '  .report-header h1 { font-size:1.5rem; margin-bottom:4px; }' +
+    '  .report-header p { opacity:0.85; font-size:0.9rem; }' +
+    '  .report-summary { display:flex; gap:24px; padding:24px 32px; background:#fafafa; border-bottom:1px solid #eee; }' +
+    '  .summary-card { flex:1; }' +
+    '  .summary-card .num { font-size:1.8rem; font-weight:800; color:#822; }' +
+    '  .summary-card .label { font-size:0.82rem; color:#888; }' +
+    '  .report-section { padding:24px 32px; border-bottom:1px solid #f0f0f0; }' +
+    '  .report-section:last-child { border-bottom:none; }' +
+    '  .cat-title { font-size:1.1rem; font-weight:700; color:#822; margin-bottom:12px; padding-bottom:8px; border-bottom:2px solid #822; display:inline-block; }' +
+    '  table { width:100%; border-collapse:collapse; font-size:0.88rem; }' +
+    '  th { text-align:left; padding:10px 8px; background:#f7f8fa; color:#888; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #eee; }' +
+    '  td { padding:10px 8px; border-bottom:1px solid #f5f5f5; }' +
+    '  tr:last-child td { border-bottom:none; }' +
+    '  .qty { font-weight:700; color:#822; text-align:center; font-size:1rem; }' +
+    '  .report-footer { padding:20px 32px; text-align:center; color:#aaa; font-size:0.8rem; border-top:1px solid #eee; }' +
+    '  .no-print { text-align:center; margin-top:16px; }' +
+    '  .no-print button { padding:10px 24px; background:#822; color:#fff; border:none; border-radius:6px; font-size:0.9rem; font-weight:600; cursor:pointer; font-family:inherit; }' +
+    '  .no-print button:hover { background:#a33; }' +
+    '  @media print { body { background:#fff; padding:0; } .report { box-shadow:none; border-radius:0; } .no-print { display:none; } }' +
+    '</style></head><body>' +
+    '<div class="report">' +
+    '<div class="report-header">' +
+    '<h1>Pedido a Proveedor</h1>' +
+    '<p>Generado el ' + today + '</p>' +
+    '</div>' +
+    '<div class="report-summary">' +
+    '<div class="summary-card"><div class="num">' + totalItems + '</div><div class="label">Productos</div></div>' +
+    '<div class="summary-card"><div class="num">' + totalQty + '</div><div class="label">Unidades a pedir</div></div>' +
+    '<div class="summary-card"><div class="num">' + catKeys.length + '</div><div class="label">Categorias</div></div>' +
+    '</div>';
+
+  catKeys.forEach(function(cat) {
+    var items = groups[cat];
+    var subTotal = items.reduce(function(s, item) { return s + item.cantidad; }, 0);
+    html += '<div class="report-section">' +
+      '<div class="cat-title">' + cat.charAt(0).toUpperCase() + cat.slice(1) + ' (' + items.length + ' prod., ' + subTotal + ' uds.)</div>' +
+      '<table><tr><th>Producto</th><th>Stock</th><th>Minimo</th><th style="text-align:center">A pedir</th></tr>';
+
+    items.forEach(function(item) {
+      html += '<tr>' +
+        '<td>' + escapeHTML(item.name) + '</td>' +
+        '<td>' + item.stock + '</td>' +
+        '<td>' + item.minimo + '</td>' +
+        '<td class="qty">' + item.cantidad + '</td>' +
+        '</tr>';
+    });
+
+    html += '</table></div>';
+  });
+
+  html += '<div class="report-footer">Generado desde el panel de administracion - ' + today + '</div></div>' +
+    '<div class="no-print"><button onclick="window.print()">Imprimir / Guardar PDF</button></div>' +
+    '</body></html>';
+
+  // Abrir con blob URL para evitar bloqueo de popups
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  var url  = URL.createObjectURL(blob);
+  var win  = window.open(url, '_blank');
+  if (win) {
+    win.onload = function() { setTimeout(function() { URL.revokeObjectURL(url); }, 10000); };
+  } else {
+    showToast('El navegador bloqueo la ventana. Permití popups para este sitio.');
+  }
 }

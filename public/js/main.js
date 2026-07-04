@@ -11,11 +11,16 @@ const searchForm  = document.querySelector('.search-container');
 
 // Buscador en tiempo real + registro de métricas
 let searchTimeout;
+let renderTimeout;
 searchInput.addEventListener('input', function() {
-  renderProducts(1);
+  clearTimeout(renderTimeout);
+  const value = this.value;
+  renderTimeout = setTimeout(function() {
+    renderProducts(1);
+  }, 300);
 
   clearTimeout(searchTimeout);
-  const termino = this.value.trim();
+  const termino = value.trim();
   if (termino.length >= 2) {
     searchTimeout = setTimeout(function() {
       fetch('/api/metrics/search', {
@@ -49,21 +54,57 @@ document.querySelectorAll('.faq-question').forEach(function(btn) {
   });
 });
 
+// Dropdown toggle para touch devices
+function initDropdowns() {
+  document.querySelectorAll('.dropdown-trigger').forEach(function(trigger) {
+    trigger.addEventListener('click', function(e) {
+      var dropdown = this.closest('.dropdown');
+      var isOpen   = dropdown.classList.contains('open');
+
+      // Cerrar otros dropdowns
+      document.querySelectorAll('.dropdown.open').forEach(function(d) {
+        if (d !== dropdown) d.classList.remove('open');
+      });
+
+      if (isOpen) {
+        dropdown.classList.remove('open');
+      } else {
+        dropdown.classList.add('open');
+      }
+    });
+  });
+
+  // Cerrar dropdown al hacer click fuera
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.dropdown')) {
+      document.querySelectorAll('.dropdown.open').forEach(function(d) {
+        d.classList.remove('open');
+      });
+    }
+  });
+}
+
 async function init() {
   currentFilter       = "all";
   currentBrand        = "all";
   currentSubcategoria = "all";
 
-  document.getElementById('btn-back-home').addEventListener('click', function() {
-    currentFilter       = "all";
-    currentBrand        = "all";
-    currentSubcategoria = "all";
-    onlyStock           = false;
-    onlyOferta          = false;
-    searchInput.value   = '';
-    renderProducts(1);
+  document.getElementById('btn-filter-toggle').addEventListener('click', function() {
+    document.querySelector('.filter-sidebar').classList.toggle('visible');
   });
 
+  document.getElementById('btn-back-home').addEventListener('click', function() {
+      currentFilter       = "all";
+      currentBrand        = "all";
+      currentSubcategoria = "all";
+      onlyStock           = false;
+      onlyOferta          = false;
+      onlyDestacado       = false;
+      searchInput.value   = '';
+      renderProducts(1);
+  });
+
+  initDropdowns();
   await initCarousel();
   await initHighlightSections();
   await populateCategoryNav();
@@ -71,4 +112,4 @@ async function init() {
   await renderProducts(1);
 }
 
-init();
+init().catch(function(err) { console.error('Error en inicialización:', err); });

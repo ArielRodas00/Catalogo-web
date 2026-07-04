@@ -193,8 +193,9 @@ body {
   z-index: 100;               /* Aparece por encima de los otros elementos */
 }
 
-/* Se muestra al hacer hover en el .dropdown */
-.dropdown:hover .dropdown-menu {
+/* Se muestra al hacer hover (desktop) o con clase .open (touch) */
+.dropdown:hover .dropdown-menu,
+.dropdown.open .dropdown-menu {
   display: block;
 }
 
@@ -214,49 +215,7 @@ body {
 }
 
 
-/* ------------------------------------------------------------
-   5. HERO
-   ------------------------------------------------------------ */
-.hero {
-  width: 100%;
-  height: 400px;
-  background-image: 
-    linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
-    url('https://cdn.pixabay.com/video/2020/11/23/57119-483011616_tiny.jpg');
-  background-size: cover;
-  background-position: center;
-  background-color: #ccc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  text-align: center;
-}
-
-.hero-content h1 {
-  font-size: 2.5rem;
-  margin-bottom: 10px;
-}
-
-.hero-content p {
-  font-size: 1.1rem;
-  margin-bottom: 20px;
-}
-
-.btn-hero {
-  display: inline-block;
-  padding: 12px 30px;
-  background-color: #822;
-  color: #fff;
-  text-decoration: none;
-  font-weight: bold;
-  border-radius: 4px;
-  transition: background 0.3s;
-}
-
-.btn-hero:hover {
-  background-color: #822;
-}
+/* 5. HERO — implementado como .hero-carousel (ver sección Carrusel) */
 
 
 /* ------------------------------------------------------------
@@ -357,7 +316,7 @@ body {
 }
 
 .btn-detail:hover {
-  background-color: #822;
+  background-color: #a33;
 }
 
 
@@ -381,24 +340,27 @@ body {
 
 /* El overlay cubre toda la pantalla */
 .modal-overlay {
-  display: none;            /* Oculto por defecto */
-  position: fixed;          /* Fijo respecto a la ventana (no al documento) */
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);  /* Negro semitransparente */
-  z-index: 1000;            /* Por encima de todo lo demás */
-
-  /* Centramos el modal-container dentro del overlay */
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: flex;
   justify-content: center;
   align-items: center;
   padding: 20px;
+
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 /* Cuando JS agrega la clase "active", mostramos el overlay */
 .modal-overlay.active {
-  display: flex;
+  opacity: 1;
+  visibility: visible;
 }
 
 /* La caja blanca del modal */
@@ -433,16 +395,6 @@ body {
 .modal-body {
   display: flex;
   gap: 24px;
-}
-
-.modal-image {
-  width: 280px;
-  min-width: 280px;
-  height: 280px;
-  object-fit: contain;
-  border-radius: 8px 0 0 8px;
-  background-color: #f5f5f5;
-  padding: 10px;
 }
 
 .modal-info {
@@ -594,53 +546,333 @@ body {
   }
 }
 
-/* Mobile: 1 columna */
+/* Botón toggle filtros — oculto en desktop */
+.btn-filter-toggle {
+  display: none;
+}
+
+/* Mobile */
 @media (max-width: 560px) {
   .product-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 8px;
   }
 
   .header-container {
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
+    padding: 8px;
   }
 
   .search-container {
-    order: 3;       /* La búsqueda va abajo en mobile */
+    position: static;
+    order: 3;
     width: 100%;
+    transform: none;
+    left: auto;
   }
 
   .search-input {
     width: 100%;
-    padding-right: 20px;
+    font-size: 16px;
+    padding: 12px 14px;
+  }
+
+  .search-button {
+    padding: 0 16px;
+    min-height: 44px;
   }
 
   .header-nav .user-text-column {
-    display: none;  /* Ocultamos "Iniciá sesión / Registrate" en mobile */
+    display: none;
+  }
+
+  .logo-container img {
+    max-width: 42px;
   }
 
   .categories-ul {
-    gap: 14px;
-    padding: 0 10px;
-    overflow-x: auto;     /* Scroll horizontal en la barra de categorías */
+    gap: 10px;
+    padding: 0 8px;
+    overflow-x: auto;
     flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .hero {
-    height: 250px;
+  .categories-ul li a {
+    padding: 12px 0;
+    font-size: 13px;
+    white-space: nowrap;
   }
 
-  .hero-content h1 {
-    font-size: 1.6rem;
+  .hero-carousel {
+    height: 280px;
   }
+
+  .carousel-content {
+    left: 16px;
+    right: 16px;
+    max-width: 100%;
+  }
+
+  .carousel-title {
+    font-size: 1.2rem;
+  }
+
+  .carousel-price {
+    font-size: 1rem;
+    margin-bottom: 16px;
+  }
+
+  .carousel-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
+  }
+
+  .carousel-prev { left: 8px; }
+  .carousel-next { right: 8px; }
 
   .products-container {
-    padding: 0 12px;
+    padding: 0 8px;
+    margin: 24px auto;
+  }
+
+  .product-image-wrap {
+    height: 140px;
   }
 
   .product-image {
-    height: 150px;
+    height: 100%;
+  }
+
+  .product-info {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+
+  .product-name {
+    font-size: 0.82rem;
+  }
+
+  .product-price {
+    font-size: 0.95rem;
+  }
+
+  .btn-detail {
+    padding: 10px 8px;
+    font-size: 13px;
+    min-height: 44px;
+  }
+
+  .hp-btn,
+  .btn-carousel-detail,
+  .btn-carousel-whatsapp,
+  .carousel-btn,
+  .page-btn {
+    min-height: 44px;
+  }
+
+  .section-title {
+    font-size: 1.1rem;
+  }
+
+  /* Highlight cards */
+  .highlight-card {
+    min-width: 150px;
+    max-width: 150px;
+    height: 240px;
+  }
+
+  .hp-image {
+    height: 120px;
+  }
+
+  .hp-name {
+    font-size: 0.78rem;
+  }
+
+  .hp-btn {
+    padding: 8px 6px;
+    font-size: 0.75rem;
+    min-height: 44px;
+  }
+
+  /* Modal mobile */
+  .modal-container {
+    max-height: 95vh;
+    border-radius: 12px 12px 0 0;
+    margin-top: auto;
+  }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-body {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .modal-gallery {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .gallery-main {
+    width: 100%;
+    height: 220px;
+    border-radius: 0;
+  }
+
+  .modal-info {
+    padding: 12px 16px 20px;
+  }
+
+  .modal-name {
+    font-size: 1.1rem;
+  }
+
+  .modal-price {
+    font-size: 1.2rem;
+  }
+
+  .btn-whatsapp {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px;
+  }
+
+  /* Filter view mobile */
+  .filter-view {
+    padding: 12px 8px;
+  }
+
+  .filter-view-header {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .filter-view-title {
+    font-size: 0.95rem;
+    order: -1;
+  }
+
+  .filter-result-count {
+    order: -1;
+    font-size: 0.82rem;
+  }
+
+  .filter-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-content {
+    order: 0;
+  }
+
+  .filter-sidebar {
+    order: 1;
+    position: static;
+    display: none;
+    margin-top: 12px;
+  }
+
+  .filter-sidebar.visible {
+    display: block;
+  }
+
+  /* Botón toggle filtros */
+  .btn-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 14px;
+    background: #822;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    min-height: 44px;
+    position: relative;
+  }
+
+  .filter-active-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #f39c12;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Footer mobile */
+  .footer {
+    padding: 32px 16px 0;
+    margin-top: 32px;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .pagination .page-btn {
+    min-width: 44px;
+    height: 44px;
+    font-size: 0.82rem;
+  }
+
+  /* Dropdown en mobile: fijo abajo o menú lateral */
+  .dropdown-menu {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    min-width: unset;
+    max-height: 60vh;
+    overflow-y: auto;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    z-index: 200;
+    padding: 12px 0;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    display: block;
+    visibility: hidden;
+  }
+
+  .dropdown.open .dropdown-menu {
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .dropdown-menu li a {
+    padding: 14px 20px;
+    font-size: 16px;
+  }
+
+  .highlight-track {
+    gap: 10px;
   }
 }
 
@@ -859,11 +1091,6 @@ body {
 /* ============================================================
    MODAL — CARRUSEL DE IMÁGENES
    ============================================================ */
-.modal-body {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
-}
 
 .modal-gallery {
   display: flex;
@@ -1446,6 +1673,11 @@ body {
 }
 
 .hp-btn:hover { background: #a33; }
+.hp-btn:disabled {
+  background-color: #bbb;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
 
 
 /* ============================================================
@@ -1938,4 +2170,26 @@ body {
   .product-card--list .btn-detail {
     width: 100%;
   }
+}
+
+/* ============================================================
+   MEJORAS RESPONSIVE — touch targets, espaciado, legibilidad
+   ============================================================ */
+
+
+
+/* Mejora scroll horizontal suave en highlight tracks */
+.highlight-track {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 16px;
+}
+
+/* Imagen placeholder mientras carga */
+.product-image,
+.hp-image,
+.table-thumb,
+.admin-card-image {
+  background-color: #f5f5f5;
+  transition: opacity 0.3s ease;
 }

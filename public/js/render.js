@@ -4,6 +4,10 @@
 // Depende de: state.js
 // ============================================================
 
+function escapeAttr(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 // Referencias al DOM
 const productGrid  = document.querySelector('#home-products .product-grid');
 const filteredGrid = document.getElementById('filtered-grid');
@@ -14,7 +18,6 @@ const filteredGrid = document.getElementById('filtered-grid');
 function createProductCard(product) {
   const card = document.createElement('div');
   card.classList.add('product-card');
-  if (currentView === 'list') card.classList.add('product-card--list');
 
   const badgesHTML =
     (!product.en_stock    ? '<span class="card-badge badge-sin-stock">Sin stock</span>'        : '') +
@@ -29,12 +32,12 @@ function createProductCard(product) {
 
   card.innerHTML =
     '<div class="product-image-wrap">' +
-      '<img src="' + product.image + '" alt="' + product.name + '" class="product-image' + (!product.en_stock ? ' img-nostock' : '') + '">' +
+      '<img src="' + escapeAttr(product.image) + '" alt="' + escapeHTML(product.name) + '" loading="lazy" class="product-image' + (!product.en_stock ? ' img-nostock' : '') + '">' +
       (!product.en_stock ? '<div class="card-stock-overlay">Sin stock</div>' : '') +
       '<div class="card-badges">' + badgesHTML + '</div>' +
     '</div>' +
     '<div class="product-info">' +
-      '<h3 class="product-name">' + product.name + '</h3>' +
+      '<h3 class="product-name">' + escapeHTML(product.name) + '</h3>' +
       cardPrecioHTML +
       '<button class="btn-detail" data-id="' + product.id + '"' + (!product.en_stock ? ' disabled' : '') + '>' +
         (!product.en_stock ? 'Sin stock' : 'Ver detalle') +
@@ -46,7 +49,7 @@ function createProductCard(product) {
 
 
 // ------------------------------------------------------------
-// renderHighlightTrack() — tarjetas horizontales (sin badges)
+// renderHighlightTrack() — tarjetas horizontales con badges
 // ------------------------------------------------------------
 function renderHighlightTrack(track, products) {
   track.innerHTML = '';
@@ -55,17 +58,28 @@ function renderHighlightTrack(track, products) {
     const card = document.createElement('div');
     card.className = 'highlight-card';
 
+    const badgesHTML =
+      (!product.en_stock    ? '<span class="card-badge badge-sin-stock">Sin stock</span>'        : '') +
+      (product.en_oferta    ? '<span class="card-badge badge-oferta-card">Oferta</span>'          : '') +
+      (product.en_promocion ? '<span class="card-badge badge-promo-card">🔥 Promo</span>'        : '');
+
     const precioHTML = (product.en_oferta && product.precio_oferta)
       ? '<span class="hp-price-old">' + formatPrice(product.price) + '</span>' +
         '<span class="hp-price">'     + formatPrice(product.precio_oferta) + '</span>'
       : '<span class="hp-price">'     + formatPrice(product.price) + '</span>';
 
     card.innerHTML =
-      '<img src="' + product.image + '" alt="' + product.name + '" class="hp-image">' +
+      '<div style="position:relative">' +
+      '<img src="' + escapeAttr(product.image) + '" alt="' + escapeHTML(product.name) + '" loading="lazy" class="hp-image' + (!product.en_stock ? ' img-nostock' : '') + '">' +
+      (!product.en_stock ? '<div class="card-stock-overlay" style="height:140px">Sin stock</div>' : '') +
+      '<div class="card-badges">' + badgesHTML + '</div>' +
+      '</div>' +
       '<div class="hp-info">' +
-        '<p class="hp-name">' + product.name + '</p>' +
+        '<p class="hp-name">' + escapeHTML(product.name) + '</p>' +
         precioHTML +
-        '<button class="hp-btn" data-id="' + product.id + '">Ver detalle</button>' +
+        '<button class="hp-btn" data-id="' + product.id + '"' + (!product.en_stock ? ' disabled' : '') + '>' +
+          (!product.en_stock ? 'Sin stock' : 'Ver detalle') +
+        '</button>' +
       '</div>';
 
     const hpBtn = card.querySelector('.hp-btn');
@@ -213,9 +227,9 @@ async function showFilterView(result, page) {
 
   renderPaginationInto(document.getElementById('filtered-pagination'), page, totalPages);
 
-  await populateSidebar(products);
-
-  if (!isFilterView) {
-    document.getElementById('filter-view').scrollIntoView({ behavior: 'smooth' });
+  try {
+    await populateSidebar(products);
+  } catch (e) {
+    console.error('Error poblando sidebar:', e);
   }
 }

@@ -2,7 +2,7 @@
 // storage.js — Capa de datos (Fase 2: servidor + JWT)
 // ============================================================
 
-const API_URL = 'http://localhost:3000/api/products';
+const API_URL = '/api/products';
 
 // ------------------------------------------------------------
 // getToken() — obtiene el token JWT guardado
@@ -54,6 +54,7 @@ async function getProductsFiltered(params) {
   if (params.limit)       query.set('limit',       params.limit);
   if (params.en_stock)    query.set('en_stock',    params.en_stock);
   if (params.en_oferta)   query.set('en_oferta',   params.en_oferta);
+  if (params.destacado)   query.set('destacado',   params.destacado);
 
   const response = await fetch(API_URL + '?' + query.toString());
   const data     = await response.json();
@@ -101,7 +102,7 @@ async function deleteProduct(id) {
 // getCategories() — pública
 // ------------------------------------------------------------
 async function getCategories() {
-  const all = await getProducts();
-  const allCategories = all.map(function(p) { return p.category; });
-  return [...new Set(allCategories)];
+  const res = await fetch('/api/categories');
+  const grouped = await res.json();
+  return Object.keys(grouped);
 }

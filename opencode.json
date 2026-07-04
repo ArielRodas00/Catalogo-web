@@ -1,0 +1,70 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode-go/glm-5.2",
+  "default_agent": "orquestador",
+  "agent": {
+    "orquestador": {
+      "description": "Orquestador principal (GLM 5.2). Coordina, delega y consolida reportes. Prohibido bash.",
+      "mode": "primary",
+      "model": "opencode-go/glm-5.2",
+      "prompt": "{file:.opencode/agents/orquestador.md}",
+      "temperature": 0.5,
+      "permission": {
+        "edit": "ask",
+        "bash": "deny",
+        "task": "allow"
+      },
+      "color": "#2563eb"
+    },
+    "reviewer": {
+      "description": "Revisa código, bugs y código muerto. Salida estructurada STATUS: APPROVED/REJECTED.",
+      "model": "opencode-go/deepseek-v4-pro",
+      "prompt": "{file:.opencode/agents/reviewer.md}",
+      "temperature": 0.1,
+      "permission": {
+        "edit": "deny",
+        "bash": "deny"
+      }
+    },
+    "developer": {
+      "description": "Implementa cambios Node.js/Express siguiendo general-rules.md. Planifica antes de escribir.",
+      "model": "opencode-go/deepseek-v4-pro",
+      "prompt": "{file:.opencode/agents/developer.md}",
+      "temperature": 0.2,
+      "permission": {
+        "edit": "allow",
+        "bash": "ask"
+      }
+    },
+    "security-auditor": {
+      "description": "Auditoría OWASP Top 10, JWT, SQLi, XSS. Salida estructurada STATUS: APPROVED/REJECTED.",
+      "model": "opencode-go/glm-5.2",
+      "prompt": "{file:.opencode/agents/security-auditor.md}",
+      "temperature": 0.1,
+      "permission": {
+        "edit": "deny",
+        "bash": "deny"
+      }
+    },
+    "ux-auditor": {
+      "description": "Auditor UX/UI contra criterios-diseno-ux.md. Valida status codes HTTP. Salida STATUS.",
+      "model": "opencode-go/deepseek-v4-flash",
+      "prompt": "{file:.opencode/agents/ux-auditor.md}",
+      "temperature": 0.1,
+      "permission": {
+        "edit": "deny",
+        "bash": "deny"
+      }
+    },
+    "db-specialist": {
+      "description": "Optimización PostgreSQL, índices y EXPLAIN ANALYZE. Puede solicitar bash para queries.",
+      "model": "opencode-go/deepseek-v4-pro",
+      "prompt": "{file:.opencode/agents/db-specialist.md}",
+      "temperature": 0.1,
+      "permission": {
+        "edit": "deny",
+        "bash": "ask"
+      }
+    }
+  }
+}

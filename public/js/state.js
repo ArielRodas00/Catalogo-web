@@ -14,10 +14,20 @@ let currentPage         = 1;
 let currentOrder        = "reciente";
 let onlyStock           = false;
 let onlyOferta          = false;
+let onlyDestacado       = false;
 let isFilterView        = false;
 
 // Función para formatear precios
 function formatPrice(price) {
   return "Gs. " + new Intl.NumberFormat('es-PY').format(price);
 }
-let currentView = "grid"; // "grid" o "list"
+
+// Helper para escapar HTML y prevenir XSS
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}

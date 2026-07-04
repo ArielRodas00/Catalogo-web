@@ -8,6 +8,10 @@ const modal        = document.getElementById('product-modal');
 const modalContent = document.getElementById('modal-body');
 const modalClose   = document.getElementById('modal-close');
 
+function escapeAttr(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 // ------------------------------------------------------------
 // registrarClickWhatsapp() — registra un click en WhatsApp
 // ------------------------------------------------------------
@@ -29,9 +33,39 @@ async function openModal(productId) {
   // Registramos la vista
   fetch('/api/metrics/view/' + product.id, { method: 'POST' });
 
+  // JSON-LD structured data for SEO (product detail)
+  var ld = document.getElementById('seo-product');
+  if (!ld) {
+    ld = document.createElement('script');
+    ld.id = 'seo-product';
+    ld.type = 'application/ld+json';
+    document.head.appendChild(ld);
+  }
+  ld.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.name,
+    "description": product.description ? product.description.slice(0, 300) : '',
+    "image": product.image || undefined,
+    "category": product.category || undefined,
+    "offers": {
+      "@type": "Offer",
+      "price": Number(product.price),
+      "priceCurrency": "PYG",
+      "availability": product.en_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+    }
+  });
+
   // Cargamos imágenes adicionales
-  const imagesRes   = await fetch('/api/products/' + product.id + '/images');
-  const extraImages = await imagesRes.json();
+  let extraImages = [];
+  try {
+    const imagesRes = await fetch('/api/products/' + product.id + '/images');
+    if (imagesRes.ok) {
+      extraImages = await imagesRes.json();
+    }
+  } catch (e) {
+    console.error('Error cargando imágenes adicionales:', e);
+  }
   const allImages   = [{ url: product.image }].concat(extraImages);
 
   let currentImageIndex = 0;
@@ -42,7 +76,7 @@ async function openModal(productId) {
   const whatsappLink = 'https://wa.me/' + product.whatsapp + '?text=' + whatsappMessage;
 
   const thumbnailsHTML = allImages.map(function(img, index) {
-    return '<img src="' + img.url + '" ' +
+    return '<img src="' + escapeAttr(img.url) + '" ' +
       'class="thumbnail' + (index === 0 ? ' active' : '') + '" ' +
       'data-index="' + index + '" alt="Imagen ' + (index + 1) + '">';
   }).join('');
@@ -53,22 +87,22 @@ async function openModal(productId) {
     '<div class="modal-gallery">' +
       '<div class="gallery-main">' +
         (showArrows ? '<button class="gallery-arrow arrow-left" id="arrow-left">&#8592;</button>' : '') +
-        '<img src="' + allImages[0].url + '" class="gallery-main-img" id="gallery-main-img" alt="' + product.name + '">' +
+        '<img src="' + escapeAttr(allImages[0].url) + '" class="gallery-main-img" id="gallery-main-img" alt="' + escapeHTML(product.name) + '">' +
         (showArrows ? '<button class="gallery-arrow arrow-right" id="arrow-right">&#8594;</button>' : '') +
       '</div>' +
       (allImages.length > 1 ? '<div class="gallery-thumbs" id="gallery-thumbs">' + thumbnailsHTML + '</div>' : '') +
     '</div>' +
     '<div class="modal-info">' +
       '<div class="modal-tags">' +
-        '<span class="modal-category">' + product.category.toUpperCase() + '</span>' +
+        '<span class="modal-category">' + escapeHTML(product.category.toUpperCase()) + '</span>' +
         (product.subcategoria && product.subcategoria.trim() !== ''
-          ? '<span class="modal-subcategory">' + product.subcategoria.toUpperCase() + '</span>' : '') +
+          ? '<span class="modal-subcategory">' + escapeHTML(product.subcategoria.toUpperCase()) + '</span>' : '') +
         (product.brand && product.brand.trim() !== ''
-          ? '<span class="modal-brand">' + product.brand.toUpperCase() + '</span>' : '') +
+          ? '<span class="modal-brand">' + escapeHTML(product.brand.toUpperCase()) + '</span>' : '') +
       '</div>' +
-      '<h2 class="modal-name">' + product.name + '</h2>' +
+      '<h2 class="modal-name">' + escapeHTML(product.name) + '</h2>' +
       '<p class="modal-price">' + formatPrice(product.price) + '</p>' +
-      '<p class="modal-description">' + product.description + '</p>' +
+      '<p class="modal-description">' + escapeHTML(product.description) + '</p>' +
       '<a href="' + whatsappLink + '" target="_blank" class="btn-whatsapp" onclick="registrarClickWhatsapp(' + product.id + ')">' +
         '<span class="material-symbols-outlined">chat</span>' +
         'Consultar por WhatsApp' +
@@ -135,7 +169,7 @@ function openFullscreen(imageUrl, altText) {
       '<button class="fullscreen-close" id="fullscreen-close">' +
         '<span class="material-symbols-outlined">close</span>' +
       '</button>' +
-      '<img src="' + imageUrl + '" alt="' + altText + '" class="fullscreen-img" id="fullscreen-img">' +
+      '<img src="' + escapeAttr(imageUrl) + '" alt="' + escapeAttr(altText) + '" class="fullscreen-img" id="fullscreen-img">' +
     '</div>';
 
   document.body.appendChild(overlay);
@@ -152,15 +186,6 @@ function openFullscreen(imageUrl, altText) {
     img.style.transform  = isZoomed ? 'scale(1.8)' : 'scale(1)';
     img.style.transition = 'transform 0.3s ease';
     img.classList.toggle('zoomed', isZoomed);
-  });
-
-  img.addEventListener('click', function(e) {
-    e.stopPropagation();
-    isZoomed = !isZoomed;
-    img.style.transform  = isZoomed ? 'scale(1.8)' : 'scale(1)';
-    img.style.transition = 'transform 0.3s ease';
-    img.classList.toggle('zoomed', isZoomed);
-    // toggle(clase, condición) agrega o quita según isZoomed
   });
 
   // Click en el overlay (fondo oscuro) → cerrar

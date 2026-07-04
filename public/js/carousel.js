@@ -8,8 +8,14 @@
 // initCarousel() — carrusel de productos destacados
 // ------------------------------------------------------------
 async function initCarousel() {
-  const res      = await fetch('/api/products/destacados');
-  const products = await res.json();
+  let products;
+  try {
+    const res = await fetch('/api/products/destacados');
+    products = await res.json();
+  } catch (e) {
+    console.error('Error cargando carrusel:', e);
+    return;
+  }
 
   const track   = document.getElementById('carousel-track');
   const dotsEl  = document.getElementById('carousel-dots');
@@ -34,11 +40,11 @@ async function initCarousel() {
     const whatsappLink = 'https://wa.me/' + product.whatsapp + '?text=' + whatsappMsg;
 
     slide.innerHTML =
-      '<div class="carousel-bg" style="background-image: url(\'' + product.image + '\')"></div>' +
+      '<div class="carousel-bg" style="background-image: url(\'' + encodeURI(product.image || '') + '\')"></div>' +
       '<div class="carousel-overlay"></div>' +
       '<div class="carousel-content">' +
         '<span class="carousel-category">' + product.category.toUpperCase() + '</span>' +
-        '<h2 class="carousel-title">' + product.name + '</h2>' +
+        '<h2 class="carousel-title">' + escapeHTML(product.name) + '</h2>' +
         '<p class="carousel-price">' + formatPrice(product.price) + '</p>' +
         '<div class="carousel-actions">' +
           '<button class="btn-carousel-detail" data-id="' + product.id + '">Ver detalle</button>' +
@@ -89,8 +95,14 @@ async function initCarousel() {
 // initHighlightSections() — secciones de promociones y destacados
 // ------------------------------------------------------------
 async function initHighlightSections() {
-  const resPromo    = await fetch('/api/products/promociones');
-  const promociones = await resPromo.json();
+  let promociones, destacados;
+  try {
+    const resPromo = await fetch('/api/products/promociones');
+    promociones = await resPromo.json();
+  } catch (e) {
+    console.error('Error cargando promociones:', e);
+    promociones = [];
+  }
 
   if (promociones.length > 0) {
     document.getElementById('section-promociones').style.display = 'block';
@@ -104,31 +116,26 @@ async function initHighlightSections() {
     const btnPromo = document.getElementById('btn-ver-mas-promociones');
     if (btnPromo) {
       btnPromo.style.display = promociones.length > 4 ? 'block' : 'none';
-      // Solo mostramos el botón si hay más de 4 productos
       btnPromo.addEventListener('click', function() {
         currentFilter       = "todos";
         currentBrand        = "all";
         currentSubcategoria = "all";
         onlyOferta          = false;
-        // Filtramos por promociones activas
+        onlyStock           = false;
         document.querySelector('.search-input').value = '';
-        // Usamos el filtro de solo oferta del sidebar
+        // Mostramos todos los productos — las promos ya tienen badge 🔥
         renderProducts(1);
-        // Después de renderizar, activamos el filtro de promoción
-        setTimeout(function() {
-          const ofertaCheck = document.getElementById('filter-only-oferta');
-          if (ofertaCheck) {
-            ofertaCheck.checked = true;
-            onlyOferta = true;
-            renderProducts(1);
-          }
-        }, 500);
       });
     }
   }
 
-  const resDesc    = await fetch('/api/products/destacados');
-  const destacados = await resDesc.json();
+  try {
+    const resDesc = await fetch('/api/products/destacados');
+    destacados = await resDesc.json();
+  } catch (e) {
+    console.error('Error cargando destacados:', e);
+    destacados = [];
+  }
 
   if (destacados.length > 0) {
     document.getElementById('section-destacados').style.display = 'block';
@@ -137,7 +144,7 @@ async function initHighlightSections() {
       destacados.slice(0, 8)
     );
 
-    // Botón "Ver todos" → filtra por destacados
+    // Botón "Ver todos" → filtra solo destacados
     const btnDest = document.getElementById('btn-ver-mas-destacados');
     if (btnDest) {
       btnDest.style.display = destacados.length > 4 ? 'block' : 'none';
@@ -145,6 +152,9 @@ async function initHighlightSections() {
         currentFilter       = "todos";
         currentBrand        = "all";
         currentSubcategoria = "all";
+        onlyStock           = false;
+        onlyOferta          = false;
+        onlyDestacado       = true;
         document.querySelector('.search-input').value = '';
         renderProducts(1);
       });
