@@ -143,7 +143,6 @@ async function initHighlightSections() {
       document.getElementById('track-destacados'),
       destacados.slice(0, 8)
     );
-
     // Botón "Ver todos" → filtra solo destacados
     const btnDest = document.getElementById('btn-ver-mas-destacados');
     if (btnDest) {
