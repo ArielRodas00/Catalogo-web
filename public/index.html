@@ -224,6 +224,7 @@
 
       <!-- GRID DE PRODUCTOS FILTRADOS -->
       <div class="filter-content">
+        <div class="active-filters" id="active-filters"></div>
         <div class="product-grid" id="filtered-grid"></div>
         <div id="filtered-pagination" class="catalog-pagination"></div>
       </div>
@@ -364,15 +365,22 @@
 
 
     <!-- =====================================================
+         TOAST CONTAINER
+         ===================================================== -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- =====================================================
          SCRIPTS
          ===================================================== -->
 <!-- products.js eliminado (código muerto, los datos vienen de la API) -->
 <script src="storage.js"></script>
 <script src="js/state.js"></script>
+<script src="js/toast.js"></script>
 <script src="js/render.js"></script>
 <script src="js/filters.js"></script>
 <script src="js/modal.js"></script>
 <script src="js/carousel.js"></script>
+<script src="js/tilt.js"></script>
 <script src="js/main.js"></script>
 
 </body>

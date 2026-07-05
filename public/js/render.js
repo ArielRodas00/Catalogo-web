@@ -13,6 +13,29 @@ const productGrid  = document.querySelector('#home-products .product-grid');
 const filteredGrid = document.getElementById('filtered-grid');
 
 // ------------------------------------------------------------
+// renderSkeletons() — placeholders grises con shimmer
+// ------------------------------------------------------------
+function renderSkeletons(count) {
+  const gridHome = document.querySelector('#home-products .product-grid');
+  const gridFilter = document.getElementById('filtered-grid');
+  const isHomeVisible = document.getElementById('home-products') && document.getElementById('home-products').style.display !== 'none';
+  const isFilterVisible = document.getElementById('filter-view') && document.getElementById('filter-view').style.display !== 'none';
+  const grid = isFilterVisible ? gridFilter : gridHome;
+  if (!grid) return;
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    html += '<div class="skeleton-card">' +
+      '<div class="skeleton-image"></div>' +
+      '<div class="skeleton-body">' +
+        '<div class="skeleton-line medium"></div>' +
+        '<div class="skeleton-line short"></div>' +
+      '</div>' +
+    '</div>';
+  }
+  grid.innerHTML = html;
+}
+
+// ------------------------------------------------------------
 // createProductCard() — crea una tarjeta de producto
 // ------------------------------------------------------------
 function createProductCard(product) {
@@ -31,8 +54,8 @@ function createProductCard(product) {
     : '<p class="product-price">'     + formatPrice(product.price) + '</p>';
 
   card.innerHTML =
-    '<div class="product-image-wrap">' +
-      '<img src="' + escapeAttr(product.image) + '" alt="' + escapeHTML(product.name) + '" loading="lazy" class="product-image' + (!product.en_stock ? ' img-nostock' : '') + '">' +
+    '<div class="product-image-wrap product-img-wrap">' +
+      '<img src="' + escapeAttr(product.image) + '" alt="' + escapeHTML(product.name) + '" loading="lazy" class="product-image product-img' + (!product.en_stock ? ' img-nostock' : '') + '" onload="this.classList.add(\'loaded\')">' +
       (!product.en_stock ? '<div class="card-stock-overlay">Sin stock</div>' : '') +
       '<div class="card-badges">' + badgesHTML + '</div>' +
     '</div>' +
@@ -70,7 +93,7 @@ function renderHighlightTrack(track, products) {
 
     card.innerHTML =
       '<div style="position:relative">' +
-      '<img src="' + escapeAttr(product.image) + '" alt="' + escapeHTML(product.name) + '" loading="lazy" class="hp-image' + (!product.en_stock ? ' img-nostock' : '') + '">' +
+      '<img src="' + escapeAttr(product.image) + '" alt="' + escapeHTML(product.name) + '" loading="lazy" class="hp-image product-img' + (!product.en_stock ? ' img-nostock' : '') + '" onload="this.classList.add(\'loaded\')">' +
       (!product.en_stock ? '<div class="card-stock-overlay" style="height:140px">Sin stock</div>' : '') +
       '<div class="card-badges">' + badgesHTML + '</div>' +
       '</div>' +

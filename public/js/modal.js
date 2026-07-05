@@ -109,6 +109,14 @@ async function openModal(productId) {
       '</a>' +
     '</div>';
 
+  // Toast al hacer click en WhatsApp
+  var waBtn = document.querySelector('#modal-body .btn-whatsapp');
+  if (waBtn) {
+    waBtn.addEventListener('click', function() {
+      showToast('Abriendo WhatsApp...', 'success');
+    });
+  }
+
   // Fullscreen al hacer click en la imagen principal
   document.getElementById('gallery-main-img').addEventListener('click', function() {
     openFullscreen(allImages[currentImageIndex].url, product.name);

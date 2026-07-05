@@ -21,7 +21,7 @@ const metricsRouter    = require('./routes/metrics');
 const categoriesRouter = require('./routes/categories');
 
 const app  = express();
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 const PORT = process.env.PORT || 3000;
 const BASE_URL = process.env.BASE_URL || 'http://localhost:' + PORT;
 
@@ -153,4 +153,12 @@ process.on('SIGINT', async function() {
   console.log('SIGINT recibido. Cerrando pool...');
   await pool.end();
   process.exit(0);
+});
+
+process.on('unhandledRejection', function(reason, promise) {
+  console.error('Unhandled Rejection:', reason);
+});
+
+process.on('uncaughtException', function(err) {
+  console.error('Uncaught Exception:', err.message);
 });

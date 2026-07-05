@@ -48,6 +48,9 @@ async function renderProducts(page) {
   if (page === undefined) page = 1;
   currentPage = page;
 
+  // Mostrar skeleton antes del fetch
+  renderSkeletons(PRODUCTS_PER_PAGE);
+
   const searchInput = document.querySelector('.search-input');
   const result      = await getFilteredProducts();
 
@@ -62,6 +65,9 @@ async function renderProducts(page) {
   } else {
     showHomeView(result, page);
   }
+
+  // Actualizar chips de filtros activos
+  renderActiveFilters();
 }
 
 
@@ -404,6 +410,61 @@ function updateFilterBadge() {
     });
   }
 })();
+
+// ------------------------------------------------------------
+// renderActiveFilters() — chips de filtros activos removibles
+// ------------------------------------------------------------
+function renderActiveFilters() {
+  const container = document.getElementById('active-filters');
+  if (!container) return;
+  const searchInput = document.querySelector('.search-input');
+  const searchTerm = searchInput ? searchInput.value.trim() : '';
+  let html = '';
+  if (searchTerm) {
+    html += '<span class="filter-chip">Búsqueda: ' + escapeHTML(searchTerm) + '<button class="filter-chip-remove" type="button" data-filter="search">×</button></span>';
+  }
+  if (currentFilter && currentFilter !== 'all' && currentFilter !== 'todos') {
+    html += '<span class="filter-chip">Categoría: ' + escapeHTML(currentFilter) + '<button class="filter-chip-remove" type="button" data-filter="category">×</button></span>';
+  }
+  if (currentBrand && currentBrand !== 'all') {
+    html += '<span class="filter-chip">Marca: ' + escapeHTML(currentBrand) + '<button class="filter-chip-remove" type="button" data-filter="brand">×</button></span>';
+  }
+  if (currentSubcategoria && currentSubcategoria !== 'all') {
+    html += '<span class="filter-chip">Subcategoría: ' + escapeHTML(currentSubcategoria) + '<button class="filter-chip-remove" type="button" data-filter="subcategoria">×</button></span>';
+  }
+  if (html) {
+    html += '<button class="filter-chip-clear" id="btn-clear-filters">Limpiar todo</button>';
+  }
+  container.innerHTML = html;
+}
+
+// Delegación de eventos para los × de los chips
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('filter-chip-remove')) {
+    const filter = e.target.getAttribute('data-filter');
+    const searchInput = document.querySelector('.search-input');
+    if (filter === 'search') { if (searchInput) searchInput.value = ''; }
+    if (filter === 'category') { currentFilter = 'all'; }
+    if (filter === 'brand') { currentBrand = 'all'; }
+    if (filter === 'subcategoria') { currentSubcategoria = 'all'; }
+    renderProducts(1);
+  }
+});
+
+// Limpiar todos los filtros
+document.addEventListener('click', function(e) {
+  if (e.target.id === 'btn-clear-filters') {
+    const searchInput = document.querySelector('.search-input');
+    if (searchInput) searchInput.value = '';
+    currentFilter = 'all';
+    currentBrand = 'all';
+    currentSubcategoria = 'all';
+    onlyStock = false;
+    onlyOferta = false;
+    onlyDestacado = false;
+    renderProducts(1);
+  }
+});
 
 // ------------------------------------------------------------
 // Toggle vista grid / lista
