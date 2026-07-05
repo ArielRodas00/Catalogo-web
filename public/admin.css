@@ -1407,3 +1407,311 @@ h1, h2, h3 { font-family: var(--font-display); }
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* === Panel de recepción de mercadería === */
+.panel-header {
+  margin-bottom: 20px;
+}
+.panel-title {
+  font-family: var(--font-display, 'Poppins', sans-serif);
+  font-size: 1.5rem;
+  margin: 0 0 4px 0;
+  color: var(--color-text, #222);
+}
+.panel-subtitle {
+  color: var(--color-text-muted, #666);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.recepcion-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.recepcion-search {
+  position: relative;
+  flex: 1;
+  min-width: 250px;
+  max-width: 400px;
+}
+
+.recepcion-input {
+  width: 100%;
+  padding: 10px 14px 10px 40px;
+  border: 2px solid var(--color-border, #ddd);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: var(--color-input-bg, #fff);
+  color: var(--color-text, #222);
+  transition: border-color 0.2s;
+  outline: none;
+}
+.recepcion-input:focus {
+  border-color: #822;
+}
+
+.recepcion-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted, #999);
+  font-size: 1.3rem;
+}
+
+.recepcion-info {
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #666);
+  white-space: nowrap;
+}
+#recepcion-count {
+  font-weight: 700;
+  color: #822;
+}
+
+.recepcion-table-container {
+  overflow-x: auto;
+  border: 1px solid var(--color-border, #ddd);
+  border-radius: 8px;
+  background: var(--color-surface, #fff);
+}
+
+.recepcion-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.recepcion-table th {
+  background: #f7f8fa;
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #666);
+  border-bottom: 2px solid var(--color-border, #ddd);
+}
+
+.recepcion-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border, #eee);
+  vertical-align: middle;
+}
+
+.recepcion-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.th-producto { min-width: 250px; }
+.th-stock { width: 120px; text-align: center; }
+.th-cantidad { width: 160px; text-align: center; }
+.th-nuevo { width: 120px; text-align: center; }
+
+.td-producto { }
+.td-stock-actual { text-align: center; font-weight: 600; font-size: 1rem; }
+.td-cantidad { text-align: center; }
+.td-nuevo-stock { text-align: center; font-weight: 700; color: #2e7d32; font-size: 1.1rem; }
+
+.recepcion-producto-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.recepcion-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #f5f5f5;
+}
+
+.recepcion-producto-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text, #222);
+}
+
+.recepcion-producto-category {
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #888);
+}
+
+.recepcion-qty-input {
+  width: 80px;
+  padding: 8px 12px;
+  border: 2px solid var(--color-border, #ddd);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.2s;
+  background: var(--color-input-bg, #fff);
+  color: var(--color-text, #222);
+}
+.recepcion-qty-input:focus {
+  border-color: #822;
+  box-shadow: 0 0 0 3px rgba(136,34,34,0.15);
+}
+
+.recepcion-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  gap: 16px;
+}
+
+.recepcion-empty-state {
+  flex: 1;
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-text-muted, #999);
+}
+
+.recepcion-empty-state .material-symbols-outlined {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+
+.recepcion-empty-state p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.recepcion-no-results {
+  text-align: center;
+  padding: 40px !important;
+  color: var(--color-text-muted, #999);
+}
+
+.btn-confirmar-recepcion {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #822, #a33);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-confirmar-recepcion:hover:not(:disabled) {
+  background: linear-gradient(135deg, #a33, #b44);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(136,34,34,0.3);
+}
+.btn-confirmar-recepcion:disabled {
+  background: #bbb;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .recepcion-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .recepcion-search {
+    max-width: none;
+  }
+  .recepcion-info {
+    text-align: center;
+  }
+  .recepcion-table th,
+  .recepcion-table td {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+  .recepcion-qty-input {
+    width: 60px;
+    padding: 6px 8px;
+  }
+  .recepcion-thumb {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* ============================================================
+   BOTÓN RECIBIR EN PANEL DE STOCK
+   ============================================================ */
+.td-accion {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btn-recibir-stock {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #822, #a33);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 36px;
+  font-family: inherit;
+}
+.btn-recibir-stock:hover {
+  background: linear-gradient(135deg, #a33, #b44);
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   BOTÓN: GENERAR PEDIDO A PROVEEDOR (Stock → Recepción)
+   ============================================================ */
+.btn-generar-pedido {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #2e7d32, #43a047);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  transition: all 0.2s;
+  font-family: inherit;
+  margin-top: 16px;
+}
+.btn-generar-pedido:hover {
+  background: linear-gradient(135deg, #43a047, #66bb6a);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(46,125,50,0.3);
+}
+
+.stock-footer-actions {
+  padding: 0 20px 20px;
+}
+
+/* Checkbox en el thead de stock */
+#check-all-stock {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #822;
+}
+
+/* Checkbox individual en filas de stock - reforce existing */
+.stock-check-item {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #822;
+}

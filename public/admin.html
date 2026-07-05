@@ -72,6 +72,7 @@
         <span class="material-symbols-outlined">inventory</span>
         Stock
       </button>
+      <button class="admin-tab" data-tab="recepcion"><span class="material-symbols-outlined">assignment</span> Recepción</button>
     </div>
 
     <div class="admin-body">
@@ -81,7 +82,7 @@
 
         <!-- Selector de período -->
         <div class="metrics-header">
-          <h2 class="metrics-title">Métricas del catálogo</h2>
+          <h2 class="metrics-title"><span class="material-symbols-outlined" style="font-size:1.5rem;vertical-align:middle;margin-right:4px">bar_chart</span> Métricas del catálogo</h2>
           <select id="metrics-period" class="admin-select">
             <option value="7d">Últimos 7 días</option>
             <option value="30d" selected>Últimos 30 días</option>
@@ -143,7 +144,7 @@
       <!-- PANEL DE STOCK -->
       <div id="panel-stock" style="display:none">
         <div class="stock-header">
-          <h2 class="metrics-title">Control de stock</h2>
+          <h2 class="metrics-title"><span class="material-symbols-outlined" style="font-size:1.5rem;vertical-align:middle;margin-right:4px">inventory</span> Control de stock</h2>
           <div class="stock-header-actions">
             <button id="btn-export-stock" class="btn-primary">
               <span class="material-symbols-outlined">download</span>
@@ -165,8 +166,7 @@
 
         <!-- Selector: Marcar todos / Desmarcar todos -->
         <div class="stock-toolbar">
-          <label class="stock-check-all">
-            <input type="checkbox" id="check-all-stock">
+          <label class="stock-check-all" for="check-all-stock">
             <span>Marcar todos</span>
           </label>
           <span class="stock-count" id="stock-count"></span>
@@ -178,7 +178,9 @@
             <table class="products-table" id="table-stock">
               <thead>
                 <tr>
-                  <th style="width:40px">Sol.</th>
+                  <th style="width:40px">
+                    <input type="checkbox" id="check-all-stock" title="Seleccionar todos">
+                  </th>
                   <th>Producto</th>
                   <th>Categoría</th>
                   <th>Stock</th>
@@ -195,6 +197,55 @@
             <span class="material-symbols-outlined" style="font-size:48px;color:#aaa">check_circle</span>
             <p>No hay productos en esta categoría 🎉</p>
           </div>
+          <div class="stock-footer-actions">
+            <button id="btn-generar-pedido" class="btn-generar-pedido" style="display:none">
+              📋 Generar pedido a proveedor (<span id="pedido-count">0</span>)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL DE RECEPCIÓN DE MERCADERÍA -->
+      <div id="panel-recepcion" class="admin-panel-content" style="display:none">
+        <div class="panel-header">
+          <h2 class="panel-title"><span class="material-symbols-outlined" style="font-size:1.5rem;vertical-align:middle;margin-right:4px">move_to_inbox</span> Recepción de mercadería</h2>
+          <p class="panel-subtitle">Agregá stock a múltiples productos de una sola vez</p>
+        </div>
+        
+        <div class="recepcion-toolbar">
+          <div class="recepcion-search">
+            <input type="text" id="recepcion-search" placeholder="Buscar producto por nombre..." class="recepcion-input" autocomplete="off">
+            <span class="material-symbols-outlined recepcion-search-icon">search</span>
+          </div>
+          <div class="recepcion-info" id="recepcion-info">
+            <span id="recepcion-count">0</span> productos listos para recibir
+          </div>
+        </div>
+        
+        <div class="recepcion-table-container">
+          <table class="recepcion-table" id="recepcion-table">
+            <thead>
+              <tr>
+                <th class="th-producto">Producto</th>
+                <th class="th-stock">Stock actual</th>
+                <th class="th-cantidad">Cantidad a recibir</th>
+                <th class="th-nuevo">Nuevo stock</th>
+              </tr>
+            </thead>
+            <tbody id="recepcion-tbody">
+              <!-- Se llena con JS -->
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="recepcion-footer">
+          <div id="recepcion-empty" class="recepcion-empty-state">
+            <span class="material-symbols-outlined">inventory_2</span>
+            <p>Buscá productos para comenzar a recibir mercadería</p>
+          </div>
+          <button id="btn-confirmar-recepcion" class="btn-confirmar-recepcion" disabled>
+            <span class="material-symbols-outlined">check_circle</span> Confirmar Recepción (<span id="confirm-count">0</span>)
+          </button>
         </div>
       </div>
 

@@ -343,4 +343,56 @@ router.delete('/images/:imageId', apiLimiter, authenticateToken, async function(
   }
 });
 
+// --- Batch: Recepción de mercadería ---
+const batchLimiter = rateLimit({ windowMs: 60 * 1000, max: 10 });
+
+router.post('/batch-stock', authenticateToken, batchLimiter, async function(req, res, next) {
+  try {
+    const items = req.body.items;
+    
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Se requiere un array de items' });
+    }
+    
+    if (items.length > 50) {
+      return res.status(400).json({ error: 'Máximo 50 productos por lote' });
+    }
+    
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      for (const item of items) {
+        const id = Number(item.id);
+        const quantity = Number(item.quantity);
+        
+        if (isNaN(id) || isNaN(quantity) || quantity < 0) {
+          throw new Error('Datos inválidos para el producto ID: ' + item.id);
+        }
+        
+        const result = await client.query(
+          'UPDATE productos SET stock_cantidad = stock_cantidad + $1, en_stock = true WHERE id = $2 RETURNING id, name, stock_cantidad',
+          [quantity, id]
+        );
+        
+        if (result.rows.length === 0) {
+          throw new Error('Producto ID ' + id + ' no encontrado');
+        }
+      }
+      
+      await client.query('COMMIT');
+      
+      res.json({ message: 'Stock actualizado correctamente', count: items.length });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

@@ -16,54 +16,97 @@
       },
       "color": "#2563eb"
     },
-    "reviewer": {
-      "description": "Revisa código, bugs y código muerto. Salida estructurada STATUS: APPROVED/REJECTED.",
+    "explorador": {
+      "description": "Explora el código base para entender arquitectura, dependencias y flujos.",
       "model": "opencode-go/deepseek-v4-flash",
-      "prompt": "{file:.opencode/agents/reviewer.md}",
+      "prompt": "{file:.opencode/agents/explorador.md}",
       "temperature": 0.1,
       "permission": {
         "edit": "deny",
-        "bash": "deny"
+        "bash": "deny",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow"
       }
     },
-    "developer": {
-      "description": "Implementa cambios Node.js/Express siguiendo general-rules.md. Planifica antes de escribir.",
+    "implementador": {
+      "description": "Implementa cambios de código en Node.js/Express siguiendo las convenciones del proyecto.",
       "model": "opencode-go/deepseek-v4-flash",
-      "prompt": "{file:.opencode/agents/developer.md}",
+      "prompt": "{file:.opencode/agents/implementador.md}",
       "temperature": 0.2,
       "permission": {
         "edit": "allow",
-        "bash": "allow"
+        "bash": "allow",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow"
       }
     },
-    "security-auditor": {
-      "description": "Auditoría OWASP Top 10, JWT, SQLi, XSS. Salida estructurada STATUS: APPROVED/REJECTED.",
+    "revisor": {
+      "description": "Revisa código en busca de bugs, código muerto y malas prácticas.",
       "model": "opencode-go/deepseek-v4-flash",
-      "prompt": "{file:.opencode/agents/security-auditor.md}",
+      "prompt": "{file:.opencode/agents/revisor.md}",
       "temperature": 0.1,
       "permission": {
         "edit": "deny",
-        "bash": "deny"
+        "bash": "deny",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow"
       }
     },
-    "ux-auditor": {
-      "description": "Auditor UX/UI contra criterios-diseno-ux.md. Valida status codes HTTP. Salida STATUS.",
+    "diseniador": {
+      "description": "Auditor UX/UI y diseño visual. Puede buscar referencias web.",
       "model": "opencode-go/deepseek-v4-flash",
-      "prompt": "{file:.opencode/agents/ux-auditor.md}",
+      "prompt": "{file:.opencode/agents/diseniador.md}",
       "temperature": 0.1,
       "permission": {
         "edit": "deny",
-        "bash": "deny"
+        "bash": "deny",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "webfetch": "allow"
       }
     },
-    "db-specialist": {
-      "description": "Optimización PostgreSQL, índices y EXPLAIN ANALYZE.",
+    "tester": {
+      "description": "Ejecuta tests del proyecto. Por ahora sin framework configurado.",
       "model": "opencode-go/deepseek-v4-flash",
-      "prompt": "{file:.opencode/agents/db-specialist.md}",
+      "prompt": "{file:.opencode/agents/tester.md}",
+      "temperature": 0.1,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow"
+      }
+    },
+    "seguridad": {
+      "description": "Auditor de seguridad OWASP, JWT, SQLi, XSS. Puede buscar vulnerabilidades online.",
+      "model": "opencode-go/deepseek-v4-flash",
+      "prompt": "{file:.opencode/agents/seguridad.md}",
       "temperature": 0.1,
       "permission": {
         "edit": "deny",
-        "bash": "allow"
+        "bash": "deny",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "webfetch": "allow"
+      }
+    },
+    "documentador": {
+      "description": "Crea y mantiene documentación del proyecto en archivos .md.",
+      "model": "opencode-go/deepseek-v4-flash",
+      "prompt": "{file:.opencode/agents/documentador.md}",
+      "temperature": 0.2,
+      "permission": {
+        "edit": "allow",
+        "bash": "deny",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow"
       }
     }
   }
