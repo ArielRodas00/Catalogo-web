@@ -206,6 +206,12 @@ function showHomeView(result, page) {
 async function showFilterView(result, page) {
   isFilterView = true;
 
+  // Reset sidebar visibility para mobile/tablet (sin animación al cargar)
+  const sidebar = document.querySelector('.filter-sidebar');
+  if (sidebar) sidebar.classList.remove('visible');
+  const toggle = document.getElementById('btn-filter-toggle');
+  if (toggle) toggle.classList.remove('active');
+
   document.getElementById('hero-carousel').style.display       = 'none';
   document.getElementById('section-promociones').style.display = 'none';
   document.getElementById('section-destacados').style.display  = 'none';

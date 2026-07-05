@@ -90,7 +90,9 @@ async function init() {
   currentSubcategoria = "all";
 
   document.getElementById('btn-filter-toggle').addEventListener('click', function() {
-    document.querySelector('.filter-sidebar').classList.toggle('visible');
+    const sidebar = document.querySelector('.filter-sidebar');
+    sidebar.classList.toggle('visible');
+    this.classList.toggle('active');
   });
 
   document.getElementById('btn-back-home').addEventListener('click', function() {

@@ -1,16 +1,16 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode-go/glm-5.2",
+  "model": "opencode-go/deepseek-v4-flash",
   "default_agent": "orquestador",
   "agent": {
     "orquestador": {
-      "description": "Orquestador principal (GLM 5.2). Coordina, delega y consolida reportes. Prohibido bash.",
+      "description": "Orquestador principal (DeepSeek V4 Flash). Coordina, delega y consolida reportes. Prohibido bash.",
       "mode": "primary",
-      "model": "opencode-go/glm-5.2",
+      "model": "opencode-go/deepseek-v4-flash",
       "prompt": "{file:.opencode/agents/orquestador.md}",
       "temperature": 0.5,
       "permission": {
-        "edit": "ask",
+        "edit": "allow",
         "bash": "deny",
         "task": "allow"
       },
@@ -18,7 +18,7 @@
     },
     "reviewer": {
       "description": "Revisa código, bugs y código muerto. Salida estructurada STATUS: APPROVED/REJECTED.",
-      "model": "opencode-go/deepseek-v4-pro",
+      "model": "opencode-go/deepseek-v4-flash",
       "prompt": "{file:.opencode/agents/reviewer.md}",
       "temperature": 0.1,
       "permission": {
@@ -28,17 +28,17 @@
     },
     "developer": {
       "description": "Implementa cambios Node.js/Express siguiendo general-rules.md. Planifica antes de escribir.",
-      "model": "opencode-go/deepseek-v4-pro",
+      "model": "opencode-go/deepseek-v4-flash",
       "prompt": "{file:.opencode/agents/developer.md}",
       "temperature": 0.2,
       "permission": {
         "edit": "allow",
-        "bash": "ask"
+        "bash": "allow"
       }
     },
     "security-auditor": {
       "description": "Auditoría OWASP Top 10, JWT, SQLi, XSS. Salida estructurada STATUS: APPROVED/REJECTED.",
-      "model": "opencode-go/glm-5.2",
+      "model": "opencode-go/deepseek-v4-flash",
       "prompt": "{file:.opencode/agents/security-auditor.md}",
       "temperature": 0.1,
       "permission": {
@@ -57,13 +57,13 @@
       }
     },
     "db-specialist": {
-      "description": "Optimización PostgreSQL, índices y EXPLAIN ANALYZE. Puede solicitar bash para queries.",
-      "model": "opencode-go/deepseek-v4-pro",
+      "description": "Optimización PostgreSQL, índices y EXPLAIN ANALYZE.",
+      "model": "opencode-go/deepseek-v4-flash",
       "prompt": "{file:.opencode/agents/db-specialist.md}",
       "temperature": 0.1,
       "permission": {
         "edit": "deny",
-        "bash": "ask"
+        "bash": "allow"
       }
     }
   }

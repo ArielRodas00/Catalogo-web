@@ -799,59 +799,6 @@ h1, h2, h3 { font-family: var(--font-display); }
     font-size: 0.82rem;
   }
 
-  .filter-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .filter-content {
-    order: 0;
-  }
-
-  .filter-sidebar {
-    order: 1;
-    position: static;
-    display: none;
-    margin-top: 12px;
-  }
-
-  .filter-sidebar.visible {
-    display: block;
-  }
-
-  /* Botón toggle filtros */
-  .btn-filter-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 8px 14px;
-    background: #822;
-    color: #fff;
-    border: none;
-    border-radius: 20px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    min-height: 44px;
-    position: relative;
-  }
-
-  .filter-active-badge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    background: #f39c12;
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
   /* Footer mobile */
   .footer {
     padding: 32px 16px 0;
@@ -2100,15 +2047,95 @@ h1, h2, h3 { font-family: var(--font-display); }
 @media (max-width: 768px) {
   .filter-layout {
     grid-template-columns: 1fr;
+    position: relative;  /* para que el sidebar absolute se posicione relativo a este contenedor */
   }
 
+  .filter-content {
+    order: 0;
+  }
+
+  /* Sidebar oculto por defecto — overlay flotante debajo del botón "Filtros" */
   .filter-sidebar {
-    position: static;
-    /* En mobile el sidebar no es sticky */
+    position: absolute;
+    top: 0;          /* al inicio del .filter-layout, justo debajo del botón "Filtros" */
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--color-surface, #fff);
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease;
+    padding: 0 16px;
+  }
+
+  .filter-sidebar.visible {
+    max-height: 800px;
+    opacity: 1;
+    padding: 16px;
   }
 
   .product-grid--3col {
     grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Botón toggle filtros — pill shape moderno */
+  .btn-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-primary, #822);
+    color: #fff;
+    border: none;
+    border-radius: 24px;
+    padding: 8px 16px;
+    min-height: 44px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: var(--font-display, 'Segoe UI', sans-serif);
+    font-weight: 600;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+    position: relative;
+  }
+
+  .btn-filter-toggle:hover {
+    background: #a33 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(136, 34, 34, 0.3);
+  }
+
+  .btn-filter-toggle:active {
+    transform: translateY(0);
+  }
+
+  .btn-filter-toggle.active {
+    background: #a33 !important;
+  }
+
+  .btn-filter-toggle .material-symbols-outlined {
+    transition: transform 0.3s ease;
+  }
+
+  .btn-filter-toggle.active .material-symbols-outlined {
+    transform: rotate(180deg);
+  }
+
+  .filter-active-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #f39c12;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 

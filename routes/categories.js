@@ -6,10 +6,7 @@ const pool    = require('../db');
 router.get('/', async function(req, res, next) {
   try {
     const result = await pool.query(
-      'SELECT DISTINCT category, subcategoria ' +
-      'FROM productos ' +
-      'WHERE subcategoria IS NOT NULL AND subcategoria != \'\' ' +
-      'ORDER BY category, subcategoria'
+      'SELECT DISTINCT category, subcategoria FROM productos ORDER BY category, subcategoria'
     );
 
     const grouped = {};
@@ -17,7 +14,9 @@ router.get('/', async function(req, res, next) {
       if (!grouped[row.category]) {
         grouped[row.category] = [];
       }
-      grouped[row.category].push(row.subcategoria);
+      if (row.subcategoria && row.subcategoria.trim() !== '') {
+        grouped[row.category].push(row.subcategoria);
+      }
     });
 
     res.json(grouped);
