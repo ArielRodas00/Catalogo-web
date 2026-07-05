@@ -27,22 +27,29 @@ router.get('/', getLimiter, async function(req, res, next) {
     const values     = [];
     let   paramCount = 1;
 
+    // Filtros multi-seleccion: soportar arrays separados por coma
     if (category && category !== 'all' && category !== 'todos') {
-      conditions.push('category = $' + paramCount);
-      values.push(category);
-      paramCount++;
+      const cats = category.split(',');
+      const placeholders = cats.map(function(_, i) { return '$' + (paramCount + i); }).join(',');
+      conditions.push('category IN (' + placeholders + ')');
+      values.push.apply(values, cats);
+      paramCount += cats.length;
     }
 
     if (subcategoria && subcategoria !== 'all') {
-      conditions.push('subcategoria = $' + paramCount);
-      values.push(subcategoria);
-      paramCount++;
+      const subs = subcategoria.split(',');
+      const placeholders = subs.map(function(_, i) { return '$' + (paramCount + i); }).join(',');
+      conditions.push('subcategoria IN (' + placeholders + ')');
+      values.push.apply(values, subs);
+      paramCount += subs.length;
     }
 
     if (brand && brand !== 'all') {
-      conditions.push('brand = $' + paramCount);
-      values.push(brand);
-      paramCount++;
+      const brands = brand.split(',');
+      const placeholders = brands.map(function(_, i) { return '$' + (paramCount + i); }).join(',');
+      conditions.push('brand IN (' + placeholders + ')');
+      values.push.apply(values, brands);
+      paramCount += brands.length;
     }
 
     if (en_stock === 'true') {

@@ -2011,7 +2011,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   color: var(--color-primary);
 }
 
-.sidebar-check {
+.sidebar-checkbox {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2021,11 +2021,51 @@ h1, h2, h3 { font-family: var(--font-display); }
   padding: 4px 0;
 }
 
-.sidebar-check input {
+.sidebar-checkbox input {
   accent-color: var(--color-primary);
   width: 15px;
   height: 15px;
   cursor: pointer;
+}
+
+/* === Sidebar filter toggle buttons === */
+.sidebar-filter-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.sidebar-check {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-border, #ddd);
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-left: 8px;
+  color: transparent;       /* oculta ✓ cuando no está seleccionado */
+}
+
+.sidebar-check.checked {
+  color: #fff;              /* muestra ✓ solo cuando está seleccionado */
+  background: var(--color-primary, #c1121f);
+  border-color: var(--color-primary, #c1121f);
+}
+
+.sidebar-check .material-symbols-outlined {
+  scale: 1;
+  font-size: 14px;
 }
 
 .sidebar-select {
@@ -2124,6 +2164,8 @@ h1, h2, h3 { font-family: var(--font-display); }
   }
 
   .btn-filter-toggle .material-symbols-outlined {
+    scale: 1;
+    font-size: 20px;
     transition: transform 0.3s ease;
   }
 

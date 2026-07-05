@@ -117,11 +117,14 @@ async function initHighlightSections() {
     if (btnPromo) {
       btnPromo.style.display = promociones.length > 4 ? 'block' : 'none';
       btnPromo.addEventListener('click', function() {
-        currentFilter       = "todos";
-        currentBrand        = "all";
-        currentSubcategoria = "all";
-        onlyOferta          = false;
-        onlyStock           = false;
+        currentFilter        = "todos";
+        currentBrand         = "all";
+        currentSubcategoria  = "all";
+        selectedCategories   = [];
+        selectedBrands       = [];
+        selectedSubcategorias = [];
+        onlyOferta           = false;
+        onlyStock            = false;
         document.querySelector('.search-input').value = '';
         // Mostramos todos los productos — las promos ya tienen badge 🔥
         renderProducts(1);
@@ -148,12 +151,15 @@ async function initHighlightSections() {
     if (btnDest) {
       btnDest.style.display = destacados.length > 4 ? 'block' : 'none';
       btnDest.addEventListener('click', function() {
-        currentFilter       = "todos";
-        currentBrand        = "all";
-        currentSubcategoria = "all";
-        onlyStock           = false;
-        onlyOferta          = false;
-        onlyDestacado       = true;
+        currentFilter        = "todos";
+        currentBrand         = "all";
+        currentSubcategoria  = "all";
+        selectedCategories   = [];
+        selectedBrands       = [];
+        selectedSubcategorias = [];
+        onlyStock            = false;
+        onlyOferta           = false;
+        onlyDestacado        = true;
         document.querySelector('.search-input').value = '';
         renderProducts(1);
       });

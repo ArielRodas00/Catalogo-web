@@ -10,6 +10,10 @@ const PRODUCTS_PER_PAGE = 24;
 let currentFilter       = "all";
 let currentBrand        = "all";
 let currentSubcategoria = "all";
+// Arrays para selección múltiple
+let selectedCategories     = [];  // categorias seleccionadas (array)
+let selectedBrands         = [];  // marcas seleccionadas (array)
+let selectedSubcategorias  = [];  // subcategorias seleccionadas (array)
 let currentPage         = 1;
 let currentOrder        = "reciente";
 let onlyStock           = false;

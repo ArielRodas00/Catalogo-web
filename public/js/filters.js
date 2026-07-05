@@ -20,9 +20,9 @@ async function getFilteredProducts() {
     const params = {
       // Si el usuario está buscando, ignoramos categoría/marca/subcategoría
       // para que la búsqueda sea siempre global
-      category:     isSearching ? 'all' : currentFilter,
-      subcategoria: isSearching ? 'all' : currentSubcategoria,
-      brand:        isSearching ? 'all' : currentBrand,
+      category:     isSearching ? 'all' : (selectedCategories.length > 0 ? selectedCategories.join(',') : 'all'),
+      subcategoria: isSearching ? 'all' : (selectedSubcategorias.length > 0 ? selectedSubcategorias.join(',') : 'all'),
+      brand:        isSearching ? 'all' : (selectedBrands.length > 0 ? selectedBrands.join(',') : 'all'),
       search:       searchTerm,
       order:        currentOrder,
       page:         currentPage,
@@ -54,11 +54,11 @@ async function renderProducts(page) {
   const searchInput = document.querySelector('.search-input');
   const result      = await getFilteredProducts();
 
-  const hasFilter = currentFilter !== "all" ||
-                    currentBrand  !== "all" ||
-                    currentSubcategoria !== "all" ||
-                    searchInput.value.trim() !== '' ||
-                    currentFilter === "todos";
+  const hasFilter = selectedCategories.length > 0 ||
+                    selectedBrands.length > 0 ||
+                    selectedSubcategorias.length > 0 ||
+                    currentFilter === "todos" ||
+                    searchInput.value.trim() !== '';
 
   if (hasFilter) {
     showFilterView(result, page);
@@ -89,6 +89,9 @@ async function populateCategoryNav() {
     currentFilter       = "todos";
     currentBrand        = "all";
     currentSubcategoria = "all";
+    selectedCategories  = [];
+    selectedBrands      = [];
+    selectedSubcategorias = [];
     renderProducts(1);
   });
   dropdownMenu.appendChild(allItem);
@@ -117,9 +120,12 @@ async function populateCategoryNav() {
       li.querySelector('.cat-link').addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        currentFilter       = cat;
-        currentSubcategoria = "all";
-        currentBrand        = "all";
+        currentFilter        = cat;
+        currentSubcategoria  = "all";
+        currentBrand         = "all";
+        selectedCategories   = [cat];
+        selectedBrands       = [];
+        selectedSubcategorias = [];
         renderProducts(1);
       });
 
@@ -143,9 +149,13 @@ async function populateCategoryNav() {
         link.addEventListener('click', function(e) {
           e.preventDefault();
           e.stopPropagation();
-          currentSubcategoria = this.getAttribute('data-subcat');
-          currentFilter       = "all";
-          currentBrand        = "all";
+          var sub = this.getAttribute('data-subcat');
+          currentSubcategoria   = sub;
+          currentFilter         = "all";
+          currentBrand          = "all";
+          selectedSubcategorias = [sub];
+          selectedCategories    = [];
+          selectedBrands        = [];
           renderProducts(1);
         });
       });
@@ -154,9 +164,12 @@ async function populateCategoryNav() {
       li.innerHTML = '<a href="#" class="cat-link" data-category="' + escapeAttr(cat) + '">' + label + '</a>';
       li.querySelector('.cat-link').addEventListener('click', function(e) {
         e.preventDefault();
-        currentFilter       = cat;
-        currentSubcategoria = "all";
-        currentBrand        = "all";
+        currentFilter        = cat;
+        currentSubcategoria  = "all";
+        currentBrand         = "all";
+        selectedCategories   = [cat];
+        selectedBrands       = [];
+        selectedSubcategorias = [];
         renderProducts(1);
       });
     }
@@ -191,6 +204,9 @@ async function populateBrandNav() {
     currentBrand        = "all";
     currentFilter       = "todos";
     currentSubcategoria = "all";
+    selectedBrands      = [];
+    selectedCategories  = [];
+    selectedSubcategorias = [];
     renderProducts(1);
   });
   dropdownMenu.appendChild(allItem);
@@ -204,6 +220,9 @@ async function populateBrandNav() {
       currentBrand        = brand;
       currentFilter       = "todos";
       currentSubcategoria = "all";
+      selectedBrands      = [brand];
+      selectedCategories  = [];
+      selectedSubcategorias = [];
       renderProducts(1);
     });
     dropdownMenu.appendChild(li);
@@ -243,14 +262,16 @@ async function populateSidebar(currentFiltered) {
     // Botón volver
     const liBack = document.createElement('li');
     liBack.innerHTML =
-      '<a href="#" class="sidebar-filter-link sidebar-back">' +
+      '<button class="sidebar-filter-link sidebar-back" data-filter="back">' +
         '<span class="material-symbols-outlined">arrow_back</span>' +
         'Todas las categorías' +
-      '</a>';
-    liBack.querySelector('a').addEventListener('click', function(e) {
+      '</button>';
+    liBack.querySelector('.sidebar-back').addEventListener('click', function(e) {
       e.preventDefault();
       currentFilter       = "todos";
       currentSubcategoria = "all";
+      selectedCategories  = [];
+      selectedSubcategorias = [];
       renderProducts(1);
     });
     sidebarCats.appendChild(liBack);
@@ -258,29 +279,22 @@ async function populateSidebar(currentFiltered) {
     if (subcats.length > 0) {
       const liAll = document.createElement('li');
       liAll.innerHTML =
-        '<a href="#" class="sidebar-filter-link' + (currentSubcategoria === "all" ? ' active' : '') + '" data-subcat="all">' +
-          'Todos<span class="sidebar-count">' + currentFiltered.length + '</span>' +
-        '</a>';
-      liAll.querySelector('a').addEventListener('click', function(e) {
-        e.preventDefault();
-        currentSubcategoria = "all";
-        renderProducts(1);
-      });
+        '<button class="sidebar-filter-link' + (selectedSubcategorias.length === 0 ? ' active' : '') + '" data-filter="subcategoria" data-value="">' +
+          'Todos' +
+          '<span class="sidebar-check' + (selectedSubcategorias.length === 0 ? ' checked' : '') + '">✓</span>' +
+          '<span class="sidebar-count">' + currentFiltered.length + '</span>' +
+        '</button>';
       sidebarCats.appendChild(liAll);
 
       subcats.forEach(function(sub) {
-        const count = allProducts.filter(function(p) { return p.category === currentFilter && p.subcategoria === sub; }).length;
-        const li    = document.createElement('li');
+        var count = allProducts.filter(function(p) { return p.category === currentFilter && p.subcategoria === sub; }).length;
+        var li    = document.createElement('li');
         li.innerHTML =
-          '<a href="#" class="sidebar-filter-link' + (currentSubcategoria === sub ? ' active' : '') + '" data-subcat="' + escapeAttr(sub) + '">' +
-            sub.charAt(0).toUpperCase() + sub.slice(1) +
+          '<button class="sidebar-filter-link' + (selectedSubcategorias.indexOf(sub) !== -1 ? ' active' : '') + '" data-filter="subcategoria" data-value="' + escapeAttr(sub) + '">' +
+            escapeHTML(sub) +
+            '<span class="sidebar-check' + (selectedSubcategorias.indexOf(sub) !== -1 ? ' checked' : '') + '">✓</span>' +
             '<span class="sidebar-count">' + count + '</span>' +
-          '</a>';
-        li.querySelector('a').addEventListener('click', function(e) {
-          e.preventDefault();
-          currentSubcategoria = this.getAttribute('data-subcat');
-          renderProducts(1);
-        });
+          '</button>';
         sidebarCats.appendChild(li);
       });
     }
@@ -289,23 +303,17 @@ async function populateSidebar(currentFiltered) {
 
   } else {
     sidebarCats.innerHTML = '';
-    const cats = [...new Set(allProducts.map(function(p) { return p.category; }))];
+    var cats = [...new Set(allProducts.map(function(p) { return p.category; }))];
 
     cats.forEach(function(cat) {
-      const count = currentFiltered.filter(function(p) { return p.category === cat; }).length;
-      const li    = document.createElement('li');
+      var count = currentFiltered.filter(function(p) { return p.category === cat; }).length;
+      var li    = document.createElement('li');
       li.innerHTML =
-        '<a href="#" class="sidebar-filter-link" data-category="' + escapeAttr(cat) + '">' +
-          cat.charAt(0).toUpperCase() + cat.slice(1) +
+        '<button class="sidebar-filter-link' + (selectedCategories.indexOf(cat) !== -1 ? ' active' : '') + '" data-filter="category" data-value="' + escapeAttr(cat) + '">' +
+          escapeHTML(cat) +
+          '<span class="sidebar-check' + (selectedCategories.indexOf(cat) !== -1 ? ' checked' : '') + '">✓</span>' +
           '<span class="sidebar-count">' + count + '</span>' +
-        '</a>';
-      li.querySelector('.sidebar-filter-link').addEventListener('click', function(e) {
-        e.preventDefault();
-        currentFilter       = this.getAttribute('data-category');
-        currentSubcategoria = "all";
-        currentBrand        = "all";
-        renderProducts(1);
-      });
+        '</button>';
       sidebarCats.appendChild(li);
     });
 
@@ -313,48 +321,42 @@ async function populateSidebar(currentFiltered) {
   }
 
   // Marcas
-  const sidebarBrands = document.getElementById('sidebar-brands');
+  var sidebarBrands = document.getElementById('sidebar-brands');
   sidebarBrands.innerHTML = '';
 
-  const brands = [...new Set(
-    currentFiltered.map(function(p) { return p.brand; }).filter(function(b) { return b && b.trim() !== ''; })
+  var brands = [...new Set(
+    allProducts.map(function(p) { return p.brand; }).filter(function(b) { return b && b.trim() !== ''; })
   )];
 
   if (brands.length === 0) {
     sidebarBrands.innerHTML = '<li class="sidebar-empty">Sin marcas</li>';
   } else {
-    if (currentBrand !== "all") {
-      const liAll = document.createElement('li');
-      liAll.innerHTML = '<a href="#" class="sidebar-filter-link">Todas las marcas</a>';
-      liAll.querySelector('a').addEventListener('click', function(e) {
-        e.preventDefault();
-        currentBrand = "all";
-        renderProducts(1);
-      });
-      sidebarBrands.appendChild(liAll);
-    }
+    // Botón "Todas las marcas" siempre visible
+    var liAll = document.createElement('li');
+    liAll.innerHTML =
+      '<button class="sidebar-filter-link' + (selectedBrands.length === 0 ? ' active' : '') + '" data-filter="brand" data-value="__all__">' +
+        'Todas las marcas' +
+        '<span class="sidebar-check' + (selectedBrands.length === 0 ? ' checked' : '') + '">✓</span>' +
+      '</button>';
+    sidebarBrands.appendChild(liAll);
 
     brands.forEach(function(brand) {
-      const count = currentFiltered.filter(function(p) { return p.brand === brand; }).length;
-      const li    = document.createElement('li');
+      var count = currentFiltered.filter(function(p) { return p.brand === brand; }).length;
+      var li    = document.createElement('li');
       li.innerHTML =
-        '<a href="#" class="sidebar-filter-link' + (currentBrand === brand ? ' active' : '') + '" data-brand="' + escapeAttr(brand) + '">' +
-          brand.charAt(0).toUpperCase() + brand.slice(1) +
+        '<button class="sidebar-filter-link' + (selectedBrands.indexOf(brand) !== -1 ? ' active' : '') + '" data-filter="brand" data-value="' + escapeAttr(brand) + '">' +
+          escapeHTML(brand) +
+          '<span class="sidebar-check' + (selectedBrands.indexOf(brand) !== -1 ? ' checked' : '') + '">✓</span>' +
           '<span class="sidebar-count">' + count + '</span>' +
-        '</a>';
-      li.querySelector('a').addEventListener('click', function(e) {
-        e.preventDefault();
-        currentBrand = this.getAttribute('data-brand');
-        renderProducts(1);
-      });
+        '</button>';
       sidebarBrands.appendChild(li);
     });
   }
 
   // Checkboxes
-  const stockCheck     = document.getElementById('filter-only-stock');
-  const ofertaCheck    = document.getElementById('filter-only-oferta');
-  const destacadoCheck = document.getElementById('filter-only-destacado');
+  var stockCheck     = document.getElementById('filter-only-stock');
+  var ofertaCheck    = document.getElementById('filter-only-oferta');
+  var destacadoCheck = document.getElementById('filter-only-destacado');
 
   if (stockCheck) {
     stockCheck.checked  = onlyStock;
@@ -385,10 +387,7 @@ async function populateSidebar(currentFiltered) {
 function updateFilterBadge() {
   var badge = document.getElementById('filter-active-badge');
   if (!badge) return;
-  var count = 0;
-  if (currentFilter !== "all" && currentFilter !== "todos") count++;
-  if (currentBrand !== "all") count++;
-  if (currentSubcategoria !== "all") count++;
+  var count = selectedCategories.length + selectedBrands.length + selectedSubcategorias.length;
   if (onlyStock || onlyOferta || onlyDestacado) count++;
   if (count > 0) {
     badge.textContent = count;
@@ -396,6 +395,75 @@ function updateFilterBadge() {
   } else {
     badge.style.display = 'none';
   }
+}
+
+// ------------------------------------------------------------
+// Delegación: toggle de filtros en sidebar
+// ------------------------------------------------------------
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.sidebar-filter-link');
+  if (!btn) return;
+  // No aplicar toggle para el botón "Volver"
+  if (btn.getAttribute('data-filter') === 'back') return;
+  e.preventDefault();
+
+  var filter = btn.getAttribute('data-filter');
+  var value = btn.getAttribute('data-value');
+
+  if (filter === 'category') {
+    if (value === '') { selectedCategories = []; }
+    else { toggleFilterArray(selectedCategories, value); }
+  } else if (filter === 'brand') {
+    if (value === '' || value === '__all__') { selectedBrands = []; }
+    else { toggleFilterArray(selectedBrands, value); }
+  } else if (filter === 'subcategoria') {
+    if (value === '') { selectedSubcategorias = []; }
+    else { toggleFilterArray(selectedSubcategorias, value); }
+  }
+
+  // Sincronizar con variables legacy para compatibilidad
+  currentFilter = selectedCategories.length > 0 ? selectedCategories[0] : 'all';
+  currentBrand = selectedBrands.length > 0 ? selectedBrands[0] : 'all';
+  currentSubcategoria = selectedSubcategorias.length > 0 ? selectedSubcategorias[0] : 'all';
+
+  // Actualizar UI
+  btn.classList.toggle('active');
+  var check = btn.querySelector('.sidebar-check');
+  if (check) check.classList.toggle('checked');
+
+  // Recargar productos
+  renderProducts(1);
+  renderActiveFilters();
+});
+
+function toggleFilterArray(arr, value) {
+  var index = arr.indexOf(value);
+  if (index === -1) arr.push(value);
+  else arr.splice(index, 1);
+}
+
+function updateSidebarSelection() {
+  document.querySelectorAll('.sidebar-filter-link').forEach(function(btn) {
+    var filter = btn.getAttribute('data-filter');
+    var value = btn.getAttribute('data-value');
+    if (filter === 'back') return;
+    var isActive = false;
+
+    if (filter === 'category') isActive = selectedCategories.indexOf(value) !== -1;
+    else if (filter === 'brand') isActive = selectedBrands.indexOf(value) !== -1;
+    else if (filter === 'subcategoria') isActive = selectedSubcategorias.indexOf(value) !== -1;
+
+    // Para "Todos" (value vacío), activo si el array está vacío
+    if (value === '' || value === '__all__') {
+      if (filter === 'category') isActive = selectedCategories.length === 0;
+      else if (filter === 'brand') isActive = selectedBrands.length === 0;
+      else if (filter === 'subcategoria') isActive = selectedSubcategorias.length === 0;
+    }
+
+    btn.classList.toggle('active', isActive);
+    var check = btn.querySelector('.sidebar-check');
+    if (check) check.classList.toggle('checked', isActive);
+  });
 }
 
 // ------------------------------------------------------------
@@ -415,23 +483,28 @@ function updateFilterBadge() {
 // renderActiveFilters() — chips de filtros activos removibles
 // ------------------------------------------------------------
 function renderActiveFilters() {
-  const container = document.getElementById('active-filters');
+  var container = document.getElementById('active-filters');
   if (!container) return;
-  const searchInput = document.querySelector('.search-input');
-  const searchTerm = searchInput ? searchInput.value.trim() : '';
-  let html = '';
+  var searchInput = document.querySelector('.search-input');
+  var searchTerm = searchInput ? searchInput.value.trim() : '';
+  var html = '';
+
   if (searchTerm) {
-    html += '<span class="filter-chip">Búsqueda: ' + escapeHTML(searchTerm) + '<button class="filter-chip-remove" type="button" data-filter="search">×</button></span>';
+    html += '<span class="filter-chip">Búsqueda: ' + escapeHTML(searchTerm) + '<button class="filter-chip-remove" type="button" data-filter="search" data-value="">×</button></span>';
   }
-  if (currentFilter && currentFilter !== 'all' && currentFilter !== 'todos') {
-    html += '<span class="filter-chip">Categoría: ' + escapeHTML(currentFilter) + '<button class="filter-chip-remove" type="button" data-filter="category">×</button></span>';
-  }
-  if (currentBrand && currentBrand !== 'all') {
-    html += '<span class="filter-chip">Marca: ' + escapeHTML(currentBrand) + '<button class="filter-chip-remove" type="button" data-filter="brand">×</button></span>';
-  }
-  if (currentSubcategoria && currentSubcategoria !== 'all') {
-    html += '<span class="filter-chip">Subcategoría: ' + escapeHTML(currentSubcategoria) + '<button class="filter-chip-remove" type="button" data-filter="subcategoria">×</button></span>';
-  }
+
+  selectedCategories.forEach(function(cat) {
+    html += '<span class="filter-chip">' + escapeHTML(cat) + '<button class="filter-chip-remove" type="button" data-filter="category" data-value="' + escapeAttr(cat) + '">×</button></span>';
+  });
+
+  selectedBrands.forEach(function(brand) {
+    html += '<span class="filter-chip">' + escapeHTML(brand) + '<button class="filter-chip-remove" type="button" data-filter="brand" data-value="' + escapeAttr(brand) + '">×</button></span>';
+  });
+
+  selectedSubcategorias.forEach(function(sub) {
+    html += '<span class="filter-chip">' + escapeHTML(sub) + '<button class="filter-chip-remove" type="button" data-filter="subcategoria" data-value="' + escapeAttr(sub) + '">×</button></span>';
+  });
+
   if (html) {
     html += '<button class="filter-chip-clear" id="btn-clear-filters">Limpiar todo</button>';
   }
@@ -440,31 +513,49 @@ function renderActiveFilters() {
 
 // Delegación de eventos para los × de los chips
 document.addEventListener('click', function(e) {
-  if (e.target.classList.contains('filter-chip-remove')) {
-    const filter = e.target.getAttribute('data-filter');
-    const searchInput = document.querySelector('.search-input');
-    if (filter === 'search') { if (searchInput) searchInput.value = ''; }
-    if (filter === 'category') { currentFilter = 'all'; }
-    if (filter === 'brand') { currentBrand = 'all'; }
-    if (filter === 'subcategoria') { currentSubcategoria = 'all'; }
-    renderProducts(1);
-  }
+  var btn = e.target.closest('.filter-chip-remove');
+  if (!btn) return;
+
+  var filter = btn.getAttribute('data-filter');
+  var value = btn.getAttribute('data-value');
+  var searchInput = document.querySelector('.search-input');
+
+  if (filter === 'search') { if (searchInput) searchInput.value = ''; }
+  else if (filter === 'category') toggleFilterArray(selectedCategories, value);
+  else if (filter === 'brand') toggleFilterArray(selectedBrands, value);
+  else if (filter === 'subcategoria') toggleFilterArray(selectedSubcategorias, value);
+
+  renderProducts(1);
+  updateSidebarSelection();
 });
+
+function removeFromArray(arr, value) {
+  var index = arr.indexOf(value);
+  if (index !== -1) arr.splice(index, 1);
+}
 
 // Limpiar todos los filtros
 document.addEventListener('click', function(e) {
   if (e.target.id === 'btn-clear-filters') {
-    const searchInput = document.querySelector('.search-input');
-    if (searchInput) searchInput.value = '';
-    currentFilter = 'all';
-    currentBrand = 'all';
-    currentSubcategoria = 'all';
-    onlyStock = false;
-    onlyOferta = false;
-    onlyDestacado = false;
-    renderProducts(1);
+    clearAllFilters();
   }
 });
+
+function clearAllFilters() {
+  var searchInput = document.querySelector('.search-input');
+  if (searchInput) searchInput.value = '';
+  selectedCategories = [];
+  selectedBrands = [];
+  selectedSubcategorias = [];
+  currentFilter = 'all';
+  currentBrand = 'all';
+  currentSubcategoria = 'all';
+  onlyStock = false;
+  onlyOferta = false;
+  onlyDestacado = false;
+  renderProducts(1);
+  updateSidebarSelection();
+}
 
 // ------------------------------------------------------------
 // Toggle vista grid / lista

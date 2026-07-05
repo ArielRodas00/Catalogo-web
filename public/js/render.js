@@ -222,20 +222,20 @@ async function showFilterView(result, page) {
   const total      = result.total    || 0;
   const totalPages = result.totalPages || 1;
 
-  // Título dinámico
-  const searchInput = document.querySelector('.search-input');
-  let titulo = 'Resultados';
-  if (currentFilter === "todos") {
+  // Título dinámico desde arrays multi-selección
+  var searchInput = document.querySelector('.search-input');
+  var titulo = 'Resultados';
+
+  if (selectedCategories.length > 0) {
+    titulo = selectedCategories.map(function(c) { return c.charAt(0).toUpperCase() + c.slice(1); }).join(', ');
+  } else if (selectedSubcategorias.length > 0) {
+    titulo = selectedSubcategorias.map(function(s) { return s.charAt(0).toUpperCase() + s.slice(1); }).join(', ');
+  } else if (selectedBrands.length > 0) {
+    titulo = 'Marcas: ' + selectedBrands.map(function(b) { return b.charAt(0).toUpperCase() + b.slice(1); }).join(', ');
+  } else if (currentFilter === "todos") {
     titulo = 'Todos los productos';
-  } else if (currentFilter && currentFilter !== "all") {
-    titulo = currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1);
   }
-  if (currentSubcategoria && currentSubcategoria !== "all") {
-    titulo = currentSubcategoria.charAt(0).toUpperCase() + currentSubcategoria.slice(1);
-  }
-  if (currentBrand && currentBrand !== "all") {
-    titulo = 'Marca: ' + currentBrand.charAt(0).toUpperCase() + currentBrand.slice(1);
-  }
+
   if (searchInput.value.trim() !== '') {
     titulo = 'Búsqueda: "' + searchInput.value.trim() + '"';
   }

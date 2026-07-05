@@ -85,9 +85,12 @@ function initDropdowns() {
 }
 
 async function init() {
-  currentFilter       = "all";
-  currentBrand        = "all";
-  currentSubcategoria = "all";
+  currentFilter        = "all";
+  currentBrand         = "all";
+  currentSubcategoria  = "all";
+  selectedCategories   = [];
+  selectedBrands       = [];
+  selectedSubcategorias = [];
 
   document.getElementById('btn-filter-toggle').addEventListener('click', function() {
     const sidebar = document.querySelector('.filter-sidebar');
@@ -96,13 +99,16 @@ async function init() {
   });
 
   document.getElementById('btn-back-home').addEventListener('click', function() {
-      currentFilter       = "all";
-      currentBrand        = "all";
-      currentSubcategoria = "all";
-      onlyStock           = false;
-      onlyOferta          = false;
-      onlyDestacado       = false;
-      searchInput.value   = '';
+      currentFilter        = "all";
+      currentBrand         = "all";
+      currentSubcategoria  = "all";
+      selectedCategories   = [];
+      selectedBrands       = [];
+      selectedSubcategorias = [];
+      onlyStock            = false;
+      onlyOferta           = false;
+      onlyDestacado        = false;
+      searchInput.value    = '';
       renderProducts(1);
   });
 
