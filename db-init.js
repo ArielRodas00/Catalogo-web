@@ -40,7 +40,7 @@ async function init() {
     
     if (result.rows.length === 0) {
       // 3. Crear admin
-      const bcrypt = require('bcrypt');
+      const bcrypt = require('bcryptjs');
       const password = process.env.ADMIN_PASSWORD || 'admin123';
       const hash = await bcrypt.hash(password, 10);
       await pool.query(
