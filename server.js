@@ -1,10 +1,15 @@
 require('dotenv').config();
 
-const REQUIRED_ENV = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET'];
-const missing = REQUIRED_ENV.filter(function(key) { return !process.env[key]; });
-if (missing.length > 0) {
-  console.error('Faltan variables de entorno:', missing.join(', '));
-  process.exit(1);
+// Soporte para DATABASE_URL (Neon) o variables individuales (local)
+if (process.env.DATABASE_URL) {
+  console.log('Usando DATABASE_URL para conexion a BD');
+} else {
+  const REQUIRED_ENV = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET'];
+  const missing = REQUIRED_ENV.filter(function(key) { return !process.env[key]; });
+  if (missing.length > 0) {
+    console.error('Faltan variables de entorno:', missing.join(', '));
+    process.exit(1);
+  }
 }
 
 const express = require('express');
