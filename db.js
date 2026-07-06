@@ -25,6 +25,13 @@ const pool = new Pool(
       }
 );
 
+pool.on('connect', function(client) {
+  // Neon pooler (pgBouncer) no preserva search_path, lo fijamos en cada conexión
+  client.query('SET search_path TO public').catch(function(err) {
+    console.error('Error fijando search_path:', err.message);
+  });
+});
+
 pool.on('error', function(err) {
   console.error('Error inesperado en el pool de PostgreSQL:', err.message);
 });
