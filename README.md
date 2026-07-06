@@ -119,6 +119,43 @@ catalogo-backend/
 |--------|------|-------------|
 | GET | /api/categories | Listar categorias con subcategorias |
 
+## Deploy en Render + Neon
+
+### Requisitos
+- Cuenta en [render.com](https://render.com)
+- Cuenta en [neon.tech](https://neon.tech)
+
+### Pasos
+
+1. **Crear base de datos en Neon**
+   - Copiar la connection string: `postgresql://user:pass@ep-xxxx.us-east-2.aws.neon.tech/neondb?sslmode=require`
+
+2. **Configurar en Render**
+   - Crear Web Service conectando el repositorio de GitHub
+   - Build Command: `npm install`
+   - Start Command: `node server.js`
+   - Agregar variable de entorno: `DATABASE_URL` con la string de Neon
+
+3. **Inicializar la base de datos**
+   - Ejecutar localmente: `npm run init-db` (con `DATABASE_URL` configurada)
+   - O ejecutar en Render via shell: `node db-init.js`
+
+4. **Variables de entorno en Render**
+   | Variable | Valor |
+   |----------|-------|
+   | `DATABASE_URL` | Connection string de Neon |
+   | `JWT_SECRET` | Generar una segura |
+   | `ADMIN_USERNAME` | admin |
+   | `ADMIN_PASSWORD` | Password robusta |
+   | `CORS_ORIGIN` | URL de Render |
+   | `BASE_URL` | URL de Render |
+   | `NODE_ENV` | production |
+
+### Importante
+- Las imagenes subidas via Multer se pierden en cada redeploy de Render. Para produccion, migrar a Cloudinary o S3.
+- Neon tiene un tier gratuito de 0.5GB.
+- Render se duerme a los 15 min sin actividad (plan gratis).
+
 ## Versionado
 
 ```bash

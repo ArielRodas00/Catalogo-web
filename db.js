@@ -4,16 +4,26 @@
 
 const { Pool } = require('pg');
 
-const pool = new Pool({
-  host:     process.env.DB_HOST,
-  port:     Number(process.env.DB_PORT),
-  database: process.env.DB_NAME,
-  user:     process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  max:      Number(process.env.DB_POOL_MAX) || 20,
-  idleTimeoutMillis: 60000,
-  connectionTimeoutMillis: 5000
-});
+const pool = new Pool(
+  process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false },
+        max: Number(process.env.DB_POOL_MAX) || 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000
+      }
+    : {
+        host:     process.env.DB_HOST,
+        port:     Number(process.env.DB_PORT),
+        database: process.env.DB_NAME,
+        user:     process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        max:      Number(process.env.DB_POOL_MAX) || 20,
+        idleTimeoutMillis: 60000,
+        connectionTimeoutMillis: 5000
+      }
+);
 
 pool.on('error', function(err) {
   console.error('Error inesperado en el pool de PostgreSQL:', err.message);

@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.5.0
+### Preparacion para deploy en Render + Neon
+- db.js: soporte para DATABASE_URL (connection string de Neon con SSL)
+- db-init.js: nuevo script para cargar schema.sql y crear usuario admin
+- package.json: scripts start, dev e init-db agregados
+- .env: variable DATABASE_URL documentada (comentada por defecto)
+- El proyecto ahora funciona tanto en desarrollo local como en produccion
+
 ## v1.4.1
 ### Bugfix: Filtros multi-seleccion
 - Fix: marcas en sidebar ahora se obtienen del catalogo completo, no de productos filtrados
