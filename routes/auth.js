@@ -46,6 +46,7 @@ router.post('/login', loginLimiter, async function(req, res, next) {
     res.json({ token: token, username: admin.username });
 
   } catch (err) {
+    console.error('LOGIN ERROR:', err.message, err.stack);
     next(err);
   }
 });
