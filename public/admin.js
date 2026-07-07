@@ -690,8 +690,13 @@ document.getElementById('product-form').addEventListener('submit', async functio
     showToast('Producto agregado correctamente ✓');
   } else {
     productData.id = editingId;
-    await updateProduct(productData);
-    showToast('Producto actualizado correctamente ✓');
+    try {
+      await updateProduct(productData);
+      showToast('Producto actualizado correctamente ✓');
+    } catch (err) {
+      showToast('Error: ' + err.message, 'error');
+      return;
+    }
   }
 
   await renderAdminTable(currentAdminPage);

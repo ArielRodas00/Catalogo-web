@@ -85,6 +85,9 @@ async function updateProduct(product) {
     body:    JSON.stringify(product)
   });
   const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Error al actualizar');
+  }
   return data;
 }
 

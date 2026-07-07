@@ -42,11 +42,11 @@ function validateProduct(req, res, next) {
   }
   
   if (whatsapp !== undefined) {
-    if (typeof whatsapp !== 'string' || whatsapp.trim().length < 5) {
-      errors.push('El número de WhatsApp es requerido (mín. 5 caracteres)');
+    if (typeof whatsapp !== 'string' || (whatsapp.trim().length < 5 && whatsapp.trim() !== '0000')) {
+      errors.push('El número de WhatsApp debe tener al menos 5 caracteres');
     }
   } else if (!isUpdate) {
-    errors.push('El número de WhatsApp es requerido (mín. 5 caracteres)');
+    errors.push('El número de WhatsApp es requerido');
   }
 
   if (errors.length > 0) {
