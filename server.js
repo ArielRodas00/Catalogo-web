@@ -40,16 +40,12 @@ app.use(requestLogger);
 app.use(express.static('public', {
   maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
   etag: true,
-  charset: 'utf-8'
-}));
-
-// Forzar UTF-8 en respuestas HTML
-app.use(function(req, res, next) {
-  if (req.path.endsWith('.html') || req.path.endsWith('.js') || req.path === '/') {
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  setHeaders: function(res, path) {
+    if (path.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    }
   }
-  next();
-});
+}));
 
 // --- SEO: robots.txt ---
 app.get('/robots.txt', function(req, res) {
