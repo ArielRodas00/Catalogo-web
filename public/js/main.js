@@ -54,33 +54,29 @@ document.querySelectorAll('.faq-question').forEach(function(btn) {
   });
 });
 
-// Dropdown toggle para touch devices
+// Dropdowns: abrir/cerrar con click
 function initDropdowns() {
-  document.querySelectorAll('.dropdown-trigger').forEach(function(trigger) {
-    trigger.addEventListener('click', function(e) {
-      var dropdown = this.closest('.dropdown');
-      var isOpen   = dropdown.classList.contains('open');
-
-      // Cerrar otros dropdowns
-      document.querySelectorAll('.dropdown.open').forEach(function(d) {
-        if (d !== dropdown) d.classList.remove('open');
-      });
-
-      if (isOpen) {
-        dropdown.classList.remove('open');
-      } else {
-        dropdown.classList.add('open');
-      }
-    });
-  });
-
-  // Cerrar dropdown al hacer click fuera
   document.addEventListener('click', function(e) {
-    if (!e.target.closest('.dropdown')) {
-      document.querySelectorAll('.dropdown.open').forEach(function(d) {
-        d.classList.remove('open');
+    var dropdown = e.target.closest('.dropdown');
+    if (!dropdown) {
+      // Cerrar todos si se clickea fuera
+      document.querySelectorAll('.dropdown-menu.open').forEach(function(m) {
+        m.classList.remove('open');
       });
+      return;
     }
+
+    var menu = dropdown.querySelector('.dropdown-menu');
+    if (!menu) return;
+
+    e.preventDefault();
+
+    // Cerrar otros dropdowns
+    document.querySelectorAll('.dropdown-menu.open').forEach(function(m) {
+      if (m !== menu) m.classList.remove('open');
+    });
+
+    menu.classList.toggle('open');
   });
 }
 

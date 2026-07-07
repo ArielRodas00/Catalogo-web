@@ -192,6 +192,8 @@ h1, h2, h3 { font-family: var(--font-display); }
   gap: 10px;
   font-size: 14px;
   font-weight: 500;
+  line-height: 1.4;
+  height: auto;
   white-space: nowrap;
 }
 
@@ -202,6 +204,9 @@ h1, h2, h3 { font-family: var(--font-display); }
   padding: 15px 0 !important;
   display: flex !important;
   align-items: center !important;
+  line-height: 1.4 !important;
+  font-size: 14px !important;
+  height: auto !important;
 }
 
 /* El dropdown se posiciona relativo a su li padre */
@@ -223,9 +228,8 @@ h1, h2, h3 { font-family: var(--font-display); }
   z-index: 100;               /* Aparece por encima de los otros elementos */
 }
 
-/* Se muestra al hacer hover (desktop) o con clase .open (touch) */
-.dropdown:hover .dropdown-menu,
-.dropdown.open .dropdown-menu {
+/* Se muestra con clase .open (toggle por click) */
+.dropdown-menu.open {
   display: block;
 }
 
@@ -848,7 +852,7 @@ h1, h2, h3 { font-family: var(--font-display); }
     visibility: hidden;
   }
 
-  .dropdown.open .dropdown-menu {
+  .dropdown-menu.open {
     visibility: visible;
     transform: translateY(0);
   }
