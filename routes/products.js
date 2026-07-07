@@ -203,36 +203,55 @@ router.post('/', apiLimiter, authenticateToken, validateProduct, async function(
 router.put('/:id', apiLimiter, authenticateToken, validateProduct, async function(req, res, next) {
   try {
     const id = Number(req.params.id);
-    const {
-      name, price, category, subcategoria, brand,
-      image, description, whatsapp,
-      en_oferta, precio_oferta, en_stock,
-      destacado, en_promocion, fecha_fin_promo,
-      stock_cantidad, stock_minimo
-    } = req.body;
+    const body = req.body;
+
+    // Construir UPDATE dinamico: solo campos presentes en el body
+    const fields = [];
+    const values = [];
+    let paramCount = 1;
+
+    const fieldMap = {
+      name: 'name',
+      price: 'price',
+      category: 'category',
+      subcategoria: 'subcategoria',
+      brand: 'brand',
+      image: 'image',
+      description: 'description',
+      whatsapp: 'whatsapp',
+      en_oferta: 'en_oferta',
+      precio_oferta: 'precio_oferta',
+      en_stock: 'en_stock',
+      destacado: 'destacado',
+      en_promocion: 'en_promocion',
+      fecha_fin_promo: 'fecha_fin_promo',
+      stock_cantidad: 'stock_cantidad',
+      stock_minimo: 'stock_minimo'
+    };
+
+    Object.keys(fieldMap).forEach(function(key) {
+      if (body[key] !== undefined) {
+        fields.push(fieldMap[key] + '=$' + paramCount);
+        let val = body[key];
+        if (key === 'subcategoria' || key === 'brand') val = val || '';
+        if (key === 'precio_oferta' || key === 'fecha_fin_promo') val = val || null;
+        if (key === 'en_oferta' || key === 'destacado' || key === 'en_promocion') val = val || false;
+        if (key === 'stock_cantidad') val = val || 0;
+        if (key === 'stock_minimo') val = val || 5;
+        values.push(val);
+        paramCount++;
+      }
+    });
+
+    if (fields.length === 0) {
+      return res.status(400).json({ error: 'No hay campos para actualizar' });
+    }
+
+    values.push(id);
 
     const result = await pool.query(
-      `UPDATE productos SET
-        name=$1, price=$2, category=$3, subcategoria=$4, brand=$5,
-        image=$6, description=$7, whatsapp=$8,
-        en_oferta=$9, precio_oferta=$10, en_stock=$11,
-        destacado=$12, en_promocion=$13, fecha_fin_promo=$14,
-        stock_cantidad=$15, stock_minimo=$16
-        WHERE id=$17
-       RETURNING *`,
-      [
-        name, price, category, subcategoria || '', brand || '',
-        image, description, whatsapp,
-        en_oferta || false,
-        precio_oferta || null,
-        en_stock !== undefined ? en_stock : true,
-        destacado || false,
-        en_promocion || false,
-        fecha_fin_promo || null,
-        stock_cantidad || 0,
-        stock_minimo || 5,
-        id
-      ]
+      'UPDATE productos SET ' + fields.join(', ') + ' WHERE id=$' + paramCount + ' RETURNING *',
+      values
     );
 
     if (result.rows.length === 0) {
