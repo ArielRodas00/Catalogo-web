@@ -1715,3 +1715,26 @@ h1, h2, h3 { font-family: var(--font-display); }
   cursor: pointer;
   accent-color: var(--primary);
 }
+/* === Boton solicitar todo el stock === */
+.btn-solicitar-todo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #c1121f, #e63946);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  transition: all 0.2s;
+  font-family: inherit;
+  margin-top: 8px;
+}
+.btn-solicitar-todo:hover {
+  background: linear-gradient(135deg, #e63946, #ff6b6b);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(193,18,31,0.3);
+}

@@ -1526,6 +1526,29 @@ function initPedidoGlobal() {
     }
     if (countEl) countEl.textContent = count;
   }
+
+  // Boton "Solicitar todo el stock bajo"
+  var btnSolicitarTodo = document.getElementById('btn-solicitar-todo');
+  if (btnSolicitarTodo) {
+    btnSolicitarTodo.addEventListener('click', function() {
+      // Seleccionar todos los checkboxes
+      document.querySelectorAll('.stock-check-item').forEach(function(cb) {
+        cb.checked = true;
+      });
+
+      var count = document.querySelectorAll('.stock-check-item:checked').length;
+      if (count === 0) {
+        showToast('No hay productos con stock bajo para solicitar', 'error');
+        return;
+      }
+
+      // Simular click en "Generar pedido"
+      var btnGenerar = document.getElementById('btn-generar-pedido');
+      if (btnGenerar) btnGenerar.click();
+
+      showToast('⚡ Enviando ' + count + ' productos a Recepción...', 'info');
+    });
+  }
 }
 
 // Inicializar después de que se cargue el panel
