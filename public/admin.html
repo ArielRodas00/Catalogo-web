@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" href="logo.png">
-  <title>Panel de AdministraciÃ³n</title>
+  <title>Panel de Administración</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -19,23 +19,23 @@
       <div class="login-logo">
         <span class="material-symbols-outlined">admin_panel_settings</span>
       </div>
-      <h1>Panel de AdministraciÃ³n</h1>
-      <p class="login-subtitle">IngresÃ¡ tu contraseÃ±a para continuar</p>
+      <h1>Panel de Administración</h1>
+      <p class="login-subtitle">Ingresá tu contraseña para continuar</p>
       <form id="login-form">
         <div class="field-group">
           <label for="username-input">Usuario</label>
           <input type="text" id="username-input" placeholder="admin" required autocomplete="username">
         </div>
         <div class="field-group">
-          <label for="password-input">ContraseÃ±a</label>
-          <input type="password" id="password-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required autocomplete="current-password">
+          <label for="password-input">Contraseña</label>
+          <input type="password" id="password-input" placeholder="••••••••" required autocomplete="current-password">
         </div>
         <p id="login-error" class="login-error" style="display:none">
-          ContraseÃ±a incorrecta. IntentÃ¡ de nuevo.
+          Contraseña incorrecta. Intentá de nuevo.
         </p>
         <button type="submit" class="btn-primary btn-full">Ingresar</button>
       </form>
-      <a href="index.html" class="login-back">â† Volver al catÃ¡logo</a>
+      <a href="index.html" class="login-back">← Volver al catálogo</a>
     </div>
   </div>
 
@@ -45,12 +45,12 @@
     <header class="admin-header">
       <div class="admin-header-left">
         <span class="material-symbols-outlined">inventory_2</span>
-        <h1>GestiÃ³n de Productos</h1>
+        <h1>Gestión de Productos</h1>
       </div>
       <div class="admin-header-right">
         <a href="index.html" class="btn-secondary">
           <span class="material-symbols-outlined">storefront</span>
-          Ver catÃ¡logo
+          Ver catálogo
         </a>
         <button id="btn-logout" class="btn-ghost">
           <span class="material-symbols-outlined">logout</span>
@@ -67,27 +67,27 @@
       </button>
       <button class="admin-tab" data-tab="metricas">
         <span class="material-symbols-outlined">bar_chart</span>
-        MÃ©tricas
+        Métricas
       </button>
       <button class="admin-tab" data-tab="stock">
         <span class="material-symbols-outlined">inventory</span>
         Stock
       </button>
-      <button class="admin-tab" data-tab="recepcion"><span class="material-symbols-outlined">assignment</span> RecepciÃ³n</button>
+      <button class="admin-tab" data-tab="recepcion"><span class="material-symbols-outlined">assignment</span> Recepción</button>
     </div>
 
     <div class="admin-body">
 
-      <!-- PANEL DE MÃ‰TRICAS -->
+      <!-- PANEL DE MÉTRICAS -->
       <div id="panel-metricas" style="display:none">
 
-        <!-- Selector de perÃ­odo -->
+        <!-- Selector de período -->
         <div class="metrics-header">
-          <h2 class="metrics-title"><span class="material-symbols-outlined" style="font-size:1.5rem;vertical-align:middle;margin-right:4px">bar_chart</span> MÃ©tricas del catÃ¡logo</h2>
+          <h2 class="metrics-title"><span class="material-symbols-outlined" style="font-size:1.5rem;vertical-align:middle;margin-right:4px">bar_chart</span> Métricas del catálogo</h2>
           <select id="metrics-period" class="admin-select">
-            <option value="7d">Ãšltimos 7 dÃ­as</option>
-            <option value="30d" selected>Ãšltimos 30 dÃ­as</option>
-            <option value="90d">Ãšltimos 90 dÃ­as</option>
+            <option value="7d">Últimos 7 días</option>
+            <option value="30d" selected>Últimos 30 días</option>
+            <option value="90d">Últimos 90 días</option>
             <option value="all">Todo el tiempo</option>
           </select>
         </div>
@@ -112,31 +112,31 @@
             <span class="material-symbols-outlined metric-icon icon-busquedas">search</span>
             <div class="metric-info">
               <span class="metric-value" id="total-busquedas">0</span>
-              <span class="metric-label">BÃºsquedas realizadas</span>
+              <span class="metric-label">Búsquedas realizadas</span>
             </div>
           </div>
         </div>
 
-        <!-- GrÃ¡ficos -->
+        <!-- Gráficos -->
         <div class="metrics-charts">
 
           <div class="chart-card">
-            <h3 class="chart-title">Productos mÃ¡s vistos</h3>
+            <h3 class="chart-title">Productos más vistos</h3>
             <canvas id="chart-vistas"></canvas>
             <table class="metrics-table" id="table-vistas"></table>
           </div>
 
           <div class="chart-card">
-            <h3 class="chart-title">MÃ¡s consultados por WhatsApp</h3>
+            <h3 class="chart-title">Más consultados por WhatsApp</h3>
             <canvas id="chart-clicks"></canvas>
             <table class="metrics-table" id="table-clicks"></table>
           </div>
 
         </div>
 
-        <!-- BÃºsquedas frecuentes -->
+        <!-- Búsquedas frecuentes -->
         <div class="chart-card">
-          <h3 class="chart-title">BÃºsquedas mÃ¡s frecuentes</h3>
+          <h3 class="chart-title">Búsquedas más frecuentes</h3>
           <table class="metrics-table" id="table-busquedas"></table>
         </div>
 
@@ -183,12 +183,12 @@
                     <input type="checkbox" id="check-all-stock" title="Seleccionar todos">
                   </th>
                   <th>Producto</th>
-                  <th>CategorÃ­a</th>
+                  <th>Categoría</th>
                   <th>Stock</th>
-                  <th>MÃ­nimo</th>
+                  <th>Mínimo</th>
                   <th>Cant. a pedir</th>
                   <th>Estado</th>
-                  <th>AcciÃ³n</th>
+                  <th>Acción</th>
                 </tr>
               </thead>
               <tbody id="stock-tbody"></tbody>
@@ -196,24 +196,24 @@
           </div>
           <div id="stock-empty" class="stock-empty" style="display:none">
             <span class="material-symbols-outlined" style="font-size:48px;color:#aaa">check_circle</span>
-            <p>No hay productos en esta categorÃ­a ðŸŽ‰</p>
+            <p>No hay productos en esta categoría 🎉</p>
           </div>
           <div class="stock-footer-actions">
             <button id="btn-solicitar-todo" class="btn-solicitar-todo">
-              âš¡ Solicitar todo el stock bajo
+              ⚡ Solicitar todo el stock bajo
             </button>
             <button id="btn-generar-pedido" class="btn-generar-pedido" style="display:none">
-              ðŸ“‹ Generar pedido a proveedor (<span id="pedido-count">0</span>)
+              📋 Generar pedido a proveedor (<span id="pedido-count">0</span>)
             </button>
           </div>
         </div>
       </div>
 
-      <!-- PANEL DE RECEPCIÃ“N DE MERCADERÃA -->
+      <!-- PANEL DE RECEPCIÓN DE MERCADERÍA -->
       <div id="panel-recepcion" class="admin-panel-content" style="display:none">
         <div class="panel-header">
-          <h2 class="panel-title"><span class="material-symbols-outlined" style="font-size:1.5rem;vertical-align:middle;margin-right:4px">move_to_inbox</span> RecepciÃ³n de mercaderÃ­a</h2>
-          <p class="panel-subtitle">AgregÃ¡ stock a mÃºltiples productos de una sola vez</p>
+          <h2 class="panel-title"><span class="material-symbols-outlined" style="font-size:1.5rem;vertical-align:middle;margin-right:4px">move_to_inbox</span> Recepción de mercadería</h2>
+          <p class="panel-subtitle">Agregá stock a múltiples productos de una sola vez</p>
         </div>
         
         <div class="recepcion-toolbar">
@@ -246,10 +246,10 @@
         <div class="recepcion-footer">
           <div id="recepcion-empty" class="recepcion-empty-state">
             <span class="material-symbols-outlined">inventory_2</span>
-            <p>BuscÃ¡ productos para comenzar a recibir mercaderÃ­a</p>
+            <p>Buscá productos para comenzar a recibir mercadería</p>
           </div>
           <button id="btn-confirmar-recepcion" class="btn-confirmar-recepcion" disabled>
-            <span class="material-symbols-outlined">check_circle</span> Confirmar RecepciÃ³n (<span id="confirm-count">0</span>)
+            <span class="material-symbols-outlined">check_circle</span> Confirmar Recepción (<span id="confirm-count">0</span>)
           </button>
         </div>
       </div>
@@ -288,14 +288,14 @@
       <option value="nostock">Sin stock</option>
       <option value="destacado">Destacados</option>
       <option value="oferta">En oferta</option>
-      <option value="promocion">En promociÃ³n</option>
+      <option value="promocion">En promoción</option>
     </select>
 
     <!-- Ordenamiento -->
     <select id="admin-order" class="admin-select">
-      <option value="reciente">MÃ¡s recientes</option>
-      <option value="az">Nombre Aâ†’Z</option>
-      <option value="za">Nombre Zâ†’A</option>
+      <option value="reciente">Más recientes</option>
+      <option value="az">Nombre A→Z</option>
+      <option value="za">Nombre Z→A</option>
       <option value="precio-asc">Menor precio</option>
       <option value="precio-desc">Mayor precio</option>
     </select>
@@ -316,7 +316,7 @@
               <tr>
                 <th>Imagen</th>
                 <th>Nombre</th>
-                <th>CategorÃ­a</th>
+                <th>Categoría</th>
                 <th>Precio</th>
                 <th>Estado</th>
                 <th>Acciones</th>
@@ -333,7 +333,7 @@
 
     </div><!-- /panel-productos -->
 
-      <!-- FORMULARIO DE PRODUCTO â€” MODAL (fuera de panel-productos) -->
+      <!-- FORMULARIO DE PRODUCTO — MODAL (fuera de panel-productos) -->
       <div id="form-modal-overlay" class="form-modal-overlay" style="display:none">
       <section id="form-section" class="form-section form-modal-box">
         <button type="button" id="btn-close-form-modal" class="modal-close-btn">
@@ -356,14 +356,14 @@
 
           <div class="form-row">
             <div class="field-group">
-              <label for="field-category">CategorÃ­a existente</label>
+              <label for="field-category">Categoría existente</label>
               <select id="field-category">
-                <option value="">-- SeleccionÃ¡ una categorÃ­a --</option>
+                <option value="">-- Seleccioná una categoría --</option>
               </select>
             </div>
             <div class="field-group">
               <label for="field-new-category">
-                O creÃ¡ una nueva categorÃ­a
+                O creá una nueva categoría
                 <span class="field-hint">(tiene prioridad sobre el select)</span>
               </label>
               <input type="text" id="field-new-category" placeholder="Ej: herramientas">
@@ -374,12 +374,12 @@
             <div class="field-group">
               <label for="field-brand">Marca existente</label>
               <select id="field-brand-select">
-                <option value="">-- SeleccionÃ¡ una marca --</option>
+                <option value="">-- Seleccioná una marca --</option>
               </select>
             </div>
             <div class="field-group">
               <label for="field-brand">
-                O creÃ¡ una nueva marca
+                O creá una nueva marca
                 <span class="field-hint">(tiene prioridad sobre el select)</span>
               </label>
               <input type="text" id="field-brand" placeholder="Ej: Samsung, Philips, Mobil...">
@@ -389,7 +389,7 @@
           <div class="form-row">
             <div class="field-group">
               <label for="field-whatsapp">
-                NÃºmero de WhatsApp *
+                Número de WhatsApp *
                 <span class="field-hint">(sin +, sin espacios. Ej: 595981234567)</span>
               </label>
               <input type="text" id="field-whatsapp" placeholder="595981234567" required>
@@ -398,17 +398,17 @@
 
           <div class="form-row">
             <div class="field-group">
-              <label for="field-subcategoria-select">SubcategorÃ­a existente</label>
+              <label for="field-subcategoria-select">Subcategoría existente</label>
               <select id="field-subcategoria-select">
-                <option value="">-- SeleccionÃ¡ una subcategorÃ­a --</option>
+                <option value="">-- Seleccioná una subcategoría --</option>
               </select>
             </div>
             <div class="field-group">
               <label for="field-subcategoria">
-                O creÃ¡ una nueva subcategorÃ­a
+                O creá una nueva subcategoría
                 <span class="field-hint">(tiene prioridad sobre el select)</span>
               </label>
-              <input type="text" id="field-subcategoria" placeholder="Ej: SintÃ©ticos, Minerales...">
+              <input type="text" id="field-subcategoria" placeholder="Ej: Sintéticos, Minerales...">
             </div>
           </div>
 
@@ -448,7 +448,7 @@
                 <label class="switch-label">
                   <input type="checkbox" id="field-en-promocion">
                   <span class="switch-track"></span>
-                  <span>En promociÃ³n</span>
+                  <span>En promoción</span>
                 </label>
               </div>
             </div>
@@ -458,7 +458,7 @@
             <div class="field-group">
               <label for="field-precio-oferta">
                 Precio de oferta *
-                <span class="field-hint">(el precio original quedarÃ¡ tachado)</span>
+                <span class="field-hint">(el precio original quedará tachado)</span>
               </label>
               <input type="number" id="field-precio-oferta" placeholder="Ej: 18000" min="0">
             </div>
@@ -467,8 +467,8 @@
           <div class="form-row" id="row-promocion" style="display:none">
             <div class="field-group">
               <label for="field-fecha-fin">
-                Fecha de fin de promociÃ³n
-                <span class="field-hint">(la promo vence automÃ¡ticamente en esa fecha)</span>
+                Fecha de fin de promoción
+                <span class="field-hint">(la promo vence automáticamente en esa fecha)</span>
               </label>
               <input type="datetime-local" id="field-fecha-fin">
             </div>
@@ -478,7 +478,7 @@
             <div class="field-group field-group--full">
               <label for="field-image-url">
                 URL de la imagen principal *
-                <span class="field-hint">(pegÃ¡ un link directo a la imagen)</span>
+                <span class="field-hint">(pegá un link directo a la imagen)</span>
               </label>
               <input type="url" id="field-image-url" placeholder="https://..." required>
               <img id="image-preview" class="image-preview" style="display:none" alt="Preview">
@@ -487,7 +487,7 @@
 
           <div class="form-row" id="extra-images-section" style="display:none">
             <div class="field-group field-group--full">
-              <label>ImÃ¡genes adicionales</label>
+              <label>Imágenes adicionales</label>
               <div id="images-container" class="images-container"></div>
               <div class="add-image-row">
                 <input type="url" id="new-image-url" placeholder="https://... (URL de imagen)">
@@ -508,11 +508,11 @@
 
           <div class="form-row">
             <div class="field-group field-group--full">
-              <label for="field-description">DescripciÃ³n *</label>
+              <label for="field-description">Descripción *</label>
               <textarea
                 id="field-description"
                 rows="4"
-                placeholder="DescribÃ­ el producto: caracterÃ­sticas, presentaciÃ³n, uso..."
+                placeholder="Describí el producto: características, presentación, uso..."
                 required
               ></textarea>
             </div>
@@ -532,15 +532,15 @@
 
     </div><!-- /admin-body -->
 
-  <!-- MODAL CONFIRMACIÃ“N ELIMINAR -->
+  <!-- MODAL CONFIRMACIÓN ELIMINAR -->
   <div id="confirm-modal" class="confirm-overlay" style="display:none">
     <div class="confirm-box">
       <span class="material-symbols-outlined confirm-icon">warning</span>
-      <h3>Â¿Eliminar producto?</h3>
-      <p>EstÃ¡s por eliminar <strong id="delete-product-name"></strong>. Esta acciÃ³n no se puede deshacer.</p>
+      <h3>¿Eliminar producto?</h3>
+      <p>Estás por eliminar <strong id="delete-product-name"></strong>. Esta acción no se puede deshacer.</p>
       <div class="confirm-actions">
         <button id="btn-cancel-delete" class="btn-secondary">Cancelar</button>
-        <button id="btn-confirm-delete" class="btn-danger">SÃ­, eliminar</button>
+        <button id="btn-confirm-delete" class="btn-danger">Sí, eliminar</button>
       </div>
     </div>
   </div>
@@ -551,7 +551,7 @@
   </div><!-- /admin-panel -->
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-   <!-- products.js eliminado (cÃ³digo muerto, los datos vienen de la API) -->
+   <!-- products.js eliminado (código muerto, los datos vienen de la API) -->
   <script src="storage.js"></script>
   <script src="admin.js"></script>
 

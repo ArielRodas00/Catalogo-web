@@ -1780,13 +1780,6 @@ h1, h2, h3 { font-family: var(--font-display); }
     min-width: auto;
   }
   
-  /* Contenedor principal */
-  .admin-panel,
-  .admin-body,
-  #admin-panel {
-    overflow-x: hidden;
-    max-width: 100vw;
-  }
   
   /* Imágenes en tablas */
   .admin-img,
