@@ -5,19 +5,47 @@ function validateProduct(req, res, next) {
   const { name, price, category, image, whatsapp } = req.body;
 
   const errors = [];
-  if (!name || typeof name !== 'string' || name.trim().length < 1) {
+  
+  // En PUT (edicion), solo validar campos que esten presentes
+  const isUpdate = req.method === 'PUT';
+  
+  if (name !== undefined) {
+    if (typeof name !== 'string' || name.trim().length < 1) {
+      errors.push('El nombre es requerido');
+    }
+  } else if (!isUpdate) {
     errors.push('El nombre es requerido');
   }
-  if (price === undefined || isNaN(Number(price)) || Number(price) < 0) {
+  
+  if (price !== undefined) {
+    if (isNaN(Number(price)) || Number(price) < 0) {
+      errors.push('El precio debe ser un número positivo');
+    }
+  } else if (!isUpdate) {
     errors.push('El precio debe ser un número positivo');
   }
-  if (!category || typeof category !== 'string' || category.trim().length < 1) {
+  
+  if (category !== undefined) {
+    if (typeof category !== 'string' || category.trim().length < 1) {
+      errors.push('La categoría es requerida');
+    }
+  } else if (!isUpdate) {
     errors.push('La categoría es requerida');
   }
-  if (!image || typeof image !== 'string' || image.trim().length < 1) {
+  
+  if (image !== undefined) {
+    if (typeof image !== 'string' || image.trim().length < 1) {
+      errors.push('La imagen es requerida');
+    }
+  } else if (!isUpdate) {
     errors.push('La imagen es requerida');
   }
-  if (!whatsapp || typeof whatsapp !== 'string' || whatsapp.trim().length < 5) {
+  
+  if (whatsapp !== undefined) {
+    if (typeof whatsapp !== 'string' || whatsapp.trim().length < 5) {
+      errors.push('El número de WhatsApp es requerido (mín. 5 caracteres)');
+    }
+  } else if (!isUpdate) {
     errors.push('El número de WhatsApp es requerido (mín. 5 caracteres)');
   }
 
