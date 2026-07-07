@@ -198,7 +198,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 /* Alineamos el trigger de Categorías igual que los demás links */
 .dropdown-trigger {
   color: var(--color-primary) !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   padding: 15px 0 !important;
   display: flex !important;
   align-items: center !important;
