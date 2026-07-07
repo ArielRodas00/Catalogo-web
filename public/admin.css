@@ -1749,3 +1749,69 @@ h1, h2, h3 { font-family: var(--font-display); }
   cursor: pointer;
   accent-color: #c1121f;
 }
+
+
+/* === Responsive admin general === */
+@media (max-width: 768px) {
+  .admin-body {
+    padding: 10px;
+  }
+  
+  /* Tablas con scroll horizontal */
+  .table-wrapper,
+  .recepcion-table-container,
+  .metrics-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+  
+  .products-table,
+  .recepcion-table,
+  .metrics-table {
+    min-width: 600px; /* permite scroll si es necesario */
+  }
+  
+  /* Cards de métricas */
+  .metrics-cards {
+    flex-direction: column;
+  }
+  .metric-card {
+    min-width: auto;
+  }
+  
+  /* Contenedor principal */
+  .admin-panel,
+  .admin-body,
+  #admin-panel {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  
+  /* Imágenes en tablas */
+  .admin-img,
+  .recepcion-thumb {
+    width: 32px;
+    height: 32px;
+  }
+  
+  /* Ajustar padding de celdas */
+  .products-table th,
+  .products-table td {
+    padding: 8px 6px;
+    font-size: 0.8rem;
+  }
+  
+  /* Botones en tablas */
+  .td-accion {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .btn-edit,
+  .btn-recibir-stock {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    min-height: 32px;
+  }
+}
