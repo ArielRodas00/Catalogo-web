@@ -1,22 +1,22 @@
 // ============================================================
-// admin.js — Lógica del panel de administrador (Fase 2)
+// admin.js ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â LÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³gica del panel de administrador (Fase 2)
 // ============================================================
 // Actualizado para usar async/await con el servidor
 // ============================================================
 
 
 // ------------------------------------------------------------
-// SECCIÓN 1: AUTENTICACIÓN CON JWT
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 1: AUTENTICACIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN CON JWT
 // ------------------------------------------------------------
 
 // ============================================================
-// MÉTRICAS
+// MÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°TRICAS
 // ============================================================
 
 let chartVistas = null;
 let chartClicks = null;
-// Guardamos referencias a los gráficos para destruirlos
-// antes de recrearlos al cambiar el período
+// Guardamos referencias a los grÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ficos para destruirlos
+// antes de recrearlos al cambiar el perÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­odo
 
 async function loadMetrics() {
   try {
@@ -33,12 +33,12 @@ async function loadMetrics() {
     document.getElementById('total-clicks').textContent    = data.totales.clicks;
     document.getElementById('total-busquedas').textContent = data.totales.busquedas;
 
-  // --- Gráfico de vistas ---
+  // --- GrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡fico de vistas ---
   const labelsVistas = data.topVistas.map(function(p) { return p.name; });
   const dataVistas   = data.topVistas.map(function(p) { return parseInt(p.vistas); });
 
   if (chartVistas) chartVistas.destroy();
-  // Destruimos el gráfico anterior antes de crear uno nuevo
+  // Destruimos el grÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡fico anterior antes de crear uno nuevo
 
   chartVistas = new Chart(document.getElementById('chart-vistas'), {
     type: 'bar',
@@ -66,7 +66,7 @@ async function loadMetrics() {
     'vistas'
   );
 
-  // --- Gráfico de clicks WhatsApp ---
+  // --- GrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡fico de clicks WhatsApp ---
   const labelsClicks = data.topClicks.map(function(p) { return p.name; });
   const dataClicks   = data.topClicks.map(function(p) { return parseInt(p.clicks); });
 
@@ -98,15 +98,15 @@ async function loadMetrics() {
     'clicks'
   );
 
-  // --- Tabla de búsquedas ---
+  // --- Tabla de bÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºsquedas ---
   const tableBusquedas = document.getElementById('table-busquedas');
   tableBusquedas.innerHTML =
-    '<tr><th>Término</th><th>Cantidad</th></tr>' +
+    '<tr><th>TÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rmino</th><th>Cantidad</th></tr>' +
     data.topBusquedas.map(function(b) {
       return '<tr><td>' + escapeHTML(b.termino) + '</td><td>' + b.cantidad + '</td></tr>';
     }).join('');
   } catch (err) {
-    console.error('Error cargando métricas:', err);
+    console.error('Error cargando mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tricas:', err);
   }
 }
 
@@ -125,8 +125,8 @@ let metricsInterval = null;
 
 function startMetricsAutoRefresh() {
   stopMetricsAutoRefresh();
-  // Actualiza las métricas cada 15 segundos mientras
-  // el admin esté mirando la pestaña de métricas
+  // Actualiza las mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tricas cada 15 segundos mientras
+  // el admin estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© mirando la pestaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±a de mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tricas
   metricsInterval = setInterval(loadMetrics, 15000);
 }
 
@@ -172,11 +172,11 @@ function initTabs() {
     });
   });
 
-  // Selector de período
+  // Selector de perÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­odo
   document.getElementById('metrics-period').addEventListener('change', loadMetrics);
 }
 
-// Verificamos si hay un token válido al cargar la página
+// Verificamos si hay un token vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lido al cargar la pÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡gina
 async function checkAuth() {
   const token = localStorage.getItem('admin_token');
 
@@ -195,7 +195,7 @@ async function checkAuth() {
       const data = await res.json();
       showPanel(data.username);
     } else {
-      // Token inválido o vencido
+      // Token invÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lido o vencido
       localStorage.removeItem('admin_token');
       showLogin();
     }
@@ -242,11 +242,11 @@ document.getElementById('login-form').addEventListener('submit', async function(
     }
   } catch (err) {
     document.getElementById('login-error').style.display = 'block';
-    document.getElementById('login-error').textContent   = 'Error de conexión con el servidor';
+    document.getElementById('login-error').textContent   = 'Error de conexiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n con el servidor';
   }
 });
 
-// Cerrar sesión
+// Cerrar sesiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n
 document.getElementById('btn-logout').addEventListener('click', function() {
   localStorage.removeItem('admin_token');
   // Eliminamos el token
@@ -255,7 +255,7 @@ document.getElementById('btn-logout').addEventListener('click', function() {
 
 
 // ------------------------------------------------------------
-// SECCIÓN 2: VARIABLES GLOBALES
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 2: VARIABLES GLOBALES
 // ------------------------------------------------------------
 let editingId       = null;
 let deleteTargetId  = null;
@@ -264,7 +264,7 @@ let currentAdminPage = 1;
 
 
 // ------------------------------------------------------------
-// SECCIÓN 3: INICIALIZACIÓN
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 3: INICIALIZACIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN
 // ------------------------------------------------------------
 async function initAdmin() {
   await renderAdminTable();
@@ -284,7 +284,7 @@ async function initAdmin() {
     }
   });
 
-  // Switch de promoción
+  // Switch de promociÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n
   document.getElementById('field-en-promocion').addEventListener('change', function() {
     const row = document.getElementById('row-promocion');
     row.style.display = this.checked ? 'block' : 'none';
@@ -293,7 +293,7 @@ async function initAdmin() {
     }
   });
 
-  // ↓ Listeners de filtros y buscador
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ Listeners de filtros y buscador
   document.getElementById('admin-search').addEventListener('input', function() {
     renderAdminTable(1);
   });
@@ -304,7 +304,7 @@ async function initAdmin() {
     renderAdminTable(1);
   });
 
-  // Listeners de subcategorías (una sola vez, no en populateCategorySelect)
+  // Listeners de subcategorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­as (una sola vez, no en populateCategorySelect)
   document.getElementById('field-category').addEventListener('change', async function() {
     const allProducts = await getProducts();
     const selectedCat = this.value ||
@@ -320,7 +320,7 @@ async function initAdmin() {
 
 
 // ------------------------------------------------------------
-// SECCIÓN 4: TABLA DE PRODUCTOS
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 4: TABLA DE PRODUCTOS
 // ------------------------------------------------------------
 
 // Helper para escapar HTML y prevenir XSS
@@ -339,7 +339,7 @@ async function renderAdminTable(page) {
 
   let all = await getProducts();
 
-  // --- Filtro de búsqueda ---
+  // --- Filtro de bÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºsqueda ---
   const searchText = document.getElementById('admin-search')
     ? document.getElementById('admin-search').value.toLowerCase().trim()
     : '';
@@ -375,7 +375,7 @@ async function renderAdminTable(page) {
 
   const tbody = document.getElementById('products-tbody');
 
-  // --- Paginación ---
+  // --- PaginaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n ---
   const totalPages = Math.ceil(all.length / ITEMS_PER_PAGE);
   const start      = (page - 1) * ITEMS_PER_PAGE;
   const end        = start + ITEMS_PER_PAGE;
@@ -401,7 +401,7 @@ async function renderAdminTable(page) {
           : '<span class="badge badge-stock">En stock</span>') +
         (product.destacado    ? '<span class="badge badge-destacado">Destacado</span>' : '') +
         (product.en_oferta    ? '<span class="badge badge-oferta">Oferta</span>'       : '') +
-        (product.en_promocion ? '<span class="badge badge-promo">Promoción</span>'     : '');
+        (product.en_promocion ? '<span class="badge badge-promo">PromociÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n</span>'     : '');
 
       const subcatHTML   = product.subcategoria
         ? '<span class="td-sub">/ ' + escapeHTML(product.subcategoria) + '</span>'
@@ -433,13 +433,13 @@ async function renderAdminTable(page) {
   document.getElementById('product-count').textContent =
     all.length + ' producto' + (all.length !== 1 ? 's' : '') + ' en total';
 
-  // También renderizamos la vista de tarjetas con los mismos datos
+  // TambiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©n renderizamos la vista de tarjetas con los mismos datos
   renderAdminCards(paginated);
 }
 
 
 // ------------------------------------------------------------
-// renderAdminCards() — vista de tarjetas del admin
+// renderAdminCards() ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â vista de tarjetas del admin
 // ------------------------------------------------------------
 function renderAdminCards(paginated) {
   const grid = document.getElementById('admin-cards-grid');
@@ -465,7 +465,7 @@ function renderAdminCards(paginated) {
       (!product.en_stock    ? '<span class="badge badge-nostock">Sin stock</span>'    : '<span class="badge badge-stock">En stock</span>') +
       (product.destacado    ? '<span class="badge badge-destacado">Destacado</span>'  : '') +
       (product.en_oferta    ? '<span class="badge badge-oferta">Oferta</span>'        : '') +
-      (product.en_promocion ? '<span class="badge badge-promo">Promoción</span>'      : '');
+      (product.en_promocion ? '<span class="badge badge-promo">PromociÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n</span>'      : '');
 
     const nombreSeguro = encodeURIComponent(product.name);
 
@@ -523,7 +523,7 @@ function renderAdminPagination(current, total) {
   if (total <= 1) return;
 
   const btnPrev = document.createElement('button');
-  btnPrev.textContent = '←';
+  btnPrev.textContent = 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Ãƒâ€šÃ‚Â';
   btnPrev.disabled = (current === 1);
   btnPrev.addEventListener('click', function() { renderAdminTable(current - 1); });
   container.appendChild(btnPrev);
@@ -537,7 +537,7 @@ function renderAdminPagination(current, total) {
   }
 
   const btnNext = document.createElement('button');
-  btnNext.textContent = '→';
+  btnNext.textContent = 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢';
   btnNext.disabled = (current === total);
   btnNext.addEventListener('click', function() { renderAdminTable(current + 1); });
   container.appendChild(btnNext);
@@ -545,7 +545,7 @@ function renderAdminPagination(current, total) {
 
 
 // ------------------------------------------------------------
-// SECCIÓN 5: FORMULARIO — ABRIR
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 5: FORMULARIO ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ABRIR
 // ------------------------------------------------------------
 document.getElementById('btn-new-product').addEventListener('click', function() {
   openNewForm();
@@ -586,12 +586,12 @@ async function openEditForm(id) {
   document.getElementById('field-whatsapp').value          = product.whatsapp;
   document.getElementById('field-brand').value        = '';
   document.getElementById('field-brand-select').value = product.brand || '';
-  // ↓ Líneas nuevas del Bloque 1
-// Cargamos las subcategorías relacionadas a la categoría del producto
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ LÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­neas nuevas del Bloque 1
+// Cargamos las subcategorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­as relacionadas a la categorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a del producto
   const allProds = await getProducts();
   await updateSubcatSelect(product.category, allProds);
 
-  // Luego seleccionamos la subcategoría actual
+  // Luego seleccionamos la subcategorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a actual
   document.getElementById('field-subcategoria-select').value = product.subcategoria || '';
   document.getElementById('field-subcategoria').value        = '';
 
@@ -613,7 +613,7 @@ async function openEditForm(id) {
     product.fecha_fin_promo
       ? new Date(product.fecha_fin_promo).toISOString().slice(0, 16)
       : '';
-  // ↑ Fin líneas nuevas
+  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“ Fin lÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­neas nuevas
 
   const preview         = document.getElementById('image-preview');
   preview.src           = product.image;
@@ -636,7 +636,7 @@ document.getElementById('form-modal-overlay').addEventListener('click', function
 
 
 // ------------------------------------------------------------
-// SECCIÓN 6: FORMULARIO — GUARDAR
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 6: FORMULARIO ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â GUARDAR
 // ------------------------------------------------------------
 document.getElementById('product-form').addEventListener('submit', async function(e) {
   e.preventDefault();
@@ -647,7 +647,7 @@ document.getElementById('product-form').addEventListener('submit', async functio
   const category    = newCategory !== '' ? newCategory : selCategory;
 
   if (!category) {
-    showToast('Por favor seleccioná o escribí una categoría.');
+    showToast('Por favor seleccionÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ o escribÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­ una categorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a.');
     return;
   }
 
@@ -656,7 +656,7 @@ document.getElementById('product-form').addEventListener('submit', async functio
   const selBrand = document.getElementById('field-brand-select').value;
   const brand    = newBrand !== '' ? newBrand : selBrand;
 
-  // Subcategoría: prioridad al input texto, sino usa el select
+  // SubcategorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a: prioridad al input texto, sino usa el select
   const newSubcat = document.getElementById('field-subcategoria').value.trim().toLowerCase();
   const selSubcat = document.getElementById('field-subcategoria-select').value;
   const subcategoria = newSubcat !== '' ? newSubcat : selSubcat;
@@ -686,13 +686,13 @@ document.getElementById('product-form').addEventListener('submit', async functio
 
   if (editingId === null) {
     await addProduct(productData);
-    // await espera que el servidor confirme que guardó el producto
-    showToast('Producto agregado correctamente ✓');
+    // await espera que el servidor confirme que guardÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ el producto
+    showToast('Producto agregado correctamente ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ');
   } else {
     productData.id = editingId;
     try {
       await updateProduct(productData);
-      showToast('Producto actualizado correctamente ✓');
+      showToast('Producto actualizado correctamente ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ');
     } catch (err) {
       showToast('Error: ' + err.message, 'error');
       return;
@@ -706,7 +706,7 @@ document.getElementById('product-form').addEventListener('submit', async functio
 
 
 // ------------------------------------------------------------
-// SECCIÓN 7: ELIMINAR
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 7: ELIMINAR
 // ------------------------------------------------------------
 function confirmDelete(id, name) {
   deleteTargetId = id;
@@ -717,7 +717,7 @@ function confirmDelete(id, name) {
 document.getElementById('btn-confirm-delete').addEventListener('click', async function() {
   if (deleteTargetId !== null) {
     await deleteProduct(deleteTargetId);
-    showToast('Producto eliminado ✓');
+    showToast('Producto eliminado ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ');
     await renderAdminTable(currentAdminPage);
     await populateCategorySelect();
     deleteTargetId = null;
@@ -742,16 +742,16 @@ if (confirmOverlay) {
 
 
 // ------------------------------------------------------------
-// SECCIÓN 8: CATEGORÍAS DINÁMICAS
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 8: CATEGORÃƒÆ’Ã†â€™Ãƒâ€šÃ‚ÂAS DINÃƒÆ’Ã†â€™Ãƒâ€šÃ‚ÂMICAS
 // ------------------------------------------------------------
 async function populateCategorySelect() {
   const allProducts = await getProducts();
 
-  // --- Select de categorías ---
+  // --- Select de categorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­as ---
   const catSelect  = document.getElementById('field-category');
   const categories = [...new Set(allProducts.map(function(p) { return p.category; }))];
 
-  catSelect.innerHTML = '<option value="">-- Seleccioná una categoría --</option>';
+  catSelect.innerHTML = '<option value="">-- SeleccionÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ una categorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a --</option>';
   categories.forEach(function(cat) {
     const option       = document.createElement('option');
     option.value       = cat;
@@ -767,7 +767,7 @@ async function populateCategorySelect() {
       .filter(function(b) { return b && b.trim() !== ''; })
   )];
 
-  brandSelect.innerHTML = '<option value="">-- Seleccioná una marca --</option>';
+  brandSelect.innerHTML = '<option value="">-- SeleccionÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ una marca --</option>';
   brands.forEach(function(brand) {
     const option       = document.createElement('option');
     option.value       = brand;
@@ -775,23 +775,23 @@ async function populateCategorySelect() {
     brandSelect.appendChild(option);
   });
 
-  // --- Select de subcategorías ---
+  // --- Select de subcategorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­as ---
   const subcatSelect = document.getElementById('field-subcategoria-select');
-  subcatSelect.innerHTML = '<option value="">-- Primero seleccioná una categoría --</option>';
+  subcatSelect.innerHTML = '<option value="">-- Primero seleccionÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ una categorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a --</option>';
   subcatSelect.disabled  = true;
 }
 
-// Función que actualiza el select de subcategorías según la categoría
+// FunciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n que actualiza el select de subcategorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­as segÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºn la categorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a
 function updateSubcatSelect(category, allProducts) {
   const subcatSelect = document.getElementById('field-subcategoria-select');
 
   if (!category || category === '') {
-    subcatSelect.innerHTML = '<option value="">-- Primero seleccioná una categoría --</option>';
+    subcatSelect.innerHTML = '<option value="">-- Primero seleccionÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ una categorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a --</option>';
     subcatSelect.disabled  = true;
     return;
   }
 
-  // Filtramos subcategorías de la categoría seleccionada
+  // Filtramos subcategorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­as de la categorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a seleccionada
   const subcats = [...new Set(
     allProducts
       .filter(function(p) { return p.category === category; })
@@ -800,13 +800,13 @@ function updateSubcatSelect(category, allProducts) {
   )];
 
   if (subcats.length === 0) {
-    subcatSelect.innerHTML = '<option value="">Sin subcategorías para esta categoría</option>';
+    subcatSelect.innerHTML = '<option value="">Sin subcategorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­as para esta categorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a</option>';
     subcatSelect.disabled  = true;
     return;
   }
 
   subcatSelect.disabled  = false;
-  subcatSelect.innerHTML = '<option value="">-- Seleccioná una subcategoría --</option>';
+  subcatSelect.innerHTML = '<option value="">-- SeleccionÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ una subcategorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a --</option>';
 
   subcats.forEach(function(sub) {
     const option       = document.createElement('option');
@@ -818,7 +818,7 @@ function updateSubcatSelect(category, allProducts) {
 
 
 // ------------------------------------------------------------
-// SECCIÓN 9: PREVIEW DE IMAGEN
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 9: PREVIEW DE IMAGEN
 // ------------------------------------------------------------
 function setupImagePreview() {
   const urlInput = document.getElementById('field-image-url');
@@ -839,7 +839,7 @@ function setupImagePreview() {
 }
 
 // ------------------------------------------------------------
-// SECCIÓN 10: GESTIÓN DE IMÁGENES EN EL ADMIN
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 10: GESTIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN DE IMÃƒÆ’Ã†â€™Ãƒâ€šÃ‚ÂGENES EN EL ADMIN
 // ------------------------------------------------------------
 async function loadProductImages(productId) {
   let images;
@@ -847,7 +847,7 @@ async function loadProductImages(productId) {
     const res = await fetch('/api/products/' + productId + '/images');
     images = await res.json();
   } catch (err) {
-    showToast('Error al cargar imágenes');
+    showToast('Error al cargar imÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡genes');
     return;
   }
 
@@ -875,7 +875,7 @@ async function deleteImage(imageId, productId) {
   });
   if (!res.ok) { showToast('Error al eliminar imagen', 'error'); return; }
   await loadProductImages(productId);
-  showToast('Imagen eliminada ✓');
+  showToast('Imagen eliminada ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ');
 }
 
 async function uploadImageUrl(productId) {
@@ -892,7 +892,7 @@ async function uploadImageUrl(productId) {
 
   input.value = '';
   await loadProductImages(productId);
-  showToast('Imagen agregada ✓');
+  showToast('Imagen agregada ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ');
 }
 
 async function uploadImageFile(productId) {
@@ -907,19 +907,19 @@ async function uploadImageFile(productId) {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + getToken() },
     body:   formData
-    // No ponemos Content-Type: el navegador lo setea automáticamente
+    // No ponemos Content-Type: el navegador lo setea automÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ticamente
     // con el boundary correcto para archivos
   });
   if (!res.ok) { showToast('Error al subir imagen', 'error'); return; }
 
   input.value = '';
   await loadProductImages(productId);
-  showToast('Imagen subida ✓');
+  showToast('Imagen subida ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ');
 }
 
 
 // ------------------------------------------------------------
-// SECCIÓN 11: TOAST
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 11: TOAST
 // ------------------------------------------------------------
 function showToast(message) {
   const toast = document.getElementById('toast');
@@ -935,13 +935,13 @@ function showToast(message) {
 
 
 // ------------------------------------------------------------
-// SECCIÓN 12: INICIALIZACIÓN
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 12: INICIALIZACIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN
 // ------------------------------------------------------------
 checkAuth();
 
 
 // ------------------------------------------------------------
-// SECCIÓN 13: CONTROL DE STOCK
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 13: CONTROL DE STOCK
 // ------------------------------------------------------------
 let currentStockTab = 'todos';
 
@@ -1022,7 +1022,7 @@ function renderStockTable(all, sinStock, pocoStock) {
         '<button class="btn-edit" onclick="openEditForm(' + p.id + ')">' +
           '<span class="material-symbols-outlined">edit</span>' +
         '</button>' +
-        '<button class="btn-recibir-stock" data-id="' + p.id + '" data-name="' + escapeAttr(p.name) + '">Recibir 🛒</button>' +
+        '<button class="btn-recibir-stock" data-id="' + p.id + '" data-name="' + escapeAttr(p.name) + '">Recibir ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂºÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢</button>' +
       '</td>' +
       '</tr>';
   }).join('');
@@ -1094,7 +1094,7 @@ function initStockExport(all, sinStock, pocoStock) {
     btn.addEventListener('click', function() {
       const selected = getSelectedStockItems();
       if (selected.length === 0) {
-        showToast('Seleccioná al menos un producto para exportar.');
+        showToast('SeleccionÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ al menos un producto para exportar.');
         return;
       }
       exportCSV(selected);
@@ -1105,7 +1105,7 @@ function initStockExport(all, sinStock, pocoStock) {
     btnPrev.addEventListener('click', function() {
       const selected = getSelectedStockItems();
       if (selected.length === 0) {
-        showToast('Seleccioná al menos un producto para exportar.');
+        showToast('SeleccionÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ al menos un producto para exportar.');
         return;
       }
       showStockReportPreview(selected);
@@ -1114,7 +1114,7 @@ function initStockExport(all, sinStock, pocoStock) {
 }
 
 function exportCSV(selected) {
-  const headers = ['Producto', 'Categoría', 'Marca', 'Stock actual', 'Stock mínimo', 'Cant. a pedir'];
+  const headers = ['Producto', 'CategorÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­a', 'Marca', 'Stock actual', 'Stock mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­nimo', 'Cant. a pedir'];
   const rows = selected.map(function(item) {
     return '"' + item.name.replace(/"/g, '""') + '","' +
            item.category.replace(/"/g, '""') + '","' +
@@ -1133,7 +1133,7 @@ function exportCSV(selected) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  showToast(selected.length + ' producto' + (selected.length !== 1 ? 's' : '') + ' exportado(s) ✓');
+  showToast(selected.length + ' producto' + (selected.length !== 1 ? 's' : '') + ' exportado(s) ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ');
 }
 
 function showStockReportPreview(selected) {
@@ -1216,12 +1216,12 @@ function showStockReportPreview(selected) {
   if (win) {
     win.onload = function() { setTimeout(function() { URL.revokeObjectURL(url); }, 10000); };
   } else {
-    showToast('El navegador bloqueo la ventana. Permití popups para este sitio.');
+    showToast('El navegador bloqueo la ventana. PermitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­ popups para este sitio.');
   }
 }
 
 // ------------------------------------------------------------
-// SECCIÓN 14: RECEPCIÓN DE MERCADERÍA
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 14: RECEPCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN DE MERCADERÃƒÆ’Ã†â€™Ãƒâ€šÃ‚ÂA
 // ------------------------------------------------------------
 
 var _recepcionInit = false;
@@ -1252,7 +1252,7 @@ function initRecepcion() {
       console.error('Error cargando productos:', err);
     });
   
-  // Búsqueda con debounce
+  // BÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºsqueda con debounce
   searchInput.addEventListener('input', function() {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(function() {
@@ -1272,11 +1272,23 @@ function initRecepcion() {
     }, 300);
   });
   
+  // Checkbox "Seleccionar todos"
+  var checkAllRecepcion = document.getElementById('check-all-recepcion');
+  if (checkAllRecepcion) {
+    checkAllRecepcion.addEventListener('change', function() {
+      var checked = this.checked;
+      document.querySelectorAll('#recepcion-tbody .recepcion-check-item').forEach(function(cb) {
+        cb.checked = checked;
+      });
+      updateRecepcionSummary();
+    });
+  }
+  
   function renderRecepcionResults(products) {
     document.getElementById('recepcion-empty').style.display = 'none';
     
     if (products.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="recepcion-no-results">No se encontraron productos</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="recepcion-no-results">No se encontraron productos</td></tr>';
       return;
     }
     
@@ -1286,6 +1298,7 @@ function initRecepcion() {
       var selected = window._selectedItems[p.id] || 0;
       var nuevo = currentQty + Number(selected);
       html += '<tr data-id="' + p.id + '">' +
+        '<td><input type="checkbox" class="recepcion-check-item" checked data-id="' + p.id + '"></td>' +
         '<td class="td-producto">' +
           '<div class="recepcion-producto-info">' +
             (p.image ? '<img src="' + escapeAttr(p.image) + '" class="recepcion-thumb" onerror="this.style.display=\'none\'">' : '') +
@@ -1325,38 +1338,44 @@ function initRecepcion() {
   function updateRecepcionSummary() {
     var count = 0;
     var totalItems = 0;
-    Object.keys(window._selectedItems).forEach(function(id) {
-      if (window._selectedItems[id] > 0) {
-        count++;
-        totalItems += window._selectedItems[id];
+    
+    document.querySelectorAll('#recepcion-tbody .recepcion-check-item').forEach(function(cb) {
+      if (cb.checked) {
+        var id = cb.getAttribute('data-id');
+        var qty = window._selectedItems[id] || 0;
+        if (qty > 0) {
+          count++;
+          totalItems += qty;
+        }
       }
     });
+    
     var countEl = document.getElementById('recepcion-count');
     if (countEl) countEl.textContent = count;
-    var confirmBtn = document.getElementById('btn-confirmar-recepcion');
-    if (confirmBtn) {
-      confirmBtn.disabled = (count === 0);
-      if (count > 0) {
-        confirmBtn.innerHTML = '✅ Confirmar Recepción (' + totalItems + ' unidades - ' + count + ' productos)';
-      } else {
-        confirmBtn.innerHTML = '✅ Confirmar Recepción (<span id="confirm-count">0</span>)';
-      }
+    
+    if (count > 0) {
+      btnConfirmar.disabled = false;
+      btnConfirmar.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Confirmar Recepción (' + totalItems + ' unidades - ' + count + ' productos)';
+    } else {
+      btnConfirmar.disabled = true;
+      btnConfirmar.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Confirmar Recepción (0)';
     }
-  }
-  
-  // Confirmar recepción
+  }  
+  // Confirmar recepciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n
   btnConfirmar.addEventListener('click', function() {
     var items = [];
-    Object.keys(window._selectedItems).forEach(function(id) {
-      if (window._selectedItems[id] > 0) {
-        items.push({ id: parseInt(id), quantity: window._selectedItems[id] });
+    document.querySelectorAll('#recepcion-tbody .recepcion-check-item:checked').forEach(function(cb) {
+      var id = parseInt(cb.getAttribute('data-id'));
+      var qty = window._selectedItems[id] || 0;
+      if (qty > 0) {
+        items.push({ id: id, quantity: qty });
       }
     });
     
     if (items.length === 0) return;
     
     btnConfirmar.disabled = true;
-    btnConfirmar.textContent = '⏳ Procesando...';
+    btnConfirmar.textContent = 'ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€šÃ‚Â³ Procesando...';
     
     fetch('/api/products/batch-stock', {
       method: 'POST',
@@ -1368,22 +1387,22 @@ function initRecepcion() {
       if (data.error) {
         showToast('Error: ' + data.error, 'error');
         btnConfirmar.disabled = false;
-        btnConfirmar.innerHTML = '✅ Confirmar Recepción (<span id="confirm-count">0</span>)';
+        btnConfirmar.innerHTML = 'ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Confirmar RecepciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n (<span id="confirm-count">0</span>)';
         return;
       }
-      showToast('✅ ' + data.count + ' productos actualizados correctamente');
+      showToast('ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ ' + data.count + ' productos actualizados correctamente');
       window._selectedItems = {};
       document.getElementById('recepcion-search').value = '';
       document.getElementById('recepcion-tbody').innerHTML = '';
       document.getElementById('recepcion-empty').style.display = 'block';
       updateRecepcionSummary();
-      // Recargar stock panel si está abierto
+      // Recargar stock panel si estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ abierto
       if (typeof loadStockPanel === 'function') loadStockPanel();
     })
     .catch(function(err) {
-      showToast('Error de conexión', 'error');
+      showToast('Error de conexiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n', 'error');
       btnConfirmar.disabled = false;
-      btnConfirmar.innerHTML = '✅ Confirmar Recepción (<span id="confirm-count">0</span>)';
+      btnConfirmar.innerHTML = 'ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Confirmar RecepciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n (<span id="confirm-count">0</span>)';
     });
   });
   
@@ -1393,7 +1412,7 @@ function initRecepcion() {
 }
 
 // ------------------------------------------------------------
-// Delegación: botón "Recibir" en stock → abre Recepción con producto precargado
+// DelegaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n: botÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n "Recibir" en stock ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ abre RecepciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n con producto precargado
 // ------------------------------------------------------------
 document.addEventListener('click', function(e) {
   var btn = e.target.closest('.btn-recibir-stock');
@@ -1402,7 +1421,7 @@ document.addEventListener('click', function(e) {
   var productId = btn.getAttribute('data-id');
   var productName = btn.getAttribute('data-name');
 
-  // Cambiar a la pestaña Recepción
+  // Cambiar a la pestaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±a RecepciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n
   var recepcionTab = document.querySelector('.admin-tab[data-tab="recepcion"]');
   if (recepcionTab) recepcionTab.click();
 
@@ -1417,7 +1436,7 @@ document.addEventListener('click', function(e) {
 });
 
 // ============================================================
-// SECCIÓN 15: STOCK → RECEPCIÓN — PEDIDO GLOBAL A PROVEEDOR
+// SECCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN 15: STOCK ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ RECEPCIÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œN ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â PEDIDO GLOBAL A PROVEEDOR
 // ============================================================
 function initPedidoGlobal() {
   var checkAll = document.getElementById('check-all-stock');
@@ -1433,15 +1452,15 @@ function initPedidoGlobal() {
     actualizarResumenPedido();
   });
 
-  // Delegación: cambios en checkboxes individuales
+  // DelegaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n: cambios en checkboxes individuales
   document.addEventListener('change', function(e) {
     if (e.target.classList.contains('stock-check-item')) {
       actualizarResumenPedido();
-      // Si alguno está desmarcado, desmarcar "todos"
+      // Si alguno estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ desmarcado, desmarcar "todos"
       if (!e.target.checked) {
         checkAll.checked = false;
       } else {
-        // Verificar si todos están marcados
+        // Verificar si todos estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡n marcados
         var all = document.querySelectorAll('.stock-check-item');
         var allChecked = true;
         all.forEach(function(cb) { if (!cb.checked) allChecked = false; });
@@ -1463,11 +1482,11 @@ function initPedidoGlobal() {
 
     if (seleccionados.length === 0) return;
 
-    // Cambiar a pestaña Recepción
+    // Cambiar a pestaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±a RecepciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n
     var recepcionTab = document.querySelector('.admin-tab[data-tab="recepcion"]');
     if (recepcionTab) recepcionTab.click();
 
-    // Precargar TODOS los productos seleccionados en Recepción
+    // Precargar TODOS los productos seleccionados en RecepciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n
     setTimeout(function() {
       var searchInput = document.getElementById('recepcion-search');
       var tbody = document.getElementById('recepcion-tbody');
@@ -1475,7 +1494,7 @@ function initPedidoGlobal() {
 
       if (!tbody) return;
 
-      // Limpiar búsqueda actual y cargar productos directamente
+      // Limpiar bÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºsqueda actual y cargar productos directamente
       if (searchInput) searchInput.value = '';
 
       // Hacer fetch de productos para tener datos completos
@@ -1497,7 +1516,7 @@ function initPedidoGlobal() {
           // Establecer cantidad sugerida para cada uno
           productos.forEach(function(p) {
             var currentQty = Number(p.stock_cantidad) || 0;
-            // Sugerir cantidad mínima para alcanzar stock_minimo * 2
+            // Sugerir cantidad mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­nima para alcanzar stock_minimo * 2
             var stockMin = Number(p.stock_minimo) || 5;
             var sugerido = Math.max(stockMin * 2 - currentQty, stockMin);
             window._selectedItems[p.id] = sugerido;
@@ -1546,12 +1565,12 @@ function initPedidoGlobal() {
       var btnGenerar = document.getElementById('btn-generar-pedido');
       if (btnGenerar) btnGenerar.click();
 
-      showToast('⚡ Enviando ' + count + ' productos a Recepción...', 'info');
+      showToast('ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â¡ Enviando ' + count + ' productos a RecepciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n...', 'info');
     });
   }
 }
 
-// Inicializar después de que se cargue el panel
+// Inicializar despuÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s de que se cargue el panel
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initPedidoGlobal);
 } else {
