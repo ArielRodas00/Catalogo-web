@@ -87,13 +87,19 @@ router.get('/', getLimiter, async function(req, res, next) {
     const orderKey = sanitizeOrder(order);
     const orderClause = ORDER_MAP[orderKey] || 'ORDER BY created_at DESC';
 
+    // Validar que orderClause sea seguro antes de concatenar
+    const safeOrderClause = ORDER_MAP[orderKey] || 'ORDER BY created_at DESC';
+    if (!safeOrderClause.match(/^ORDER BY (created_at|name|price)\s+(DESC|ASC)$/i)) {
+      return res.status(400).json({ error: 'Orden inválido' });
+    }
+
     const pageNum   = parseInt(page)  || 1;
     const limitNum  = parseInt(limit) || 24;
     const offset    = (pageNum - 1) * limitNum;
 
     const dataQuery =
       'SELECT id, name, price, category, subcategoria, brand, image, description, whatsapp, en_oferta, precio_oferta, en_stock, destacado, en_promocion, fecha_fin_promo, stock_cantidad, stock_minimo, created_at FROM productos ' + where + ' ' +
-      orderClause +
+      safeOrderClause +
       ' LIMIT $' + paramCount +
       ' OFFSET $' + (paramCount + 1);
 
@@ -124,7 +130,7 @@ router.get('/', getLimiter, async function(req, res, next) {
 router.get('/destacados', getLimiter, async function(req, res, next) {
   try {
     const result = await pool.query(
-      'SELECT id, name, price, category, subcategoria, brand, image, whatsapp, en_oferta, precio_oferta, en_stock, destacado FROM productos WHERE destacado = true AND en_stock = true ORDER BY created_at DESC'
+      'SELECT id, name, price, category, subcategoria, brand, image, whatsapp, en_oferta, precio_oferta, en_stock, destacado FROM productos WHERE destacado = true AND en_stock = true ORDER BY created_at DESC LIMIT 12'
     );
     res.json(result.rows);
   } catch (err) {
@@ -136,7 +142,7 @@ router.get('/destacados', getLimiter, async function(req, res, next) {
 router.get('/promociones', getLimiter, async function(req, res, next) {
   try {
     const result = await pool.query(
-      'SELECT id, name, price, category, subcategoria, brand, image, whatsapp, en_oferta, precio_oferta, en_stock, destacado FROM productos WHERE en_promocion = true AND en_stock = true AND (fecha_fin_promo IS NULL OR fecha_fin_promo > NOW()) ORDER BY created_at DESC'
+      'SELECT id, name, price, category, subcategoria, brand, image, whatsapp, en_oferta, precio_oferta, en_stock, destacado FROM productos WHERE en_promocion = true AND en_stock = true AND (fecha_fin_promo IS NULL OR fecha_fin_promo > NOW()) ORDER BY created_at DESC LIMIT 12'
     );
     res.json(result.rows);
   } catch (err) {
@@ -347,6 +353,11 @@ const upload = multer({
 router.post('/:id/images/upload', apiLimiter, authenticateToken, upload.single('image'), async function(req, res, next) {
   try {
     const id  = Number(req.params.id);
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se recibió el archivo' });
+    }
+
     const url = '/uploads/' + req.file.filename;
     const result = await pool.query(
       'INSERT INTO producto_imagenes (producto_id, url, orden) VALUES ($1, $2, $3) RETURNING *',

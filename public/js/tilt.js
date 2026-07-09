@@ -7,6 +7,7 @@
 // Efecto tilt 3D al mover el mouse sobre las tarjetas (con throttle via rAF)
 var ticking = false;
 document.addEventListener('mousemove', function(e) {
+  if (document.querySelectorAll('.product-card').length === 0) return;
   if (ticking) return;
   ticking = true;
   requestAnimationFrame(function() {

@@ -78,10 +78,14 @@ async function initCarousel() {
   btnNext.addEventListener('click', function(e) { e.stopPropagation(); goToSlide(current + 1); });
 
   let autoplay = setInterval(function() { goToSlide(current + 1); }, 5000);
+  if (window._carouselInterval) clearInterval(window._carouselInterval);
+  window._carouselInterval = autoplay;
 
   document.getElementById('hero-carousel').addEventListener('mouseenter', function() { clearInterval(autoplay); });
   document.getElementById('hero-carousel').addEventListener('mouseleave', function() {
+    if (window._carouselInterval) clearInterval(window._carouselInterval);
     autoplay = setInterval(function() { goToSlide(current + 1); }, 5000);
+    window._carouselInterval = autoplay;
   });
 
   track.addEventListener('click', function(e) {

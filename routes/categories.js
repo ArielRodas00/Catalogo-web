@@ -6,7 +6,7 @@ const pool    = require('../db');
 router.get('/', async function(req, res, next) {
   try {
     const result = await pool.query(
-      'SELECT DISTINCT category, subcategoria FROM productos ORDER BY category, subcategoria'
+      'SELECT DISTINCT category, subcategoria FROM productos ORDER BY category, subcategoria LIMIT 100'
     );
 
     const grouped = {};

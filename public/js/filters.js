@@ -75,9 +75,9 @@ async function renderProducts(page) {
 // populateCategoryNav() — dropdown de categorías con acordeón
 // ------------------------------------------------------------
 async function populateCategoryNav() {
-  const categories   = await getCategories();
   const subcatRes    = await fetch('/api/categories');
   const subcatGroups = await subcatRes.json();
+  const categories   = Object.keys(subcatGroups);
   const dropdownMenu = document.getElementById('menu-categorias');
   dropdownMenu.innerHTML = '';
 

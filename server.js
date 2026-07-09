@@ -1,4 +1,4 @@
-require('dotenv').config();
+﻿require('dotenv').config();
 
 // Soporte para DATABASE_URL (Neon) o variables individuales (local)
 if (process.env.DATABASE_URL) {
@@ -26,7 +26,21 @@ const metricsRouter    = require('./routes/metrics');
 const categoriesRouter = require('./routes/categories');
 
 const app  = express();
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      scriptSrcAttr: ["'unsafe-inline'"],
+      styleSrc: ["'self'", "https:", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:", "http:"],
+      fontSrc: ["'self'", "https:", "data:"],
+      connectSrc: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"]
+    }
+  }
+}));
 const PORT = process.env.PORT || 3000;
 const BASE_URL = process.env.BASE_URL || 'http://localhost:' + PORT;
 
@@ -171,4 +185,5 @@ process.on('unhandledRejection', function(reason, promise) {
 
 process.on('uncaughtException', function(err) {
   console.error('Uncaught Exception:', err.message);
+  process.exit(1);
 });
