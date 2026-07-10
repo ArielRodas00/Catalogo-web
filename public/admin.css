@@ -1815,17 +1815,31 @@ h1, h2, h3 { font-family: var(--font-display); }
    ============================================================ */
 
 @media (max-width: 480px) {
-  /* Header: allow text truncation */
+  /* Prevent horizontal overflow */
+  html, body {
+    overflow-x: hidden;
+  }
+
+  /* Admin panel fits viewport */
+  #admin-panel {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* Header: stack title and buttons properly */
   .admin-header {
     height: auto;
     padding: 10px 12px;
     flex-wrap: wrap;
     gap: 6px;
+    overflow: hidden;
   }
 
   .admin-header-left {
     gap: 8px;
     overflow: hidden;
+    min-width: 0;
   }
 
   .admin-header-left h1 {
@@ -1834,13 +1848,21 @@ h1, h2, h3 { font-family: var(--font-display); }
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 140px;
+    min-width: 0;
   }
 
-  /* Tabs: scroll horizontally */
+  .admin-header-right {
+    gap: 6px;
+    min-width: 0;
+  }
+
+  /* Tabs: horizontal scroll */
   .admin-tabs {
+    display: flex;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     padding: 0 8px;
+    gap: 2px;
     scrollbar-width: none; /* Firefox */
   }
 
@@ -1849,9 +1871,10 @@ h1, h2, h3 { font-family: var(--font-display); }
   }
 
   .admin-tab {
-    padding: 10px 12px;
+    padding: 10px 10px;
     font-size: 0.75rem;
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
   /* Hide tab text labels on very small screens, show only icons */
@@ -1867,10 +1890,65 @@ h1, h2, h3 { font-family: var(--font-display); }
   /* Reduce padding overall */
   .admin-body {
     padding: 8px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   .form-section {
     padding: 12px;
+    overflow: hidden;
+  }
+
+  /* Metrics: ensure cards fit */
+  .metrics-cards {
+    gap: 8px;
+  }
+
+  .metric-card {
+    padding: 10px;
+    gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .metric-value {
+    font-size: 1.2rem;
+  }
+
+  .metric-label {
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .metric-icon {
+    font-size: 20px !important;
+    padding: 6px;
+    flex-shrink: 0;
+  }
+
+  /* Charts: fit within viewport */
+  .chart-card {
+    padding: 10px;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .chart-title {
+    font-size: 0.82rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Tables: truncate long text */
+  .metrics-table td:first-child {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Badges wrap properly */
