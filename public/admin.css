@@ -1808,3 +1808,78 @@ h1, h2, h3 { font-family: var(--font-display); }
     min-height: 32px;
   }
 }
+
+
+/* ============================================================
+   RESPONSIVE — 480px (Samsung Galaxy S8+ y similares)
+   ============================================================ */
+
+@media (max-width: 480px) {
+  /* Header: allow text truncation */
+  .admin-header {
+    height: auto;
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .admin-header-left {
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .admin-header-left h1 {
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+  }
+
+  /* Tabs: scroll horizontally */
+  .admin-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 8px;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .admin-tabs::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+
+  .admin-tab {
+    padding: 10px 12px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  /* Hide tab text labels on very small screens, show only icons */
+  .admin-tab span:not(.material-symbols-outlined) {
+    display: none;
+  }
+
+  /* Form fields stack vertically */
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* Reduce padding overall */
+  .admin-body {
+    padding: 8px;
+  }
+
+  .form-section {
+    padding: 12px;
+  }
+
+  /* Badges wrap properly */
+  .td-estado {
+    min-width: 80px;
+  }
+
+  .badge {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+}
