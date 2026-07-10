@@ -121,13 +121,19 @@
         <div class="metrics-charts">
 
           <div class="chart-card">
-            <h3 class="chart-title">Productos más vistos</h3>
+            <div class="chart-header">
+              <h3 class="chart-title">Productos más vistos</h3>
+              <button class="btn-ver-todos" data-metric="vistas">Ver todos →</button>
+            </div>
             <canvas id="chart-vistas"></canvas>
             <table class="metrics-table" id="table-vistas"></table>
           </div>
 
           <div class="chart-card">
-            <h3 class="chart-title">Más consultados por WhatsApp</h3>
+            <div class="chart-header">
+              <h3 class="chart-title">Más consultados por WhatsApp</h3>
+              <button class="btn-ver-todos" data-metric="clicks">Ver todos →</button>
+            </div>
             <canvas id="chart-clicks"></canvas>
             <table class="metrics-table" id="table-clicks"></table>
           </div>
@@ -136,7 +142,10 @@
 
         <!-- Búsquedas frecuentes -->
         <div class="chart-card">
-          <h3 class="chart-title">Búsquedas más frecuentes</h3>
+          <div class="chart-header">
+            <h3 class="chart-title">Búsquedas más frecuentes</h3>
+            <button class="btn-ver-todos" data-metric="busquedas">Ver todos →</button>
+          </div>
           <table class="metrics-table" id="table-busquedas"></table>
         </div>
 
@@ -547,6 +556,17 @@
 
   <!-- TOAST -->
   <div id="toast" class="toast" style="display:none"></div>
+
+  <!-- MODAL VER TODOS MÉTRICAS -->
+  <div id="metrics-modal" class="confirm-overlay" style="display:none">
+    <div class="confirm-box" style="max-width: 700px; max-height: 80vh; overflow-y: auto;">
+      <div class="chart-header">
+        <h3 id="metrics-modal-title" class="chart-title"></h3>
+        <button id="metrics-modal-close" class="modal-close-btn" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:1.5rem;cursor:pointer;">✕</button>
+      </div>
+      <div id="metrics-modal-body"></div>
+    </div>
+  </div>
 
   </div><!-- /admin-panel -->
 

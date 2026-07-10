@@ -27,6 +27,7 @@ async function loadMetrics() {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     const data = await res.json();
+    window._lastMetricsData = data;
 
     // --- Cards de totales ---
     document.getElementById('total-vistas').textContent    = data.totales.vistas;
@@ -47,23 +48,30 @@ async function loadMetrics() {
       datasets: [{
         label:           'Vistas',
         data:            dataVistas,
-        backgroundColor: 'rgba(136, 34, 34, 0.7)',
-        borderColor:     'rgba(136, 34, 34, 1)',
-        borderWidth:     1
+        backgroundColor: 'rgba(193, 18, 31, 0.7)',
+        borderColor:     'rgba(193, 18, 31, 1)',
+        borderWidth:     1,
+        borderRadius:    4
       }]
     },
     options: {
+      indexAxis: 'y',
       responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales:  { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      scales:  {
+        x: { beginAtZero: true, ticks: { stepSize: 1 } },
+        y: { ticks: { font: { size: 11 } } }
+      }
     }
   });
 
-  // Tabla de vistas
+  // Tabla de vistas (top 5)
   renderMetricsTable(
     document.getElementById('table-vistas'),
     data.topVistas,
-    'vistas'
+    'vistas',
+    5
   );
 
   // --- Gráfico de clicks WhatsApp ---
@@ -81,42 +89,52 @@ async function loadMetrics() {
         data:            dataClicks,
         backgroundColor: 'rgba(37, 211, 102, 0.7)',
         borderColor:     'rgba(37, 211, 102, 1)',
-        borderWidth:     1
+        borderWidth:     1,
+        borderRadius:    4
       }]
     },
     options: {
+      indexAxis: 'y',
       responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales:  { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      scales:  {
+        x: { beginAtZero: true, ticks: { stepSize: 1 } },
+        y: { ticks: { font: { size: 11 } } }
+      }
     }
   });
 
-  // Tabla de clicks
+  // Tabla de clicks (top 5)
   renderMetricsTable(
     document.getElementById('table-clicks'),
     data.topClicks,
-    'clicks'
+    'clicks',
+    5
   );
 
-  // --- Tabla de búsquedas ---
-  const tableBusquedas = document.getElementById('table-busquedas');
-  tableBusquedas.innerHTML =
-    '<tr><th>Término</th><th>Cantidad</th></tr>' +
-    data.topBusquedas.map(function(b) {
-      return '<tr><td>' + escapeHTML(b.termino) + '</td><td>' + b.cantidad + '</td></tr>';
-    }).join('');
+  // --- Tabla de búsquedas (top 5) ---
+  renderMetricsTable(
+    document.getElementById('table-busquedas'),
+    data.topBusquedas,
+    'busquedas',
+    5
+  );
   } catch (err) {
     console.error('Error cargando métricas:', err);
   }
 }
 
-function renderMetricsTable(table, data, field) {
+function renderMetricsTable(table, data, field, limit) {
+  const displayData = limit ? data.slice(0, limit) : data;
   table.innerHTML =
-    '<tr><th>Producto</th><th>' + (field === 'vistas' ? 'Vistas' : 'Clicks') + '</th></tr>' +
-    data.map(function(p) {
+    '<tr><th>Producto</th><th style="text-align:right">' + (field === 'vistas' ? 'Vistas' : field === 'clicks' ? 'Clicks' : 'Búsquedas') + '</th></tr>' +
+    displayData.map(function(p) {
+      const name = field === 'busquedas' ? escapeHTML(p.termino) : escapeHTML(p.name);
+      const value = field === 'busquedas' ? p.cantidad : (parseInt(p[field]) || 0);
       return '<tr>' +
-        '<td>' + escapeHTML(p.name) + '</td>' +
-        '<td>' + (parseInt(p[field]) || 0) + '</td>' +
+        '<td class="td-product-name">' + name + '</td>' +
+        '<td class="td-value">' + value + '</td>' +
       '</tr>';
     }).join('');
 }
@@ -1433,6 +1451,46 @@ document.addEventListener('click', function(e) {
       searchInput.dispatchEvent(new Event('input'));
     }
   }, 200);
+});
+
+// Modal de métricas - Ver todos
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.btn-ver-todos');
+  if (!btn) return;
+
+  var metric = btn.getAttribute('data-metric');
+  var modal = document.getElementById('metrics-modal');
+  var title = document.getElementById('metrics-modal-title');
+  var body = document.getElementById('metrics-modal-body');
+
+  // Get all metrics data from the last load
+  var allData = window._lastMetricsData;
+  if (!allData) return;
+
+  if (metric === 'vistas') {
+    title.textContent = 'Todos los productos - Vistas';
+    renderMetricsTable(body.querySelector('table') || createMetricsModalTable(body), allData.topVistas, 'vistas');
+  } else if (metric === 'clicks') {
+    title.textContent = 'Todos los productos - Clicks WhatsApp';
+    renderMetricsTable(body.querySelector('table') || createMetricsModalTable(body), allData.topClicks, 'clicks');
+  } else if (metric === 'busquedas') {
+    title.textContent = 'Todas las búsquedas frecuentes';
+    renderMetricsTable(body.querySelector('table') || createMetricsModalTable(body), allData.topBusquedas, 'busquedas');
+  }
+
+  modal.style.display = 'flex';
+});
+
+function createMetricsModalTable(container) {
+  container.innerHTML = '<table class="metrics-table" style="width:100%"></table>';
+  return container.querySelector('table');
+}
+
+// Close metrics modal
+document.addEventListener('click', function(e) {
+  if (e.target.id === 'metrics-modal' || e.target.id === 'metrics-modal-close') {
+    document.getElementById('metrics-modal').style.display = 'none';
+  }
 });
 
 // ============================================================
