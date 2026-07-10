@@ -34,9 +34,10 @@ async function loadMetrics() {
     document.getElementById('total-clicks').textContent    = data.totales.clicks;
     document.getElementById('total-busquedas').textContent = data.totales.busquedas;
 
-  // --- Gráfico de vistas ---
-  const labelsVistas = data.topVistas.map(function(p) { return p.name; });
-  const dataVistas   = data.topVistas.map(function(p) { return parseInt(p.vistas); });
+  // --- Gráfico de vistas (top 5) ---
+  const top5Vistas = data.topVistas.slice(0, 5);
+  const labelsVistas = top5Vistas.map(function(p) { return p.name; });
+  const dataVistas   = top5Vistas.map(function(p) { return parseInt(p.vistas); });
 
   if (chartVistas) chartVistas.destroy();
   // Destruimos el gráfico anterior antes de crear uno nuevo
@@ -74,9 +75,10 @@ async function loadMetrics() {
     5
   );
 
-  // --- Gráfico de clicks WhatsApp ---
-  const labelsClicks = data.topClicks.map(function(p) { return p.name; });
-  const dataClicks   = data.topClicks.map(function(p) { return parseInt(p.clicks); });
+  // --- Gráfico de clicks WhatsApp (top 5) ---
+  const top5Clicks = data.topClicks.slice(0, 5);
+  const labelsClicks = top5Clicks.map(function(p) { return p.name; });
+  const dataClicks   = top5Clicks.map(function(p) { return parseInt(p.clicks); });
 
   if (chartClicks) chartClicks.destroy();
 
