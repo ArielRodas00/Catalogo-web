@@ -60,9 +60,16 @@ async function loadMetrics() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
+      layout: { padding: { left: 10, right: 10, top: 5, bottom: 5 } },
       scales:  {
         x: { beginAtZero: true, ticks: { stepSize: 1 } },
-        y: { ticks: { font: { size: 11 } } }
+        y: { 
+          ticks: { 
+            font: { size: 11 },
+            autoSkip: false,
+            maxRotation: 0
+          } 
+        }
       }
     }
   });
@@ -100,9 +107,16 @@ async function loadMetrics() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
+      layout: { padding: { left: 10, right: 10, top: 5, bottom: 5 } },
       scales:  {
         x: { beginAtZero: true, ticks: { stepSize: 1 } },
-        y: { ticks: { font: { size: 11 } } }
+        y: { 
+          ticks: { 
+            font: { size: 11 },
+            autoSkip: false,
+            maxRotation: 0
+          } 
+        }
       }
     }
   });

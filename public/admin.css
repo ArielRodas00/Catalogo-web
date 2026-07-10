@@ -2002,7 +2002,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 /* Charts más grandes */
 .chart-card canvas {
   width: 100% !important;
-  height: 280px !important;
+  height: 320px !important;
   margin-bottom: 16px;
 }
 
@@ -2070,9 +2070,9 @@ h1, h2, h3 { font-family: var(--font-display); }
 /* Responsive */
 @media (max-width: 768px) {
   .chart-card canvas {
-    height: 200px !important;
+    height: 260px !important;
   }
-
+  
   .chart-header {
     flex-direction: column;
     align-items: flex-start;
@@ -2082,7 +2082,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 
 @media (max-width: 480px) {
   .chart-card canvas {
-    height: 180px !important;
+    height: 240px !important;
   }
 
   .metrics-table .td-product-name {
