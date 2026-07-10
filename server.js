@@ -35,7 +35,7 @@ app.use(helmet({
       styleSrc: ["'self'", "https:", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "http:"],
       fontSrc: ["'self'", "https:", "data:"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
       formAction: ["'self'"],
       frameAncestors: ["'none'"]
     }
