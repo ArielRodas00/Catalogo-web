@@ -125,8 +125,7 @@
               <h3 class="chart-title">Productos más vistos</h3>
               <button class="btn-ver-todos" data-metric="vistas">Ver todos →</button>
             </div>
-            <canvas id="chart-vistas"></canvas>
-            <table class="metrics-table" id="table-vistas"></table>
+            <div id="vistas-bars" class="metrics-bars"></div>
           </div>
 
           <div class="chart-card">
@@ -134,8 +133,7 @@
               <h3 class="chart-title">Más consultados por WhatsApp</h3>
               <button class="btn-ver-todos" data-metric="clicks">Ver todos →</button>
             </div>
-            <canvas id="chart-clicks"></canvas>
-            <table class="metrics-table" id="table-clicks"></table>
+            <div id="clicks-bars" class="metrics-bars"></div>
           </div>
 
         </div>
@@ -146,7 +144,7 @@
             <h3 class="chart-title">Búsquedas más frecuentes</h3>
             <button class="btn-ver-todos" data-metric="busquedas">Ver todos →</button>
           </div>
-          <table class="metrics-table" id="table-busquedas"></table>
+          <div id="busquedas-bars" class="metrics-bars"></div>
         </div>
 
       </div>
@@ -570,7 +568,6 @@
 
   </div><!-- /admin-panel -->
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
    <!-- products.js eliminado (código muerto, los datos vienen de la API) -->
   <script src="storage.js"></script>
   <script src="admin.js"></script>

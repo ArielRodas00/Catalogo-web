@@ -2000,11 +2000,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 }
 
 /* Charts más grandes */
-.chart-card canvas {
-  width: 100% !important;
-  height: 320px !important;
-  margin-bottom: 16px;
-}
+/* Chart canvas styles removed - replaced by progress bars */
 
 /* Tablas de métricas mejoradas */
 .metrics-table {
@@ -2068,29 +2064,112 @@ h1, h2, h3 { font-family: var(--font-display); }
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-  .chart-card canvas {
-    height: 260px !important;
-  }
-  
-  .chart-header {
+  @media (max-width: 768px) {
+    .chart-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
 }
 
-@media (max-width: 480px) {
-  .chart-card canvas {
-    height: 240px !important;
-  }
-
-  .metrics-table .td-product-name {
+  @media (max-width: 480px) {
+    .metrics-table .td-product-name {
     max-width: 140px;
   }
 
   .btn-ver-todos {
     font-size: 0.78rem;
     padding: 4px 10px;
+  }
+}
+
+/* ============================================================
+   MÉTRICAS - BARRAS DE PROGRESO ESTILIZADAS
+   ============================================================ */
+
+.metrics-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.metrics-bar-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.metrics-bar-item:last-child {
+  border-bottom: none;
+}
+
+.metrics-bar-name {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.metrics-bar-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--primary);
+  white-space: nowrap;
+  text-align: right;
+}
+
+.metrics-bar-track {
+  grid-column: 1 / -1;
+  height: 8px;
+  background: #f0f2f5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.metrics-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.metrics-bar-fill.vistas {
+  background: linear-gradient(90deg, var(--primary), #e63946);
+}
+
+.metrics-bar-fill.clicks {
+  background: linear-gradient(90deg, #25D366, #128C7E);
+}
+
+.metrics-bar-fill.busquedas {
+  background: linear-gradient(90deg, #3498db, #2980b9);
+}
+
+/* Búsqueda items - más compactos */
+.metrics-bar-item.busqueda {
+  padding: 8px 0;
+}
+
+.metrics-bar-item.busqueda .metrics-bar-name {
+  font-size: 0.85rem;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .metrics-bar-item {
+    gap: 8px;
+  }
+  
+  .metrics-bar-name {
+    font-size: 0.82rem;
+  }
+  
+  .metrics-bar-value {
+    font-size: 0.82rem;
   }
 }

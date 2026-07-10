@@ -13,11 +13,6 @@
 // MÉTRICAS
 // ============================================================
 
-let chartVistas = null;
-let chartClicks = null;
-// Guardamos referencias a los gráficos para destruirlos
-// antes de recrearlos al cambiar el período
-
 async function loadMetrics() {
   try {
     const period = document.getElementById('metrics-period').value;
@@ -34,125 +29,17 @@ async function loadMetrics() {
     document.getElementById('total-clicks').textContent    = data.totales.clicks;
     document.getElementById('total-busquedas').textContent = data.totales.busquedas;
 
-  // --- Gráfico de vistas (top 5) ---
-  const top5Vistas = data.topVistas.slice(0, 5);
-  const labelsVistas = top5Vistas.map(function(p) { return p.name; });
-  const dataVistas   = top5Vistas.map(function(p) { return parseInt(p.vistas); });
+    // Render progress bars for vistas
+    renderProgressBars('vistas-bars', data.topVistas.slice(0, 5), 'vistas');
 
-  if (chartVistas) chartVistas.destroy();
-  // Destruimos el gráfico anterior antes de crear uno nuevo
+    // Render progress bars for clicks
+    renderProgressBars('clicks-bars', data.topClicks.slice(0, 5), 'clicks');
 
-  chartVistas = new Chart(document.getElementById('chart-vistas'), {
-    type: 'bar',
-    data: {
-      labels:   labelsVistas,
-      datasets: [{
-        label:           'Vistas',
-        data:            dataVistas,
-        backgroundColor: 'rgba(193, 18, 31, 0.7)',
-        borderColor:     'rgba(193, 18, 31, 1)',
-        borderWidth:     1,
-        borderRadius:    4
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      layout: { padding: { left: 10, right: 10, top: 5, bottom: 5 } },
-      scales:  {
-        x: { beginAtZero: true, ticks: { stepSize: 1 } },
-        y: { 
-          ticks: { 
-            font: { size: 11 },
-            autoSkip: false,
-            maxRotation: 0
-          } 
-        }
-      }
-    }
-  });
-
-  // Tabla de vistas (top 5)
-  renderMetricsTable(
-    document.getElementById('table-vistas'),
-    data.topVistas,
-    'vistas',
-    5
-  );
-
-  // --- Gráfico de clicks WhatsApp (top 5) ---
-  const top5Clicks = data.topClicks.slice(0, 5);
-  const labelsClicks = top5Clicks.map(function(p) { return p.name; });
-  const dataClicks   = top5Clicks.map(function(p) { return parseInt(p.clicks); });
-
-  if (chartClicks) chartClicks.destroy();
-
-  chartClicks = new Chart(document.getElementById('chart-clicks'), {
-    type: 'bar',
-    data: {
-      labels:   labelsClicks,
-      datasets: [{
-        label:           'Clicks WhatsApp',
-        data:            dataClicks,
-        backgroundColor: 'rgba(37, 211, 102, 0.7)',
-        borderColor:     'rgba(37, 211, 102, 1)',
-        borderWidth:     1,
-        borderRadius:    4
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      layout: { padding: { left: 10, right: 10, top: 5, bottom: 5 } },
-      scales:  {
-        x: { beginAtZero: true, ticks: { stepSize: 1 } },
-        y: { 
-          ticks: { 
-            font: { size: 11 },
-            autoSkip: false,
-            maxRotation: 0
-          } 
-        }
-      }
-    }
-  });
-
-  // Tabla de clicks (top 5)
-  renderMetricsTable(
-    document.getElementById('table-clicks'),
-    data.topClicks,
-    'clicks',
-    5
-  );
-
-  // --- Tabla de búsquedas (top 5) ---
-  renderMetricsTable(
-    document.getElementById('table-busquedas'),
-    data.topBusquedas,
-    'busquedas',
-    5
-  );
+    // Render progress bars for búsquedas
+    renderProgressBars('busquedas-bars', data.topBusquedas.slice(0, 5), 'busquedas');
   } catch (err) {
     console.error('Error cargando métricas:', err);
   }
-}
-
-function renderMetricsTable(table, data, field, limit) {
-  const displayData = limit ? data.slice(0, limit) : data;
-  table.innerHTML =
-    '<tr><th>Producto</th><th style="text-align:right">' + (field === 'vistas' ? 'Vistas' : field === 'clicks' ? 'Clicks' : 'Búsquedas') + '</th></tr>' +
-    displayData.map(function(p) {
-      const name = field === 'busquedas' ? escapeHTML(p.termino) : escapeHTML(p.name);
-      const value = field === 'busquedas' ? p.cantidad : (parseInt(p[field]) || 0);
-      return '<tr>' +
-        '<td class="td-product-name">' + name + '</td>' +
-        '<td class="td-value">' + value + '</td>' +
-      '</tr>';
-    }).join('');
 }
 
 let metricsInterval = null;
@@ -1483,24 +1370,22 @@ document.addEventListener('click', function(e) {
   var allData = window._lastMetricsData;
   if (!allData) return;
 
+  var containerId = 'modal-bars-container';
+  body.innerHTML = '<div id="' + containerId + '" class="metrics-bars"></div>';
+
   if (metric === 'vistas') {
     title.textContent = 'Todos los productos - Vistas';
-    renderMetricsTable(body.querySelector('table') || createMetricsModalTable(body), allData.topVistas, 'vistas');
+    renderProgressBars(containerId, allData.topVistas, 'vistas');
   } else if (metric === 'clicks') {
     title.textContent = 'Todos los productos - Clicks WhatsApp';
-    renderMetricsTable(body.querySelector('table') || createMetricsModalTable(body), allData.topClicks, 'clicks');
+    renderProgressBars(containerId, allData.topClicks, 'clicks');
   } else if (metric === 'busquedas') {
     title.textContent = 'Todas las búsquedas frecuentes';
-    renderMetricsTable(body.querySelector('table') || createMetricsModalTable(body), allData.topBusquedas, 'busquedas');
+    renderProgressBars(containerId, allData.topBusquedas, 'busquedas');
   }
 
   modal.style.display = 'flex';
 });
-
-function createMetricsModalTable(container) {
-  container.innerHTML = '<table class="metrics-table" style="width:100%"></table>';
-  return container.querySelector('table');
-}
 
 // Close metrics modal
 document.addEventListener('click', function(e) {
@@ -1642,6 +1527,29 @@ function initPedidoGlobal() {
       showToast('⚠ Enviando ' + count + ' productos a Recepción...', 'info');
     });
   }
+}
+
+// Render progress bars with values
+function renderProgressBars(containerId, data, type) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+
+  var maxVal = Math.max.apply(null, data.map(function(p) { return parseInt(p[type] || p.cantidad || 0); }));
+  if (maxVal === 0) maxVal = 1;
+
+  container.innerHTML = data.map(function(item) {
+    var name = type === 'busquedas' ? escapeHTML(item.termino) : escapeHTML(item.name);
+    var value = type === 'busquedas' ? item.cantidad : (parseInt(item[type]) || 0);
+    var pct = Math.round((value / maxVal) * 100);
+
+    return '<div class="metrics-bar-item">' +
+      '<span class="metrics-bar-name">' + name + '</span>' +
+      '<span class="metrics-bar-value">' + value + '</span>' +
+      '<div class="metrics-bar-track">' +
+        '<div class="metrics-bar-fill ' + type + '" style="width: ' + pct + '%"></div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
 // Inicializar después de que se cargue el panel
