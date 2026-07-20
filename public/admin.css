@@ -1,5 +1,5 @@
 /* ============================================================
-   admin.css â€” Estilos del panel de administraciÃ³n
+   admin.css — Estilos del panel de administración
    ============================================================ */
 
 * {
@@ -131,11 +131,18 @@ h1, h2, h3 { font-family: var(--font-display); }
   display: flex;
   align-items: center;
   gap: 12px;
+  /* Ítem flex con texto: sin esto no puede achicarse por debajo del ancho
+     intrínseco del título y fuerza overflow horizontal en pantallas chicas. */
+  min-width: 0;
 }
 
 .admin-header-left h1 {
   font-size: 1.1rem;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .admin-header-left .material-symbols-outlined {
@@ -262,7 +269,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   resize: vertical;   /* Solo se puede redimensionar verticalmente */
 }
 
-/* Estado error: cuando el input es invÃ¡lido y no estÃ¡ vacÃ­o */
+/* Estado error: cuando el input es inválido y no está vacío */
 .field-group input:invalid:not(:placeholder-shown),
 .field-group select:invalid:not(:placeholder-shown) {
   border-color: var(--danger);
@@ -364,7 +371,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 .td-price {
   font-weight: 700;
   color: var(--primary);
-  white-space: nowrap;    /* El precio no se corta en dos lÃ­neas */
+  white-space: nowrap;    /* El precio no se corta en dos líneas */
 }
 
 .td-actions {
@@ -383,7 +390,7 @@ h1, h2, h3 { font-family: var(--font-display); }
    BOTONES (sistema)
    ============================================================ */
 
-/* BotÃ³n primario â€” acciÃ³n principal */
+/* Botón primario — acción principal */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -410,7 +417,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   font-size: 18px;
 }
 
-/* BotÃ³n secundario â€” acciÃ³n secundaria */
+/* Botón secundario — acción secundaria */
 .btn-secondary {
   display: inline-flex;
   align-items: center;
@@ -438,7 +445,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   font-size: 18px;
 }
 
-/* BotÃ³n ghost â€” para acciones sutiles (logout) */
+/* Botón ghost — para acciones sutiles (logout) */
 .btn-ghost {
   display: inline-flex;
   align-items: center;
@@ -464,7 +471,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   font-size: 16px;
 }
 
-/* BotÃ³n de peligro â€” eliminar */
+/* Botón de peligro — eliminar */
 .btn-danger {
   padding: 10px 18px;
   background-color: var(--danger);
@@ -482,7 +489,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   background-color: var(--danger-dark);
 }
 
-/* BotÃ³n full width */
+/* Botón full width */
 .btn-full {
   width: 100%;
   justify-content: center;
@@ -525,7 +532,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 
 
 /* ============================================================
-   PAGINACIÃ“N DE LA TABLA
+   PAGINACIÓN DE LA TABLA
    ============================================================ */
 
 .admin-pagination {
@@ -567,12 +574,12 @@ h1, h2, h3 { font-family: var(--font-display); }
 .admin-pagination button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  /* cursor: not-allowed muestra el Ã­cono de prohibido */
+  /* cursor: not-allowed muestra el ícono de prohibido */
 }
 
 
 /* ============================================================
-   MODAL DE CONFIRMACIÃ“N DE ELIMINACIÃ“N
+   MODAL DE CONFIRMACIÓN DE ELIMINACIÓN
    ============================================================ */
 
 .confirm-overlay {
@@ -624,7 +631,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 
 
 /* ============================================================
-   TOAST (mensaje temporal de confirmaciÃ³n)
+   TOAST (mensaje temporal de confirmación)
    ============================================================ */
 
 .toast {
@@ -641,18 +648,18 @@ h1, h2, h3 { font-family: var(--font-display); }
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 0.3s, transform 0.3s;
-  /* La transiciÃ³n anima la apariciÃ³n/desapariciÃ³n */
+  /* La transición anima la aparición/desaparición */
 }
 
 .toast.toast-visible {
   opacity: 1;
   transform: translateY(0);
-  /* Al agregar esta clase, el toast aparece con animaciÃ³n */
+  /* Al agregar esta clase, el toast aparece con animación */
 }
 
 
 /* ============================================================
-   RESPONSIVE â€” MOBILE
+   RESPONSIVE — MOBILE
    @media es una "consulta de medios": aplica estos estilos
    solo cuando el ancho de pantalla sea menor a 640px
    ============================================================ */
@@ -677,7 +684,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   }
 
   /* Los textos de los botones del header se ocultan en mobile,
-     solo se muestran los Ã­conos */
+     solo se muestran los íconos */
   .admin-header-right .btn-secondary span:not(.material-symbols-outlined),
   .admin-header-right .btn-ghost span:not(.material-symbols-outlined) {
     display: none;
@@ -797,7 +804,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   flex-shrink: 0;
 }
 
-/* El "cÃ­rculo" del toggle */
+/* El "círculo" del toggle */
 .switch-track::after {
   content: '';
   position: absolute;
@@ -811,14 +818,14 @@ h1, h2, h3 { font-family: var(--font-display); }
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-/* Cuando el checkbox estÃ¡ marcado */
+/* Cuando el checkbox está marcado */
 .switch-label input:checked + .switch-track {
   background-color: var(--primary);
 }
 
 .switch-label input:checked + .switch-track::after {
   transform: translateX(18px);
-  /* El cÃ­rculo se mueve a la derecha */
+  /* El círculo se mueve a la derecha */
 }
 /* ============================================================
    BADGES DE ESTADO EN LA TABLA
@@ -960,7 +967,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 
 
 /* ============================================================
-   DASHBOARD DE MÃ‰TRICAS
+   DASHBOARD DE MÉTRICAS
    ============================================================ */
 .metrics-header {
   display: flex;
@@ -993,6 +1000,9 @@ h1, h2, h3 { font-family: var(--font-display); }
   align-items: center;
   gap: 16px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  /* Ítem de .metrics-cards (grid): sin esto no se achica al ancho del
+     track y su texto interno fuerza overflow horizontal en mobile. */
+  min-width: 0;
 }
 
 .metric-icon {
@@ -1024,7 +1034,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   margin-top: 4px;
 }
 
-/* GrÃ¡ficos */
+/* Gráficos */
 .metrics-charts {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1037,6 +1047,8 @@ h1, h2, h3 { font-family: var(--font-display); }
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  /* Ítem de .metrics-charts (grid): mismo motivo que .metric-card. */
+  min-width: 0;
 }
 
 .chart-title {
@@ -1046,7 +1058,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   margin-bottom: 16px;
 }
 
-/* Tablas de mÃ©tricas */
+/* Tablas de métricas */
 .metrics-table {
   width: 100%;
   border-collapse: collapse;
@@ -1075,7 +1087,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   border-bottom: none;
 }
 
-/* Responsive mÃ©tricas */
+/* Responsive métricas */
 @media (max-width: 768px) {
   .metrics-cards {
     grid-template-columns: 1fr;
@@ -1408,7 +1420,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   flex-wrap: wrap;
 }
 
-/* === Panel de recepciÃ³n de mercaderÃ­a === */
+/* === Panel de recepción de mercadería === */
 .panel-header {
   margin-bottom: 20px;
 }
@@ -1645,7 +1657,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 }
 
 /* ============================================================
-   BOTÃ“N RECIBIR EN PANEL DE STOCK
+   BOTÓN RECIBIR EN PANEL DE STOCK
    ============================================================ */
 .td-accion {
   text-align: center;
@@ -1671,7 +1683,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 }
 
 /* ============================================================
-   BOTÃ“N: GENERAR PEDIDO A PROVEEDOR (Stock â†’ RecepciÃ³n)
+   BOTÓN: GENERAR PEDIDO A PROVEEDOR (Stock → Recepción)
    ============================================================ */
 .btn-generar-pedido {
   display: inline-flex;
@@ -1843,12 +1855,9 @@ h1, h2, h3 { font-family: var(--font-display); }
   }
 
   .admin-header-left h1 {
+    /* El truncamiento (overflow/ellipsis/min-width) ya vive en la regla base;
+       acá solo ajustamos el tamaño de fuente para la pantalla chica. */
     font-size: 0.85rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 140px;
-    min-width: 0;
   }
 
   .admin-header-right {

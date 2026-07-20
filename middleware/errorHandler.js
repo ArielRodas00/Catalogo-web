@@ -1,4 +1,4 @@
-function errorHandler(err, req, res, next) {
+function errorHandler(err, req, res, _next) {
   console.error('[' + new Date().toISOString() + ']', err.message);
 
   if (err.type === 'entity.parse.failed') {

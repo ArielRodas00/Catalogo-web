@@ -36,13 +36,17 @@ pool.on('error', function(err) {
   console.error('Error inesperado en el pool de PostgreSQL:', err.message);
 });
 
-pool.connect(function(err, _client, done) {
-  if (err) {
-    console.error('Error conectando a PostgreSQL:', err.message);
-  } else {
-    console.log('Conectado a PostgreSQL correctamente');
-    done();
-  }
-});
+// En tests no queremos disparar una conexión real (y su timeout) solo por hacer require('./db');
+// los tests mockean pool.query/pool.connect directamente.
+if (process.env.NODE_ENV !== 'test') {
+  pool.connect(function(err, _client, done) {
+    if (err) {
+      console.error('Error conectando a PostgreSQL:', err.message);
+    } else {
+      console.log('Conectado a PostgreSQL correctamente');
+      done();
+    }
+  });
+}
 
 module.exports = pool;

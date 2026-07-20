@@ -21,6 +21,8 @@ function buildDateFilter(columnRef, period) {
 router.post('/view/:id', metricsLimiter, async function(req, res, next) {
   try {
     const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
+
     await pool.query(
       'INSERT INTO producto_vistas (producto_id) VALUES ($1)',
       [id]
@@ -35,6 +37,8 @@ router.post('/view/:id', metricsLimiter, async function(req, res, next) {
 router.post('/whatsapp/:id', metricsLimiter, async function(req, res, next) {
   try {
     const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
+
     await pool.query(
       'INSERT INTO whatsapp_clicks (producto_id) VALUES ($1)',
       [id]

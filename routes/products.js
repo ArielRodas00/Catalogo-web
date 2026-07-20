@@ -85,7 +85,6 @@ router.get('/', getLimiter, async function(req, res, next) {
       'precio-desc': 'ORDER BY price DESC'
     };
     const orderKey = sanitizeOrder(order);
-    const orderClause = ORDER_MAP[orderKey] || 'ORDER BY created_at DESC';
 
     // Validar que orderClause sea seguro antes de concatenar
     const safeOrderClause = ORDER_MAP[orderKey] || 'ORDER BY created_at DESC';
@@ -305,7 +304,7 @@ router.post('/:id/images/url', apiLimiter, authenticateToken, async function(req
     let parsedUrl;
     try {
       parsedUrl = new URL(url);
-    } catch (e) {
+    } catch (_e) {
       return res.status(400).json({ error: 'URL inválida' });
     }
     if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {

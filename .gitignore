@@ -7,3 +7,14 @@ node_modules/
 # Archivos del sistema
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+
+# Gestor de paquetes: el proyecto usa npm (ver README). No versionar artefactos de pnpm.
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+# Imagenes subidas via Multer (contenido de usuario, no código)
+public/uploads/*
+!public/uploads/.gitkeep

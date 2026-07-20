@@ -30,12 +30,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
+      scriptSrc: ["'self'"],
       scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "https:", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "http:"],
       fontSrc: ["'self'", "https:", "data:"],
-      connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
+      connectSrc: ["'self'"],
       formAction: ["'self'"],
       frameAncestors: ["'none'"]
     }
@@ -77,7 +77,6 @@ app.get('/sitemap.xml', async function(req, res) {
     urls += '  <url><loc>' + BASE_URL + '/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>\n';
 
     rows.forEach(function(row) {
-      const name = row.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       urls += '  <url>' +
         '<loc>' + BASE_URL + '/p/' + row.id + '</loc>' +
         '<lastmod>' + new Date(row.created_at || new Date()).toISOString().slice(0, 10) + '</lastmod>' +
@@ -179,7 +178,7 @@ process.on('SIGINT', async function() {
   process.exit(0);
 });
 
-process.on('unhandledRejection', function(reason, promise) {
+process.on('unhandledRejection', function(reason, _promise) {
   console.error('Unhandled Rejection:', reason);
 });
 
