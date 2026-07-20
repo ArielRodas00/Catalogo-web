@@ -52,11 +52,19 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(requestLogger);
 app.use(express.static('public', {
-  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
   etag: true,
   setHeaders: function(res, path) {
     if (path.endsWith('.html')) {
+      // El HTML es el punto de entrada (referencia los <script>/<link> con nombre
+      // fijo, sin cache-busting): si se cachea, un deploy nuevo puede no notarse
+      // hasta que expire el cache. Siempre revalidamos con el servidor (barato,
+      // son archivos chicos), el 304 evita re-descargar si no cambió.
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache');
+    } else if (process.env.NODE_ENV === 'production') {
+      // JS/CSS/imágenes: cache corto + must-revalidate, así un deploy se refleja
+      // en minutos en vez de hasta 24hs para quien ya había visitado el sitio.
+      res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
     }
   }
 }));

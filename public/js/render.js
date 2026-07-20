@@ -44,7 +44,6 @@ function createProductCard(product) {
   card.setAttribute('data-id', product.id);
 
   const badgesHTML =
-    (!product.en_stock    ? '<span class="card-badge badge-sin-stock">Sin stock</span>'        : '') +
     (product.en_oferta    ? '<span class="card-badge badge-oferta-card">Oferta</span>'          : '') +
     (product.destacado    ? '<span class="card-badge badge-destacado-card">⭐ Destacado</span>' : '') +
     (product.en_promocion ? '<span class="card-badge badge-promo-card">🔥 Promo</span>'        : '');
@@ -57,7 +56,7 @@ function createProductCard(product) {
   card.innerHTML =
     '<div class="product-image-wrap product-img-wrap">' +
       '<img src="' + escapeAttr(product.image) + '" alt="' + escapeHTML(product.name) + '" loading="lazy" class="product-image product-img' + (!product.en_stock ? ' img-nostock' : '') + '" onload="this.classList.add(\'loaded\')">' +
-      (!product.en_stock ? '<div class="card-stock-overlay">Sin stock</div>' : '') +
+      (!product.en_stock ? '<div class="card-stock-overlay"></div><div class="ribbon-sin-stock">Sin stock</div>' : '') +
       '<div class="card-badges">' + badgesHTML + '</div>' +
     '</div>' +
     '<div class="product-info">' +
@@ -84,7 +83,6 @@ function renderHighlightTrack(track, products) {
     card.setAttribute('data-id', product.id);
 
     const badgesHTML =
-      (!product.en_stock    ? '<span class="card-badge badge-sin-stock">Sin stock</span>'        : '') +
       (product.en_oferta    ? '<span class="card-badge badge-oferta-card">Oferta</span>'          : '') +
       (product.en_promocion ? '<span class="card-badge badge-promo-card">🔥 Promo</span>'        : '');
 
@@ -94,9 +92,9 @@ function renderHighlightTrack(track, products) {
       : '<span class="hp-price">'     + formatPrice(product.price) + '</span>';
 
     card.innerHTML =
-      '<div style="position:relative">' +
+      '<div style="position:relative; overflow:hidden">' +
       '<img src="' + escapeAttr(product.image) + '" alt="' + escapeHTML(product.name) + '" loading="lazy" class="hp-image product-img' + (!product.en_stock ? ' img-nostock' : '') + '" onload="this.classList.add(\'loaded\')">' +
-      (!product.en_stock ? '<div class="card-stock-overlay" style="height:140px">Sin stock</div>' : '') +
+      (!product.en_stock ? '<div class="card-stock-overlay" style="height:140px"></div><div class="ribbon-sin-stock">Sin stock</div>' : '') +
       '<div class="card-badges">' + badgesHTML + '</div>' +
       '</div>' +
       '<div class="hp-info">' +

@@ -30,6 +30,24 @@ test('GET /api/products/:id: ID no numérico devuelve 400 sin tocar la BD', asyn
   });
 });
 
+test('GET /api/products: los productos sin stock siempre van al final del orden elegido', async function (t) {
+  const queries = [];
+  t.mock.method(pool, 'query', async function (sql) {
+    queries.push(sql);
+    return { rows: [{ count: '0' }] };
+  });
+
+  await withServer(buildApp(), async function (base) {
+    for (const order of ['az', 'za', 'precio-asc', 'precio-desc', 'reciente']) {
+      queries.length = 0;
+      const res = await fetch(base + '/api/products?order=' + order);
+      assert.equal(res.status, 200);
+      const dataQuery = queries.find(function (sql) { return sql.startsWith('SELECT id'); });
+      assert.match(dataQuery, /ORDER BY en_stock DESC,/, 'orden "' + order + '" debe priorizar en_stock');
+    }
+  });
+});
+
 test('POST /api/products/batch-stock: requiere autenticación', async function () {
   await withServer(buildApp(), async function (base) {
     const res = await fetch(base + '/api/products/batch-stock', {

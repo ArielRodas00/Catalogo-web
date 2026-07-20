@@ -78,17 +78,18 @@ router.get('/', getLimiter, async function(req, res, next) {
       ? 'WHERE ' + conditions.join(' AND ')
       : '';
 
+    // Los productos sin stock siempre van al final, sea cual sea el orden elegido.
     const ORDER_MAP = {
-      'az':          'ORDER BY name ASC',
-      'za':          'ORDER BY name DESC',
-      'precio-asc':  'ORDER BY price ASC',
-      'precio-desc': 'ORDER BY price DESC'
+      'az':          'ORDER BY en_stock DESC, name ASC',
+      'za':          'ORDER BY en_stock DESC, name DESC',
+      'precio-asc':  'ORDER BY en_stock DESC, price ASC',
+      'precio-desc': 'ORDER BY en_stock DESC, price DESC'
     };
     const orderKey = sanitizeOrder(order);
 
     // Validar que orderClause sea seguro antes de concatenar
-    const safeOrderClause = ORDER_MAP[orderKey] || 'ORDER BY created_at DESC';
-    if (!safeOrderClause.match(/^ORDER BY (created_at|name|price)\s+(DESC|ASC)$/i)) {
+    const safeOrderClause = ORDER_MAP[orderKey] || 'ORDER BY en_stock DESC, created_at DESC';
+    if (!safeOrderClause.match(/^ORDER BY en_stock DESC, (created_at|name|price)\s+(DESC|ASC)$/i)) {
       return res.status(400).json({ error: 'Orden inválido' });
     }
 

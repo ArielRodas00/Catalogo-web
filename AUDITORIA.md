@@ -178,9 +178,41 @@ cargando, badges con slide-in + pulse, y un keyframe `racingScroll` ya definido 
 Playwright ya está instalado (ver arriba), así que estos puntos se pueden verificar visualmente antes/después
 de implementarlos, en vez de decidir a ciegas solo por CSS.
 
+## Reporte del usuario 2026-07-20 (post-deploy) — arreglado
+
+Tras el deploy anterior, el usuario reportó que el nav (Categorías/Marcas/Ayuda) se veía desalineado y que
+el click en la tarjeta seguía sin abrir el detalle. Se investigó cada uno con Playwright:
+
+- [x] **Nav desalineado — causa raíz encontrada y corregida.** Medido en píxeles: el link "Categorías" tiene
+      un ícono que lo hace ~4px más alto que "Marcas"/"Ayuda" (solo texto), y `.categories-ul` no tenía
+      `align-items: center`, así que cada `<li>` se centraba dentro de su propia altura en vez de centrarse
+      entre sí. Se agregó `align-items: center` a `.categories-ul` (`public/styles.css`) — verificado que
+      los tres links ahora comparten el mismo centro vertical exacto (105.9px).
+- [x] **Click en la tarjeta — el código ya estaba bien, era caché del navegador.** Se re-verificó con
+      Playwright: clickear la imagen abre el modal correctamente en local. La causa real: `server.js` servía
+      *todo* (HTML incluido) con `Cache-Control: max-age=86400` (1 día) sin `must-revalidate` — quien había
+      visitado el sitio antes de un deploy podía seguir viendo JS/HTML viejo hasta por 24hs, sin que el
+      navegador siquiera consultara al servidor. Se corrigió: el HTML ahora usa `Cache-Control: no-cache`
+      (siempre revalida, es barato) y los assets (JS/CSS/imágenes) usan `max-age=3600, must-revalidate` en
+      producción — un deploy se refleja en minutos en vez de hasta 24hs. **Recomendación:** la próxima vez que
+      pruebes un cambio recién deployado, hacé un hard refresh (Ctrl+Shift+R) para no confundir caché vieja
+      con un bug real.
+
+## Feature: diferenciación visual y orden de productos sin stock (2026-07-20)
+
+- [x] **Cinta diagonal "Sin stock"** en la esquina de la tarjeta (`.ribbon-sin-stock`), reemplazando el badge
+      chico que había antes. Se mantiene la imagen desaturada y un scrim oscuro sutil (ya no repite el texto
+      "Sin stock" tres veces como antes: badge + overlay + sería redundante con la cinta). Aplica tanto al
+      grid principal (`createProductCard`) como a Destacados/Promociones (`renderHighlightTrack`), en
+      `public/js/render.js` + `public/styles.css`.
+- [x] **Los productos sin stock aparecen al final**, sea cual sea el orden elegido (alfabético, precio,
+      recientes). Se implementó en el backend (`routes/products.js`, `ORDER BY en_stock DESC, ...`) porque la
+      paginación es server-side — ordenar solo en el frontend rompería la paginación. Cubierto con un test
+      nuevo (`test/products-stock.test.js`) que verifica los 5 órdenes posibles.
+
 ## Nota: scripts temporales sin borrar
 
-Además de los archivos listados arriba, quedaron 4 scripts de un solo uso para tomar capturas con Playwright
-(`_tmp-shot.js`, `_tmp-shot2.js`, `_tmp-shot3.js`, `_tmp-verify.js` en la raíz) que tampoco se pudieron borrar
-por el mismo problema de permisos. Ya están en `.gitignore` (patrón `_tmp-*.js`) así que no se van a commitear,
-pero podés borrarlos vos con `rm _tmp-*.js`.
+Además de los archivos listados arriba, quedaron varios scripts de un solo uso para tomar capturas con
+Playwright (`_tmp-*.js` en la raíz) que tampoco se pudieron borrar por el mismo problema de permisos. Ya
+están en `.gitignore` y excluidos de ESLint (patrón `_tmp-*.js`) así que no se van a commitear ni te van a
+ensuciar el lint, pero podés borrarlos vos con `rm _tmp-*.js`.

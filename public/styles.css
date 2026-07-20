@@ -176,6 +176,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 
 .categories-ul {
   display: flex;
+  align-items: center;
   list-style: none;
   padding: 0 15px;
   max-width: 1200px;
@@ -1757,7 +1758,6 @@ h1, h2, h3 { font-family: var(--font-display); }
   animation: badgeSlideIn 0.4s ease-out;
 }
 
-.badge-sin-stock    { background: #333;    color: #fff; }
 .badge-oferta-card  { background: var(--color-primary);    color: #fff; }
 .badge-destacado-card { background: #f39c12; color: #fff; }
 .badge-promo-card   { background: #2980b9; color: #fff; }
@@ -1776,24 +1776,37 @@ h1, h2, h3 { font-family: var(--font-display); }
   animation: badgeSlideIn 0.4s ease-out, badgePulse 1.5s ease-in-out infinite 0.4s;
 }
 
-/* Overlay oscuro sobre la imagen cuando no hay stock */
+/* Scrim oscuro sutil sobre la imagen cuando no hay stock (la cinta ya avisa) */
 .card-stock-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 700;
-  font-size: 0.9rem;
-  letter-spacing: 1px;
+  background: rgba(0,0,0,0.25);
   z-index: 1;
 }
 
 /* Imagen desaturada cuando no hay stock */
 .img-nostock {
   filter: grayscale(60%);
+}
+
+/* Cinta diagonal "Sin stock" en la esquina de la tarjeta */
+.ribbon-sin-stock {
+  position: absolute;
+  top: 14px;
+  left: -34px;
+  width: 130px;
+  padding: 4px 0;
+  background: #333;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  z-index: 2;
+  pointer-events: none;
 }
 
 /* Precio tachado en la tarjeta */
