@@ -353,3 +353,42 @@ Además de los archivos listados arriba, quedaron varios scripts de un solo uso 
 Playwright (`_tmp-*.js` en la raíz) que tampoco se pudieron borrar por el mismo problema de permisos. Ya
 están en `.gitignore` y excluidos de ESLint (patrón `_tmp-*.js`) así que no se van a commitear ni te van a
 ensuciar el lint, pero podés borrarlos vos con `rm _tmp-*.js`.
+
+## Rebranding: "PiezaExpress" como identidad de producto (2026-07-20)
+
+A pedido del usuario, se cambió el logo del catálogo. Hasta ahora el header mostraba una imagen (`STORE_LOGO_URL`,
+por defecto `/logo.png`) sin nombre de marca definido por código. El usuario compartió una captura de referencia
+("Pieza" en negro + "Express" en rojo oscuro, con el tagline "repuestos al instante" debajo) y pidió usarla como
+el nombre de venta del producto en sí — **"PiezaExpress"** es ahora la identidad por defecto con la que se vende
+el catálogo, y se reemplaza por la marca real de cada cliente vía las variables de entorno ya existentes desde
+"Multi-tenant, Paso 1" (`STORE_NAME`, etc.) cuando se hace un deploy para alguien.
+
+**Decisión de diseño (no pedida explícitamente, adaptación propia):** la captura de referencia tenía el texto
+sobre fondo blanco, pero el header real del catálogo tiene `background-color: var(--color-primary)` (rojo) —
+poner el texto directo ahí habría perdido casi todo el contraste. Se resolvió envolviendo el wordmark en un
+"chip" blanco/`--color-surface` (`.logo-container`, padding + `border-radius`) que se mantiene legible sin
+importar el color primario del cliente, ya que el chip nunca es rojo.
+
+- [x] `branding.js`: nuevos defaults `storeName: 'PiezaExpress'`, `storeNameAccent: 'Express'` (la parte del
+      nombre que se pinta con `--color-primary`), `storeTagline: 'repuestos al instante'`. Se agregó
+      `escapeHtml()` + `buildWordmarkHtml()` para armar el HTML del wordmark (separa `storeName` alrededor de
+      `storeNameAccent` y envuelve esa parte en `<span class="logo-accent">`) escapando cualquier valor que
+      venga de variables de entorno, no de código fijo.
+- [x] `server.js` (`renderBrandedHtml`): reemplaza los tokens nuevos `__STORE_WORDMARK__` y `__STORE_TAGLINE__`;
+      se sacó el reemplazo de `__STORE_LOGO_ALT__` (ya no se usa, el logo ya no es una imagen con `alt`).
+- [x] `public/index.html`: el `<a class="logo-container">` del header pasó de `<img>` a dos `<span>` de texto
+      (wordmark + tagline). `STORE_LOGO_URL` queda vivo solo para el ícono de la pestaña del navegador
+      (favicon), documentado así en `README.md`/`.env.example`.
+- [x] `public/styles.css`: rediseño de `.logo-container` (chip blanco, flex column, padding, border-radius),
+      `.logo-wordmark` (negrita, Poppins), `.logo-wordmark .logo-accent` (color vía `var(--color-primary)` —
+      se adapta solo si un cliente define otro color primario), `.logo-tagline` (gris chico, `:empty { display:
+      none }` para cuando un cliente no define tagline). Ajustado también el bloque `@media (max-width: 560px)`.
+- [x] `README.md` / `.env.example`: se documentaron `STORE_NAME_ACCENT` y `STORE_TAGLINE`, se sacó
+      `STORE_LOGO_URL` como logo de header (ahora solo favicon), y se actualizó el default de `STORE_NAME` a
+      "PiezaExpress" en la tabla de variables.
+
+**Verificado**: `node --check` en `branding.js`/`server.js`, CSS balanceado, `npx eslint .` (0 errores, mismos
+83 warnings preexistentes), `npm test` (48/48). Verificación visual con Playwright en `http://localhost:3000/`
+desktop (1200px) y mobile (390px): el chip blanco se ve correctamente sobre el header rojo, "Pieza" en negro y
+"Express" en rojo (`--color-primary`), tagline gris debajo, sin errores de consola en ninguno de los dos
+viewports.

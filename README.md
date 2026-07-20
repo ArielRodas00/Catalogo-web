@@ -44,9 +44,10 @@ node server.js
 | BASE_URL | URL base para SEO | http://localhost:3000 |
 | NODE_ENV | Entorno | development |
 | CORS_ORIGIN | Origen permitido (solo produccion) | - |
-| STORE_NAME | Nombre de la tienda (title, meta, footer) | Catalogo de Productos |
-| STORE_LOGO_URL | Ruta/URL del logo | /logo.png |
-| STORE_LOGO_ALT | Texto alternativo del logo | = STORE_NAME |
+| STORE_NAME | Nombre de la tienda (title, meta, footer, logo del header) | PiezaExpress |
+| STORE_NAME_ACCENT | Parte de STORE_NAME resaltada en el logo (vacio = sin resaltar) | Express |
+| STORE_TAGLINE | Frase chica debajo del logo del header | repuestos al instante |
+| STORE_LOGO_URL | Ruta/URL del logo (solo icono de pestana del navegador) | /logo.png |
 | COLOR_PRIMARY | Color primario (botones, acentos) | #c1121f |
 | COLOR_PRIMARY_HOVER | Color primario en hover | #e63946 |
 | COLOR_ACCENT | Color de acento (headers oscuros) | #0d0d0d |

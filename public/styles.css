@@ -71,8 +71,43 @@ h1, h2, h3 { font-family: var(--font-display); }
   position: relative;
 }
 
-.logo-container img {
-  max-width: 55px;
+/* Logo de texto (chip blanco sobre el header de color, ver AUDITORIA.md
+   "Rediseño de logo — PiezaExpress"): el header es --color-primary y un
+   logo de texto negro/acento no tendría contraste ahí, así que vive en su
+   propia superficie clara. */
+.logo-container {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  background: var(--color-surface, #fff);
+  border-radius: 8px;
+  padding: 6px 14px;
+  line-height: 1.15;
+  text-decoration: none;
+}
+
+.logo-wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.3rem;
+  color: var(--color-text, #0d0d0d);
+  letter-spacing: -0.01em;
+}
+
+.logo-wordmark .logo-accent {
+  color: var(--color-primary, #c1121f);
+}
+
+.logo-tagline {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  color: var(--color-text-muted, #6b6b6b);
+  letter-spacing: 0.02em;
+}
+
+.logo-tagline:empty {
+  display: none;
 }
 
 
@@ -638,8 +673,16 @@ h1, h2, h3 { font-family: var(--font-display); }
     display: none;
   }
 
-  .logo-container img {
-    max-width: 42px;
+  .logo-container {
+    padding: 5px 10px;
+  }
+
+  .logo-wordmark {
+    font-size: 1.05rem;
+  }
+
+  .logo-tagline {
+    font-size: 0.62rem;
   }
 
   .categories-ul {

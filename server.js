@@ -18,7 +18,7 @@ const express = require('express');
 const helmet  = require('helmet');
 const cors    = require('cors');
 const pool    = require('./db');
-const { branding, brandingStyleTag } = require('./branding');
+const { branding, brandingStyleTag, buildWordmarkHtml } = require('./branding');
 const { startLicenseCheck, getLicense } = require('./licenseCheck');
 
 const { errorHandler } = require('./middleware/errorHandler');
@@ -58,17 +58,19 @@ app.use(express.json({ limit: '10mb' }));
 app.use(requestLogger);
 
 // --- Marca configurable: index.html y admin.html se sirven con los tokens
-// __STORE_NAME__ / __STORE_LOGO_URL__ / __STORE_LOGO_ALT__ / __BASE_URL__
-// reemplazados, y con las variables CSS de color inyectadas (branding.js).
-// Van ANTES de express.static para interceptar estas dos rutas puntuales;
-// el resto de los archivos de public/ los sigue sirviendo el static normal.
+// __STORE_NAME__ / __STORE_LOGO_URL__ / __STORE_WORDMARK__ / __STORE_TAGLINE__
+// / __COLOR_PRIMARY__ / __BASE_URL__ reemplazados, y con las variables CSS de
+// color inyectadas (branding.js). Van ANTES de express.static para
+// interceptar estas dos rutas puntuales; el resto de los archivos de
+// public/ los sigue sirviendo el static normal.
 function renderBrandedHtml(fileName, res) {
   const filePath = path.join(__dirname, 'public', fileName);
   let html = fs.readFileSync(filePath, 'utf8');
   html = html
     .split('__STORE_NAME__').join(branding.storeName)
     .split('__STORE_LOGO_URL__').join(branding.logoUrl)
-    .split('__STORE_LOGO_ALT__').join(branding.logoAlt)
+    .split('__STORE_WORDMARK__').join(buildWordmarkHtml())
+    .split('__STORE_TAGLINE__').join(branding.storeTagline)
     .split('__COLOR_PRIMARY__').join(branding.colorPrimary)
     .split('__BASE_URL__').join(BASE_URL)
     .replace('</head>', brandingStyleTag() + '</head>');
