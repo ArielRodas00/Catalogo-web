@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Central</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div id="login-screen">
+    <div class="login-card">
+      <h1>Panel Central</h1>
+      <p class="login-subtitle">Gestión de clientes, planes y pagos</p>
+      <form id="login-form">
+        <div class="field-group">
+          <label for="username-input">Usuario</label>
+          <input type="text" id="username-input" required autocomplete="username">
+        </div>
+        <div class="field-group">
+          <label for="password-input">Contraseña</label>
+          <input type="password" id="password-input" required autocomplete="current-password">
+        </div>
+        <p id="login-error" class="login-error" style="display:none">Credenciales incorrectas.</p>
+        <button type="submit" class="btn-primary btn-full">Ingresar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- PANEL -->
+  <div id="panel" style="display:none">
+    <header class="header">
+      <h1>Panel Central</h1>
+      <button id="btn-logout" class="btn-ghost">Salir</button>
+    </header>
+
+    <main class="main">
+      <div class="toolbar">
+        <span id="cliente-count" class="cliente-count"></span>
+        <button id="btn-new-cliente" class="btn-primary">+ Nuevo cliente</button>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="clientes-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Slug</th>
+              <th>Plan</th>
+              <th>Estado</th>
+              <th>Próx. cobro</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="clientes-tbody"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL: alta/edición de cliente -->
+  <div id="cliente-modal-overlay" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+      <button type="button" id="btn-close-cliente-modal" class="modal-close-btn" aria-label="Cerrar">✕</button>
+      <h2 id="cliente-modal-title">Nuevo cliente</h2>
+      <form id="cliente-form">
+        <input type="hidden" id="field-id">
+        <div class="field-group">
+          <label for="field-nombre">Nombre</label>
+          <input type="text" id="field-nombre" required placeholder="Repuestos Villalba">
+        </div>
+        <div class="field-group">
+          <label for="field-slug">Slug</label>
+          <input type="text" id="field-slug" required placeholder="villalba" pattern="[a-z0-9\-]+">
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label for="field-plan">Plan</label>
+            <select id="field-plan">
+              <option value="basico">Básico</option>
+              <option value="premium">Premium</option>
+            </select>
+          </div>
+          <div class="field-group" id="row-estado" style="display:none">
+            <label for="field-estado">Estado</label>
+            <select id="field-estado">
+              <option value="activo">Activo</option>
+              <option value="vencido">Vencido</option>
+              <option value="suspendido">Suspendido</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="field-deploy-url">URL del deploy (informativo)</label>
+          <input type="url" id="field-deploy-url" placeholder="https://villalba.onrender.com">
+        </div>
+        <div class="field-group">
+          <label for="field-fecha-cobro">Próximo cobro</label>
+          <input type="date" id="field-fecha-cobro">
+        </div>
+        <div class="field-group">
+          <label for="field-notas">Notas</label>
+          <textarea id="field-notas" rows="2"></textarea>
+        </div>
+        <div class="field-group" id="row-api-key" style="display:none">
+          <label>API key (la usa el catálogo del cliente para consultar su licencia)</label>
+          <div class="api-key-row">
+            <code id="field-api-key"></code>
+            <button type="button" id="btn-regenerar-key" class="btn-secondary">Regenerar</button>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="btn-cancel-cliente" class="btn-secondary">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: pagos -->
+  <div id="pagos-modal-overlay" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+      <button type="button" id="btn-close-pagos-modal" class="modal-close-btn" aria-label="Cerrar">✕</button>
+      <h2>Pagos — <span id="pagos-cliente-nombre"></span></h2>
+
+      <form id="pago-form" class="pago-form">
+        <input type="number" id="pago-monto" placeholder="Monto" min="0" step="1" required>
+        <select id="pago-metodo">
+          <option value="transferencia">Transferencia</option>
+          <option value="efectivo">Efectivo</option>
+          <option value="otro">Otro</option>
+        </select>
+        <input type="text" id="pago-notas" placeholder="Nota (opcional)">
+        <button type="submit" class="btn-primary">Registrar pago</button>
+      </form>
+
+      <div class="table-wrapper">
+        <table id="pagos-table">
+          <thead>
+            <tr><th>Fecha</th><th>Monto</th><th>Método</th><th>Notas</th></tr>
+          </thead>
+          <tbody id="pagos-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: confirmar eliminación -->
+  <div id="confirm-modal" class="modal-overlay" style="display:none">
+    <div class="modal-box modal-box-small">
+      <h2>¿Eliminar cliente?</h2>
+      <p>Estás por eliminar <strong id="delete-cliente-nombre"></strong>. Esta acción no se puede deshacer.</p>
+      <div class="form-actions">
+        <button id="btn-cancel-delete" class="btn-secondary">Cancelar</button>
+        <button id="btn-confirm-delete" class="btn-danger">Sí, eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -43,6 +43,28 @@ node server.js
 | ADMIN_PASSWORD | Password admin | - |
 | BASE_URL | URL base para SEO | http://localhost:3000 |
 | NODE_ENV | Entorno | development |
+| CORS_ORIGIN | Origen permitido (solo produccion) | - |
+| STORE_NAME | Nombre de la tienda (title, meta, footer) | Catalogo de Productos |
+| STORE_LOGO_URL | Ruta/URL del logo | /logo.png |
+| STORE_LOGO_ALT | Texto alternativo del logo | = STORE_NAME |
+| COLOR_PRIMARY | Color primario (botones, acentos) | #c1121f |
+| COLOR_PRIMARY_HOVER | Color primario en hover | #e63946 |
+| COLOR_ACCENT | Color de acento (headers oscuros) | #0d0d0d |
+| PANEL_CENTRAL_URL | URL del Panel Central (ver panel-central/) | - |
+| CLIENTE_API_KEY | API key de este cliente en el Panel Central | - |
+
+Las variables de marca son opcionales: pensadas para reusar el mismo codigo en
+varios clientes (arquitectura "1 deploy por cliente", ver AUDITORIA.md), cada
+deploy define su propia marca sin tocar codigo. Si no se definen, el catalogo
+se ve exactamente igual que hoy.
+
+`PANEL_CENTRAL_URL`/`CLIENTE_API_KEY` tambien son opcionales: si no estan
+definidas, este deploy corre "standalone" (todas las funciones sin
+restriccion, el comportamiento de siempre). Si estan definidas, el catalogo
+consulta periodicamente su licencia y las funciones Premium (metricas, por
+ahora) dependen de que el plan sea Premium y el pago este al dia — ver
+`license.js` y `AUDITORIA.md` ("Multi-tenant — Paso 3") para el detalle de
+como se maneja una caida de conexion (nunca bloquea el sitio completo).
 
 ## Scripts disponibles
 
@@ -148,6 +170,10 @@ catalogo-backend/
    | `ADMIN_USERNAME` | admin |
    | `ADMIN_PASSWORD` | Password robusta |
    | `CORS_ORIGIN` | URL de Render |
+
+   Si este deploy es para un cliente distinto al original, sumar tambien las
+   variables de marca (`STORE_NAME`, `STORE_LOGO_URL`, `COLOR_PRIMARY`, etc. —
+   ver tabla completa arriba) para que el catalogo se vea con su identidad.
    | `BASE_URL` | URL de Render |
    | `NODE_ENV` | production |
 

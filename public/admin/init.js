@@ -8,6 +8,7 @@ async function initAdmin() {
   setupImagePreview();
   initTabs();
   initAdminViewToggle();
+  checkPlanStatus();
 
   // Switch de oferta
   document.getElementById('field-en-oferta').addEventListener('change', function() {
@@ -52,6 +53,40 @@ async function initAdmin() {
     const selectedCat = this.value.trim().toLowerCase();
     await updateSubcatSelect(selectedCat, allProducts);
   });
+}
+
+// Muestra el aviso de suscripción vencida y oculta las pestañas Premium
+// (Métricas/Stock/Recepción) si el plan no corresponde. Básico solo ve
+// Productos — desde ahí igual puede marcar "sin stock" y editar cantidades
+// a mano, solo pierde las herramientas de conveniencia (ver AUDITORIA.md).
+async function checkPlanStatus() {
+  try {
+    const res = await fetch('/api/plan', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('admin_token') }
+    });
+    if (!res.ok) return;
+    const plan = await res.json();
+    document.getElementById('suspended-banner').style.display = plan.activo ? 'none' : 'flex';
+
+    const esPremium = plan.plan === 'premium' && plan.activo;
+    const tabsPremium = document.querySelectorAll('.admin-tab[data-plan="premium"]');
+    tabsPremium.forEach(function(tab) {
+      tab.style.display = esPremium ? '' : 'none';
+    });
+
+    // Si la pestaña activa quedó oculta (ej. el plan bajó mientras el admin
+    // ya estaba en Métricas), volvemos a Productos para no dejar la vista
+    // en blanco.
+    if (!esPremium) {
+      const activeTab = document.querySelector('.admin-tab.active');
+      if (activeTab && activeTab.getAttribute('data-plan') === 'premium') {
+        document.querySelector('.admin-tab[data-tab="productos"]').click();
+      }
+    }
+  } catch (err) {
+    // Si falla la consulta, no tocamos nada (no queremos ocultar pestañas
+    // de más por un problema de red del lado del admin, no del plan en sí).
+  }
 }
 
 // Verificamos si hay sesión activa al cargar la página (debe ir al final:

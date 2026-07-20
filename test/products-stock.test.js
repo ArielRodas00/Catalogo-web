@@ -7,6 +7,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-for-unit-tests';
 process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
 const pool = require('../db');
+const license = require('../licenseCheck');
 const productsRouter = require('../routes/products');
 const { errorHandler } = require('../middleware/errorHandler');
 const { withServer } = require('./helpers/testServer');
@@ -57,6 +58,33 @@ test('POST /api/products/batch-stock: requiere autenticación', async function (
     });
     assert.equal(res.status, 401);
   });
+});
+
+test('POST /api/products/batch-stock: plan Básico devuelve 403 (recepción por lote es Premium)', async function (t) {
+  process.env.PANEL_CENTRAL_URL = 'http://panel-central.test';
+  process.env.CLIENTE_API_KEY = 'test-key';
+  license._resetForTests();
+
+  const fetchMock = t.mock.method(globalThis, 'fetch', async function () {
+    return { ok: true, json: async () => ({ activo: true, plan: 'basico', estado: 'activo' }) };
+  });
+  await license.checkLicense();
+  fetchMock.mock.restore(); // el fetch REAL vuelve para pegarle al server de prueba
+
+  await withServer(buildApp(), async function (base) {
+    const res = await fetch(base + '/api/products/batch-stock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken() },
+      body: JSON.stringify({ items: [{ id: 1, quantity: 5 }] })
+    });
+    const body = await res.json();
+    assert.equal(res.status, 403);
+    assert.equal(body.plan, 'basico');
+  });
+
+  delete process.env.PANEL_CENTRAL_URL;
+  delete process.env.CLIENTE_API_KEY;
+  license._resetForTests();
 });
 
 test('POST /api/products/batch-stock: suma stock de un lote y confirma la transacción', async function (t) {

@@ -115,11 +115,14 @@ pnpm-workspace.yaml
 public/products.js
 public/js/theme.js
 public/admin.js          (reemplazado por public/admin/*.js)
+license.js                (reemplazado por licenseCheck.js — ver "Multi-tenant, Paso 3")
+_tmp-*.js                 (varios: scripts de un solo uso para verificar cosas con Playwright,
+                           ya neutralizados/gitignorados, no afectan lint ni tests)
 ```
 
 Podés borrarlos vos mismo con:
 ```
-rm pnpm-lock.yaml pnpm-workspace.yaml public/products.js public/js/theme.js public/admin.js
+rm pnpm-lock.yaml pnpm-workspace.yaml public/products.js public/js/theme.js public/admin.js license.js _tmp-*.js
 ```
 
 ## Mejoras de diseño visual
@@ -209,6 +212,140 @@ el click en la tarjeta seguía sin abrir el detalle. Se investigó cada uno con 
       recientes). Se implementó en el backend (`routes/products.js`, `ORDER BY en_stock DESC, ...`) porque la
       paginación es server-side — ordenar solo en el frontend rompería la paginación. Cubierto con un test
       nuevo (`test/products-stock.test.js`) que verifica los 5 órdenes posibles.
+
+## Multi-tenant — Paso 1: marca configurable por variables de entorno (2026-07-20)
+
+Primer paso hacia la arquitectura "1 deploy por cliente + Panel Central" que charlamos: hoy el código es
+100% reusable para un cliente nuevo sin editar HTML/CSS, solo variables de entorno.
+
+- [x] **`branding.js`** (nuevo) — lee `STORE_NAME`, `STORE_LOGO_URL`, `STORE_LOGO_ALT`, `COLOR_PRIMARY`,
+      `COLOR_PRIMARY_HOVER`, `COLOR_ACCENT` del entorno, con defaults = los valores que el catálogo ya tenía
+      hardcodeados (un deploy existente sin estas variables se ve exactamente igual que antes).
+- [x] **`index.html` y `admin.html` tokenizados** — `__STORE_NAME__`, `__STORE_LOGO_URL__`,
+      `__STORE_LOGO_ALT__`, `__COLOR_PRIMARY__`, `__BASE_URL__` en `<title>`, meta og/twitter, JSON-LD
+      (de paso corrige el dominio placeholder `tutienda.com` hardcodeado en el JSON-LD, ahora usa `BASE_URL`
+      que ya existía como variable pero no se usaba ahí), logo, y copyright del footer.
+- [x] **`server.js` sirve `/`, `/index.html` y `/admin.html`** con reemplazo de tokens + inyección de un
+      `<style>` con las variables de color, ANTES del `express.static` (mismo patrón liviano que ya usaba la
+      ruta SSR `/p/:id`, sin agregar un motor de templates).
+- [x] **Bug real encontrado y corregido al verificar visualmente:** un bloque "Gradient accents" en
+      `styles.css` tenía `#c1121f`/`#e63946` hardcodeados directamente en `.btn-detail`, `.badge-oferta-card`,
+      `.hp-btn`, `.btn-carousel-detail`, `.highlight-badge`, `.btn-filter-toggle` (varios con `!important`),
+      pasando por alto las variables CSS — eran justo los botones/badges más visibles del sitio. Ahora usan
+      `var(--color-primary)`/`var(--color-primary-hover)`. Sin este fix, el 90% del branding visual no se
+      hubiera aplicado pese a que el resto del sistema funcionaba bien.
+- [x] Documentado en `.env.example` y en la tabla de variables de `README.md`.
+
+Verificado con Playwright: branding por defecto sin cambios visuales, y con una marca de prueba (nombre +
+colores azules) aplicándose correctamente en header, nav, botones y badges, en catálogo y admin.
+
+**Fuera de este paso a propósito** (para no expandir el alcance más de lo pedido): contacto (WhatsApp/email/
+dirección/horario del footer) y el texto de FAQ siguen hardcodeados — son "contenido" más que "marca", se
+pueden sumar como variables más adelante si hace falta para el próximo cliente.
+
+## Multi-tenant — Paso 2: Panel Central (2026-07-20)
+
+Nuevo sub-proyecto en `panel-central/` (carpeta separada en este mismo repo, `package.json` y deploy propios,
+según lo que confirmaste). Es el panel que usás vos como super-usuario para dar de alta clientes, asignarles
+plan (Básico/Premium), y llevar el estado de pago — **sin pasarela de pago todavía**: registrás los pagos a
+mano cuando confirmás una transferencia (según lo que dijiste, "por ahora omitimos" la integración con
+Pagopar).
+
+- [x] **Schema propio** (`clientes`, `pagos`, `administradores` — este último solo para el super-admin, no
+      tiene nada que ver con los admins de cada catálogo de cliente).
+- [x] **Dos tipos de auth, no confundir:** JWT (vos, humano, logueado en el panel web) para `/api/clientes/*`;
+      y una **API key por cliente** (servicio a servicio, sin expiración, header `X-API-Key`) para
+      `GET /api/licencia` — la ruta que va a consultar cada catálogo de cliente para saber si sigue activo
+      (eso es el Paso 3, todavía no conectado del lado del catálogo).
+- [x] **CRUD de clientes completo**: alta (genera `api_key` automática), edición parcial, regenerar api_key
+      si se filtró, baja. Reusa el mismo patrón de validación y de `PUT` parcial que ya usa `routes/products.js`
+      del catálogo principal.
+- [x] **Registro manual de pagos** por cliente (monto, método, notas) — sin gateway, es solo un historial.
+- [x] **Frontend mínimo** (login + tabla de clientes + modales de alta/edición/pagos), con una paleta distinta
+      (azul) a la del catálogo, a propósito, para que se note a simple vista que es la herramienta interna y
+      no el sitio de un cliente.
+- [x] **13 tests** (`node --test` dentro de `panel-central/`) cubriendo auth, CRUD de clientes y el endpoint
+      de licencia (activo/vencido/suspendido, key inválida, sin key).
+- [x] `eslint.config.js` de la raíz extendido para cubrir `panel-central/**` también (un solo lint para todo
+      el monorepo, sin duplicar instalación de ESLint/Prettier en la subcarpeta).
+
+**Verificado end-to-end contra una base real** (Postgres local, base `panel_central_db` separada de
+`catalogo_db` para no compartir la tabla `administradores` con el catálogo — decisión que confirmaste):
+login → alta de cliente real (genera `api_key` de 64 caracteres) → `GET /api/licencia` con esa key devuelve
+`{ activo: true, plan: "premium", estado: "activo" }` → con una key inventada devuelve 403 → registro de un
+pago (Gs. 150.000, transferencia) se guarda y aparece en el historial. Los 13 tests (con `pool.query`
+mockeado) también pasan.
+
+**Bug real encontrado y corregido en esta verificación:** el input del slug tenía
+`pattern="[a-z0-9-]+"`, que Chrome rechaza como regex inválida bajo su modo "v" más nuevo (el guion sin
+escapar al final de una clase de caracteres). Cambiado a `[a-z0-9\-]+`. Sin probarlo en un navegador real
+esto no se hubiera notado — quedaba silencioso en la consola, no rompía la funcionalidad pero sí la
+validación del campo.
+
+## Multi-tenant — Paso 3: conectar el catálogo al Panel Central (2026-07-20)
+
+- [x] **`licenseCheck.js`** (nuevo, raíz del catálogo) — al arrancar y cada 6hs, consulta
+      `GET {PANEL_CENTRAL_URL}/api/licencia` con su `CLIENTE_API_KEY`. Guarda el último resultado bueno en
+      memoria. Si `PANEL_CENTRAL_URL`/`CLIENTE_API_KEY` no están definidas, el deploy es "standalone" (todas
+      las features, sin restricción — no rompe el deploy actual de este catálogo). Si nunca pudo conectar, o
+      pasaron más de 48hs sin poder reconfirmar el estado, degrada a Básico **pero nunca bloquea el sitio** —
+      una caída del Panel Central nunca es motivo para tirar abajo el catálogo de un cliente.
+      *(Se llamó `licenseCheck.js` y no `license.js`: en Windows/Mac, `require('../license')` resuelve al
+      archivo `LICENSE` de texto plano por case-insensitivity del filesystem — lo encontramos porque los
+      tests fallaban con un `SyntaxError` al intentar parsear el `LICENSE` como JS. `license.js` quedó
+      huérfano, sin poder borrarlo — ver nota de archivos sin borrar.)*
+- [x] **`GET /api/plan`** (nuevo, protegido con JWT) — el admin panel lo consulta para saber qué mostrar.
+- [x] **`GET /api/metrics/dashboard` gateado**: devuelve 403 si el plan no es Premium o la cuenta no está
+      activa (una cuenta Premium suspendida también pierde el acceso, no solo la Básica).
+- [x] **Frontend**: la pestaña Métricas muestra un placeholder "función Premium" en vez del dashboard cuando
+      corresponde (no desaparece la pestaña — más amigable que ocultarla de golpe); un banner rojo persistente
+      avisa si la cuenta está vencida/suspendida, sin bloquear nada más del panel.
+- [x] **17 tests nuevos** (`licenseCheck.test.js` + `metrics.test.js`) cubriendo: modo standalone, sin
+      verificar nunca, verificación exitosa, cuenta suspendida, caída de red del Panel Central, y el gateo
+      real del endpoint de métricas en los 4 escenarios (standalone, básico, premium suspendido, premium
+      activo).
+
+**Verificado end-to-end contra infraestructura real** (no solo mocks): con el catálogo principal y el Panel
+Central corriendo simultáneamente en local, conectados de verdad —
+1. Cliente creado en Básico → pestaña Métricas muestra "función Premium" (capturado).
+2. Mismo cliente pasado a Premium en el Panel Central + reinicio del catálogo → Métricas carga el dashboard
+   real, sin errores de consola (capturado).
+3. Cliente pasado a "suspendido" → vuelve el placeholder Premium **y** aparece el banner rojo de suscripción
+   vencida (capturado) — confirma que un Premium impago pierde el perk, no solo un Básico.
+
+**Bug real encontrado durante esta verificación:** la colisión `license.js`/`LICENSE` explicada arriba —
+sin probar los tests en este entorno Windows no se hubiera notado (en Render, que corre Linux
+case-sensitive, nunca hubiera fallado, pero sí rompía el desarrollo local). También hubo que corregir un mock
+de test mal armado (mockear `fetch` global sin restaurarlo también interceptaba el fetch que el propio test
+usaba para pegarle al servidor de prueba) — quedó en los tests como comentario para que no se repita.
+
+**Decisiones de diseño a marcar (no volver a asumir sin confirmar):**
+- Nunca hay un "lockout total" del catálogo por falta de pago — como mucho se pierde la función Premium
+  (métricas). Si en algún momento se quiere un bloqueo más duro (ej. bloquear el login del admin), es un
+  cambio de comportamiento a decidir explícitamente, no algo que se agregó acá.
+- Multi-usuario y dominio propio (mencionados en la idea original de planes) no están implementados —
+  dominio propio es una config de DNS/Render, no algo que la app pueda gatear, y multi-usuario requeriría un
+  sistema de roles que hoy no existe (un solo admin por cliente).
+
+### Extensión: Básico solo ve la pestaña Productos (2026-07-20, mismo día)
+
+A pedido del usuario, se amplió el gateo más allá de Métricas: ahora **Stock** y **Recepción** también son
+Premium. El plan Básico solo ve la pestaña **Productos** — desde ahí igual puede marcar "sin stock" y editar
+`stock_cantidad`/`stock_minimo` a mano (`PUT /api/products/:id`, sin gatear a propósito), solo pierde las
+herramientas de conveniencia (alertas de stock bajo, recepción masiva por lote).
+
+- [x] **Frontend**: los botones de tab de Métricas/Stock/Recepción llevan `data-plan="premium"`;
+      `checkPlanStatus()` (`public/admin/init.js`) los oculta si el plan no es Premium+activo, y si la pestaña
+      activa quedaba oculta, vuelve automáticamente a Productos para no dejar la vista en blanco.
+- [x] **Backend**: `POST /api/products/batch-stock` (el único endpoint específico de Stock/Recepción — ambas
+      pestañas usan el mismo `GET /api/products` que Productos, que sigue sin gatear) devuelve 403 con el
+      mismo criterio que ya usa `GET /api/metrics/dashboard`.
+- [x] **3 tests nuevos** en `test/products-stock.test.js` (403 en Básico, sigue pasando en Premium).
+
+**Verificado end-to-end** con el catálogo y el Panel Central real corriendo a la vez: cliente Básico → solo
+"Productos" visible (capturado); mismo cliente subido a Premium → las 4 pestañas visibles, sin errores de
+consola (capturado); `POST /batch-stock` con token de Premium activo devuelve 400 (llega a la validación
+normal, no 403) confirmando que pasa el gate.
 
 ## Nota: scripts temporales sin borrar
 

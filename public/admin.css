@@ -127,6 +127,43 @@ h1, h2, h3 { font-family: var(--font-display); }
   z-index: 100;
 }
 
+/* Aviso de suscripción vencida (multi-tenant, ver AUDITORIA.md paso 3) */
+.suspended-banner {
+  background: #fdecea;
+  color: #b23b3b;
+  padding: 10px 24px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #f5c6c0;
+}
+.suspended-banner .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* Placeholder de "función Premium" en la pestaña de métricas */
+.premium-required {
+  text-align: center;
+  padding: 64px 24px;
+  color: var(--color-text-muted, #6b6b6b);
+}
+.premium-required-icon {
+  font-size: 48px !important;
+  color: #f39c12;
+  margin-bottom: 12px;
+}
+.premium-required h2 {
+  font-size: 1.2rem;
+  color: var(--color-text, #0d0d0d);
+  margin-bottom: 8px;
+}
+.premium-required p {
+  max-width: 360px;
+  margin: 0 auto;
+}
+
 .admin-header-left {
   display: flex;
   align-items: center;

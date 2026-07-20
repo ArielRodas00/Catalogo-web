@@ -5,6 +5,7 @@ const multer  = require('multer');
 const path    = require('path');
 const { authenticateToken } = require('../middleware/auth');
 const { validateProduct, sanitizeOrder } = require('../middleware/validate');
+const { getLicense } = require('../licenseCheck');
 const rateLimit = require('express-rate-limit');
 
 const apiLimiter = rateLimit({
@@ -385,8 +386,17 @@ const batchLimiter = rateLimit({ windowMs: 60 * 1000, max: 10 });
 
 router.post('/batch-stock', authenticateToken, batchLimiter, async function(req, res, next) {
   try {
+    const license = getLicense();
+    if (license.plan !== 'premium' || !license.activo) {
+      return res.status(403).json({
+        error: 'La recepción de mercadería por lote es una función del plan Premium.',
+        plan: license.plan,
+        activo: license.activo
+      });
+    }
+
     const items = req.body.items;
-    
+
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Se requiere un array de items' });
     }

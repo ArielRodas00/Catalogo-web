@@ -3,6 +3,7 @@ const router  = express.Router();
 const pool    = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { sanitizePeriod } = require('../middleware/validate');
+const { getLicense } = require('../licenseCheck');
 const rateLimit = require('express-rate-limit');
 
 const metricsLimiter = rateLimit({ windowMs: 60 * 1000, max: 30 });
@@ -66,9 +67,18 @@ router.post('/search', metricsLimiter, async function(req, res, next) {
   }
 });
 
-// GET /api/metrics/dashboard (protegido)
+// GET /api/metrics/dashboard (protegido + solo plan Premium activo)
 router.get('/dashboard', authenticateToken, async function(req, res, next) {
   try {
+    const license = getLicense();
+    if (license.plan !== 'premium' || !license.activo) {
+      return res.status(403).json({
+        error: 'Las métricas son una función del plan Premium.',
+        plan: license.plan,
+        activo: license.activo
+      });
+    }
+
     const rawPeriod = req.query.period;
     const period = sanitizePeriod(rawPeriod);
 

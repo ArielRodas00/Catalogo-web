@@ -2437,33 +2437,35 @@ h1, h2, h3 { font-family: var(--font-display); }
   .product-card:hover .product-img { transform: none; }
 }
 
-/* === Gradient accents en botones y badges (Mejora 3) === */
+/* === Gradient accents en botones y badges (Mejora 3) ===
+   Usan las variables de marca (no colores fijos) para que STORE_NAME/COLOR_*
+   (branding.js) los pueda sobreescribir por cliente. */
 .btn-detail {
-  background: linear-gradient(135deg, #c1121f, #e63946);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
 }
 .btn-detail:hover {
-  background: linear-gradient(135deg, #e63946, #ff6b6b);
+  background: var(--color-primary-hover);
 }
 .badge-oferta-card {
-  background: linear-gradient(135deg, #c1121f, #e63946) !important;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)) !important;
 }
 .highlight-badge {
-  background: linear-gradient(135deg, #c1121f, #e63946) !important;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)) !important;
 }
 .btn-carousel-detail {
-  background: linear-gradient(135deg, #c1121f, #e63946) !important;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)) !important;
 }
 .btn-carousel-detail:hover {
-  background: linear-gradient(135deg, #e63946, #ff6b6b) !important;
+  background: var(--color-primary-hover) !important;
 }
 .hp-btn {
-  background: linear-gradient(135deg, #c1121f, #e63946) !important;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)) !important;
 }
 .hp-btn:hover {
-  background: linear-gradient(135deg, #e63946, #ff6b6b) !important;
+  background: var(--color-primary-hover) !important;
 }
 .btn-filter-toggle {
-  background: linear-gradient(135deg, #c1121f, #e63946) !important;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)) !important;
 }
 
 /* === Toast frontend público (Mejora 4) === */

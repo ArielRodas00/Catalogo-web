@@ -6,7 +6,9 @@ module.exports = [
   {
     // _tmp-*.js: scripts de un solo uso (ej. capturas con Playwright) que no se
     // pudieron borrar por una restricción de permisos del entorno (ver AUDITORIA.md).
-    ignores: ['node_modules/**', 'public/uploads/**', '_tmp-*.js'],
+    // **/node_modules/**: cubre tanto el node_modules raíz como el propio de
+    // panel-central/ (es un sub-proyecto con su package.json separado).
+    ignores: ['**/node_modules/**', 'public/uploads/**', '_tmp-*.js'],
   },
   js.configs.recommended,
   {
@@ -39,6 +41,19 @@ module.exports = [
     },
     rules: {
       'no-undef': 'off',
+    },
+  },
+  {
+    // panel-central/public: un único archivo app.js (no varios <script>
+    // hermanos compartiendo scope como el catálogo), así que no hace falta
+    // apagar no-undef acá — sigue siendo útil para atrapar typos.
+    files: ['panel-central/public/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...globals.browser,
+      },
     },
   },
   prettierConfig,

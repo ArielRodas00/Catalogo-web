@@ -10,6 +10,19 @@ async function loadMetrics() {
     const res  = await fetch('/api/metrics/dashboard?period=' + period, {
       headers: { 'Authorization': 'Bearer ' + token }
     });
+
+    if (res.status === 403) {
+      // Plan Básico o Premium vencido: mostramos el placeholder en vez del
+      // dashboard y frenamos el auto-refresh (no tiene sentido reintentar).
+      document.getElementById('metrics-content').style.display = 'none';
+      document.getElementById('metrics-premium-required').style.display = 'block';
+      stopMetricsAutoRefresh();
+      return;
+    }
+
+    document.getElementById('metrics-premium-required').style.display = 'none';
+    document.getElementById('metrics-content').style.display = 'block';
+
     const data = await res.json();
     window._lastMetricsData = data;
 

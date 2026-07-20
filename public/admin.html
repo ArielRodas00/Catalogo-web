@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" type="image/png" href="logo.png">
-  <title>Panel de Administración</title>
+  <link rel="icon" type="image/png" href="__STORE_LOGO_URL__">
+  <title>__STORE_NAME__ — Panel de Administración</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -59,27 +59,41 @@
       </div>
     </header>
 
+    <div id="suspended-banner" class="suspended-banner" style="display:none">
+      <span class="material-symbols-outlined">warning</span>
+      Tu suscripción está vencida. Contactanos para regularizar tu cuenta y no perder las funciones Premium.
+    </div>
+
     <!-- TABS DEL ADMIN -->
     <div class="admin-tabs">
       <button class="admin-tab active" data-tab="productos">
         <span class="material-symbols-outlined">inventory_2</span>
         Productos
       </button>
-      <button class="admin-tab" data-tab="metricas">
+      <button class="admin-tab" data-tab="metricas" data-plan="premium">
         <span class="material-symbols-outlined">bar_chart</span>
         Métricas
       </button>
-      <button class="admin-tab" data-tab="stock">
+      <button class="admin-tab" data-tab="stock" data-plan="premium">
         <span class="material-symbols-outlined">inventory</span>
         Stock
       </button>
-      <button class="admin-tab" data-tab="recepcion"><span class="material-symbols-outlined">assignment</span> Recepción</button>
+      <button class="admin-tab" data-tab="recepcion" data-plan="premium"><span class="material-symbols-outlined">assignment</span> Recepción</button>
     </div>
 
     <div class="admin-body">
 
       <!-- PANEL DE MÉTRICAS -->
       <div id="panel-metricas" style="display:none">
+
+        <!-- Se muestra en vez del contenido si el plan no es Premium -->
+        <div id="metrics-premium-required" class="premium-required" style="display:none">
+          <span class="material-symbols-outlined premium-required-icon">workspace_premium</span>
+          <h2>Las métricas son una función Premium</h2>
+          <p>Actualizá tu plan para ver vistas, clicks de WhatsApp y búsquedas de tu catálogo.</p>
+        </div>
+
+        <div id="metrics-content">
 
         <!-- Selector de período -->
         <div class="metrics-header">
@@ -146,6 +160,8 @@
           </div>
           <div id="busquedas-bars" class="metrics-bars"></div>
         </div>
+
+        </div><!-- /metrics-content -->
 
       </div>
 

@@ -12,13 +12,18 @@ if (process.env.DATABASE_URL) {
   }
 }
 
+const fs      = require('fs');
+const path    = require('path');
 const express = require('express');
 const helmet  = require('helmet');
 const cors    = require('cors');
 const pool    = require('./db');
+const { branding, brandingStyleTag } = require('./branding');
+const { startLicenseCheck, getLicense } = require('./licenseCheck');
 
 const { errorHandler } = require('./middleware/errorHandler');
 const { requestLogger } = require('./middleware/logger');
+const { authenticateToken } = require('./middleware/auth');
 
 const productsRouter   = require('./routes/products');
 const authRouter       = require('./routes/auth');
@@ -51,6 +56,36 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(requestLogger);
+
+// --- Marca configurable: index.html y admin.html se sirven con los tokens
+// __STORE_NAME__ / __STORE_LOGO_URL__ / __STORE_LOGO_ALT__ / __BASE_URL__
+// reemplazados, y con las variables CSS de color inyectadas (branding.js).
+// Van ANTES de express.static para interceptar estas dos rutas puntuales;
+// el resto de los archivos de public/ los sigue sirviendo el static normal.
+function renderBrandedHtml(fileName, res) {
+  const filePath = path.join(__dirname, 'public', fileName);
+  let html = fs.readFileSync(filePath, 'utf8');
+  html = html
+    .split('__STORE_NAME__').join(branding.storeName)
+    .split('__STORE_LOGO_URL__').join(branding.logoUrl)
+    .split('__STORE_LOGO_ALT__').join(branding.logoAlt)
+    .split('__COLOR_PRIMARY__').join(branding.colorPrimary)
+    .split('__BASE_URL__').join(BASE_URL)
+    .replace('</head>', brandingStyleTag() + '</head>');
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.send(html);
+}
+
+app.get(['/', '/index.html'], function(req, res) {
+  renderBrandedHtml('index.html', res);
+});
+
+app.get('/admin.html', function(req, res) {
+  renderBrandedHtml('admin.html', res);
+});
+
 app.use(express.static('public', {
   etag: true,
   setHeaders: function(res, path) {
@@ -164,6 +199,13 @@ app.get('/p/:id', async function(req, res, next) {
   }
 });
 
+// GET /api/plan — el admin panel lo consulta para saber si mostrar las
+// features Premium (métricas, etc). Devuelve el último estado conocido de
+// license.js, nunca golpea al Panel Central en el momento (ver license.js).
+app.get('/api/plan', authenticateToken, function(req, res) {
+  res.json(getLicense());
+});
+
 app.use('/api/products', productsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/metrics', metricsRouter);
@@ -174,6 +216,8 @@ app.use(errorHandler);
 app.listen(PORT, function() {
   console.log('Servidor corriendo en http://localhost:' + PORT);
 });
+
+startLicenseCheck();
 
 process.on('SIGTERM', async function() {
   console.log('SIGTERM recibido. Cerrando pool...');
