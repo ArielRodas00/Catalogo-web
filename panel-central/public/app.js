@@ -103,6 +103,15 @@ async function loadClientes() {
   }
 }
 
+function isSafeHttpUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch (_e) {
+    return false;
+  }
+}
+
 function badgeEstado(estado) {
   const labels = { activo: 'Activo', vencido: 'Vencido', suspendido: 'Suspendido' };
   return '<span class="badge badge-' + estado + '">' + labels[estado] + '</span>';
@@ -127,8 +136,12 @@ function renderClientesTable() {
     const cobro = c.fecha_proximo_cobro
       ? new Date(c.fecha_proximo_cobro).toLocaleDateString('es-PY')
       : '—';
+    const nombreCell = (c.deploy_url && isSafeHttpUrl(c.deploy_url))
+      ? '<a href="' + escapeHTML(c.deploy_url) + '" target="_blank" rel="noopener noreferrer" class="cliente-link" title="Abrir el catálogo de este cliente">' +
+          escapeHTML(c.nombre) + ' <span class="cliente-link-icon">↗</span></a>'
+      : escapeHTML(c.nombre);
     return '<tr>' +
-      '<td>' + escapeHTML(c.nombre) + '</td>' +
+      '<td>' + nombreCell + '</td>' +
       '<td>' + escapeHTML(c.slug) + '</td>' +
       '<td>' + badgePlan(c.plan) + '</td>' +
       '<td>' + badgeEstado(c.estado) + '</td>' +
