@@ -18,7 +18,7 @@ const branding = {
   storeTagline: process.env.STORE_TAGLINE !== undefined ? process.env.STORE_TAGLINE : 'repuestos al instante',
   // El logo como imagen quedó solo para el ícono de pestaña (favicon); el
   // header ahora usa el nombre como logo de texto (ver buildWordmarkHtml).
-  logoUrl: process.env.STORE_LOGO_URL || '/logo.png',
+  logoUrl: process.env.STORE_LOGO_URL || '/favicon.svg',
   colorPrimary: process.env.COLOR_PRIMARY || '#c1121f',
   colorPrimaryHover: process.env.COLOR_PRIMARY_HOVER || '#e63946',
   colorAccent: process.env.COLOR_ACCENT || '#0d0d0d'

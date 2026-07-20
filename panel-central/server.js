@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 if (process.env.DATABASE_URL) {
   console.log('Usando DATABASE_URL para conexion a BD');

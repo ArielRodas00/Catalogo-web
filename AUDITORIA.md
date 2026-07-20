@@ -116,6 +116,7 @@ public/products.js
 public/js/theme.js
 public/admin.js          (reemplazado por public/admin/*.js)
 license.js                (reemplazado por licenseCheck.js — ver "Multi-tenant, Paso 3")
+public/logo.png            (reemplazado por public/favicon.svg — ver "Favicons", más abajo)
 _tmp-*.js                 (varios: scripts de un solo uso para verificar cosas con Playwright,
                            ya neutralizados/gitignorados, no afectan lint ni tests)
 ```
@@ -392,3 +393,30 @@ importar el color primario del cliente, ya que el chip nunca es rojo.
 desktop (1200px) y mobile (390px): el chip blanco se ve correctamente sobre el header rojo, "Pieza" en negro y
 "Express" en rojo (`--color-primary`), tagline gris debajo, sin errores de consola en ninguno de los dos
 viewports.
+
+## Favicons (2026-07-20)
+
+`public/logo.png` (el único uso que le quedaba era el ícono de pestaña del navegador, ver paso anterior) era
+en realidad un ícono genérico blanco/transparente (un triángulo con una "S") que quedó de antes de todo el
+sistema de marca — prácticamente invisible sobre fondo claro y sin ninguna relación con "PiezaExpress". Además
+`panel-central/public/index.html` no tenía ningún favicon.
+
+No hay herramienta de generación de imágenes en este entorno, así que se armaron a mano como SVG (vectorial,
+liviano, se ve nítido en cualquier tamaño de pestaña sin necesitar múltiples archivos `.ico`/`.png`):
+
+- [x] `public/favicon.svg` (NUEVO): cuadrado redondeado rojo (`#c1121f`, el mismo que `--color-primary` por
+      default) con una "P" blanca en negrita — el monograma de "PiezaExpress". `branding.js`:
+      `logoUrl` default cambió de `/logo.png` a `/favicon.svg` (documentado en `README.md`/`.env.example`).
+      `public/index.html` y `public/admin.html`: el `<link rel="icon">` se sacó el `type="image/png"` fijo
+      (ya no aplica si el default es SVG, y así tampoco se rompe si un cliente pisa `STORE_LOGO_URL` con un
+      `.png` propio — el navegador detecta el tipo solo).
+- [x] `panel-central/public/favicon.svg` (NUEVO): mismo patrón pero azul marino (`#1e3a5f`, el
+      `--color-primary` de esa interfaz) con una "C" blanca (de "Central") — así se distingue de un vistazo
+      del catálogo en la barra de pestañas del navegador. Agregado el `<link rel="icon">` que no existía.
+- [x] `public/logo.png` queda huérfano (ver "Nota: archivos que no se pudieron borrar" arriba).
+
+**Verificado**: `node --check`, `npx eslint .` (0 errores), `npm test` (48/48). Con el catálogo corriendo
+localmente: `GET /favicon.svg` devuelve 200 con `Content-Type: image/svg+xml`, el token `__STORE_LOGO_URL__`
+se reemplaza correctamente en `index.html` y `admin.html`, sin errores de CSP ni de consola. Capturas a 64px,
+32px y 16px (tamaño real de pestaña) confirman que ambos monogramas quedan legibles y con buen contraste
+incluso en el tamaño más chico.

@@ -1,4 +1,4 @@
-﻿require('dotenv').config();
+﻿require('dotenv').config({ quiet: true });
 
 // Soporte para DATABASE_URL (Neon) o variables individuales (local)
 if (process.env.DATABASE_URL) {

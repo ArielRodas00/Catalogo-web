@@ -47,7 +47,7 @@ node server.js
 | STORE_NAME | Nombre de la tienda (title, meta, footer, logo del header) | PiezaExpress |
 | STORE_NAME_ACCENT | Parte de STORE_NAME resaltada en el logo (vacio = sin resaltar) | Express |
 | STORE_TAGLINE | Frase chica debajo del logo del header | repuestos al instante |
-| STORE_LOGO_URL | Ruta/URL del logo (solo icono de pestana del navegador) | /logo.png |
+| STORE_LOGO_URL | Ruta/URL del logo (solo icono de pestana del navegador) | /favicon.svg |
 | COLOR_PRIMARY | Color primario (botones, acentos) | #c1121f |
 | COLOR_PRIMARY_HOVER | Color primario en hover | #e63946 |
 | COLOR_ACCENT | Color de acento (headers oscuros) | #0d0d0d |

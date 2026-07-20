@@ -19,5 +19,5 @@ pnpm-workspace.yaml
 public/uploads/*
 !public/uploads/.gitkeep
 
-# Scripts temporales de scripting/depuración (ej. capturas con Playwright)
-_tmp-*.js
+# Scripts/archivos temporales de scripting/depuración (ej. capturas con Playwright)
+_tmp-*

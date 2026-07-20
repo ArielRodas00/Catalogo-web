@@ -4,7 +4,7 @@
 // Uso: node db-init.js
 // ============================================================
 
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
