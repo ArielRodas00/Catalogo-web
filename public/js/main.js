@@ -38,8 +38,13 @@ searchForm.addEventListener('submit', function(e) {
 });
 
 function handleProductClick(e) {
-  var btn = e.target.closest('.btn-detail');
-  if (btn) openModal(btn.getAttribute('data-id'));
+  // Toda la tarjeta es clickeable (no solo el botón "Ver detalle"),
+  // salvo que el producto esté sin stock (botón deshabilitado).
+  var card = e.target.closest('.product-card');
+  if (!card) return;
+  var btn = card.querySelector('.btn-detail');
+  if (btn && btn.disabled) return;
+  openModal(card.getAttribute('data-id'));
 }
 productGrid.addEventListener('click', handleProductClick);
 filteredGrid.addEventListener('click', handleProductClick);

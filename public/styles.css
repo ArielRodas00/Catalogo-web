@@ -296,6 +296,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   display: flex;
   flex-direction: column;
   height: 100%;
+  cursor: pointer;
   /* height: 100% hace que todas las tarjetas tengan la misma altura */
 }
 
@@ -1609,9 +1610,10 @@ h1, h2, h3 { font-family: var(--font-display); }
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transition: transform 0.2s, box-shadow 0.2s;
   flex-shrink: 0;
-  display: flex;            
-  flex-direction: column;  
+  display: flex;
+  flex-direction: column;
   height: 270px;
+  cursor: pointer;
   /* flex-shrink: 0 evita que la tarjeta se achique */
 }
 

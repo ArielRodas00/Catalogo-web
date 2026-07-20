@@ -18,3 +18,6 @@ pnpm-workspace.yaml
 # Imagenes subidas via Multer (contenido de usuario, no código)
 public/uploads/*
 !public/uploads/.gitkeep
+
+# Scripts temporales de scripting/depuración (ej. capturas con Playwright)
+_tmp-*.js

@@ -41,6 +41,7 @@ function renderSkeletons(count) {
 function createProductCard(product) {
   const card = document.createElement('div');
   card.classList.add('product-card');
+  card.setAttribute('data-id', product.id);
 
   const badgesHTML =
     (!product.en_stock    ? '<span class="card-badge badge-sin-stock">Sin stock</span>'        : '') +
@@ -80,6 +81,7 @@ function renderHighlightTrack(track, products) {
   products.forEach(function(product) {
     const card = document.createElement('div');
     card.className = 'highlight-card';
+    card.setAttribute('data-id', product.id);
 
     const badgesHTML =
       (!product.en_stock    ? '<span class="card-badge badge-sin-stock">Sin stock</span>'        : '') +
@@ -105,12 +107,13 @@ function renderHighlightTrack(track, products) {
         '</button>' +
       '</div>';
 
-    const hpBtn = card.querySelector('.hp-btn');
-    if (hpBtn) {
-      hpBtn.addEventListener('click', function() {
-        openModal(Number(this.getAttribute('data-id')));
-      });
-    }
+    // Toda la tarjeta es clickeable (no solo el botón "Ver detalle"),
+    // salvo que el producto esté sin stock (botón deshabilitado).
+    card.addEventListener('click', function() {
+      const hpBtn = card.querySelector('.hp-btn');
+      if (hpBtn && hpBtn.disabled) return;
+      openModal(product.id);
+    });
 
     track.appendChild(card);
   });

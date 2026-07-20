@@ -4,7 +4,9 @@ const prettierConfig = require('eslint-config-prettier');
 
 module.exports = [
   {
-    ignores: ['node_modules/**', 'public/uploads/**'],
+    // _tmp-*.js: scripts de un solo uso (ej. capturas con Playwright) que no se
+    // pudieron borrar por una restricción de permisos del entorno (ver AUDITORIA.md).
+    ignores: ['node_modules/**', 'public/uploads/**', '_tmp-*.js'],
   },
   js.configs.recommended,
   {

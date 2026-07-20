@@ -70,8 +70,16 @@ async function openModal(productId) {
 
   let currentImageIndex = 0;
 
+  const hasOferta   = product.en_oferta && product.precio_oferta;
+  const effectivePrice = hasOferta ? product.precio_oferta : product.price;
+
+  const modalPriceHTML = hasOferta
+    ? '<p class="product-price-old">' + formatPrice(product.price) + '</p>' +
+      '<p class="modal-price">'       + formatPrice(product.precio_oferta) + '</p>'
+    : '<p class="modal-price">'       + formatPrice(product.price) + '</p>';
+
   const whatsappMessage = encodeURIComponent(
-    'Hola! Me interesa el producto: ' + product.name + ' (Gs. ' + product.price + ')'
+    'Hola! Me interesa el producto: ' + product.name + ' (Gs. ' + effectivePrice + ')'
   );
   const whatsappLink = 'https://wa.me/' + product.whatsapp + '?text=' + whatsappMessage;
 
@@ -101,7 +109,7 @@ async function openModal(productId) {
           ? '<span class="modal-brand">' + escapeHTML(product.brand.toUpperCase()) + '</span>' : '') +
       '</div>' +
       '<h2 class="modal-name">' + escapeHTML(product.name) + '</h2>' +
-      '<p class="modal-price">' + formatPrice(product.price) + '</p>' +
+      modalPriceHTML +
       '<p class="modal-description">' + escapeHTML(product.description) + '</p>' +
       '<a href="' + whatsappLink + '" target="_blank" class="btn-whatsapp" onclick="registrarClickWhatsapp(' + product.id + ')">' +
         '<span class="material-symbols-outlined">chat</span>' +
