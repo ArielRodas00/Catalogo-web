@@ -1,6 +1,44 @@
-# Catalogo-backend
+# PiezaExpress — Catálogo Multi-tenant para Repuestos de Motos
 
-Catalogo web para tienda de repuestos de motos. Backend Node.js + Express + PostgreSQL con panel de administracion completo.
+**[🔗 Ver demo en vivo](https://catalogo-web-j26x.onrender.com)** — catálogo público, sin login necesario.
+
+Plataforma de catálogo online + pedidos por WhatsApp para pequeños comercios de repuestos de motos, con
+panel de administración completo. Pensada como producto vendible a múltiples clientes: arquitectura
+multi-tenant con marca configurable por variables de entorno, un "Panel Central" separado para gestionar
+clientes/planes/pagos, y control de acceso a funciones (Métricas, Stock, Recepción) según el plan de cada
+cliente (Básico/Premium).
+
+El desarrollo se hizo con [Claude Code](https://claude.com/claude-code) como par de programación: diseño
+de arquitectura, implementación full-stack, y verificación end-to-end con Playwright contra infraestructura
+real (Postgres/Neon, deploys en Render) en cada paso — el detalle completo del proceso está en
+[AUDITORIA.md](AUDITORIA.md).
+
+## Capturas
+
+| Catálogo público | Panel de administración |
+|---|---|
+| ![Catálogo](docs/screenshots/catalogo-home.png) | ![Admin](docs/screenshots/admin-productos.png) |
+
+<details>
+<summary>Ver versión mobile</summary>
+
+![Catálogo mobile](docs/screenshots/catalogo-mobile.png)
+
+</details>
+
+## Arquitectura multi-tenant
+
+```
+Cliente A (Render + Neon propios) ─┐
+Cliente B (Render + Neon propios) ─┼─→  Panel Central (Render + Neon propio)
+Cliente C (Render + Neon propios) ─┘     - alta/baja de clientes, plan, pagos
+                                          - GET /api/licencia (API key por cliente)
+```
+
+Cada cliente tiene su propio deploy (catálogo + base de datos), y consulta periódicamente al Panel Central
+si su plan sigue activo. Si el Panel Central no responde, el catálogo del cliente **nunca se cae** — sigue
+funcionando con el último estado conocido (caché de gracia de 48hs) en vez de depender de una conexión en
+tiempo real. Detalle completo en [AUDITORIA.md](AUDITORIA.md), sección "Multi-tenant".
 
 ## Stack
 
