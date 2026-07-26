@@ -100,3 +100,24 @@ test('brandingStyleTag: refleja los colores efectivos (Panel Central u default)'
   const tag = branding.brandingStyleTag(branding.getEffectiveBranding());
   assert.match(tag, /--color-primary:#123456;/);
 });
+
+test('brandingStyleTag: expone --color-primary-rgb y --primary(-rgb) para fondos/sombras tintados', function (t) {
+  // Antes de este fix, admin.css nunca recibía un override de --primary (solo
+  // de --primary-dark), así que el color primario del panel de admin quedaba
+  // siempre fijo en rojo sin importar la marca configurada — y ni el catálogo
+  // ni el admin tenían forma de tintar un fondo/sombra suave con el color de
+  // marca (backgrounds como el de .modal-category quedaban hardcodeados en
+  // rojo). Ver AUDITORIA.md.
+  t.mock.method(licenseCheck, 'getLicense', function () {
+    return {
+      plan: 'basico', activo: true, estado: 'activo',
+      branding: { colorPrimary: '#0a7d3c', colorPrimaryHover: null, colorAccent: null,
+        storeName: null, storeNameAccent: null, logoType: 'texto', logoImageDataUri: null, faviconUrl: null }
+    };
+  });
+
+  const tag = branding.brandingStyleTag(branding.getEffectiveBranding());
+  assert.match(tag, /--color-primary-rgb:10, 125, 60;/);
+  assert.match(tag, /--primary:#0a7d3c;/);
+  assert.match(tag, /--primary-rgb:10, 125, 60;/);
+});

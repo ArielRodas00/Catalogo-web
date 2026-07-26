@@ -106,18 +106,38 @@ function buildLogoInnerHtml(effective) {
     '<span class="logo-tagline">' + escapeHtml(effective.storeTagline) + '</span>';
 }
 
+// "#rrggbb" -> "R, G, B" (los 3 números separados por coma), para poder armar
+// rgba(var(--color-primary-rgb), alpha) en CSS con la opacidad que haga falta
+// en cada regla, en vez de tener una variable separada por cada nivel de
+// opacidad. Si el hex no es válido (no debería pasar — colorPrimary siempre
+// es un default fijo, un hex validado por el Panel Central, o una variable
+// de entorno que ya usa este mismo formato) cae al rojo de siempre.
+function hexToRgbTriplet(hex) {
+  const match = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.exec(hex);
+  if (!match) return '193, 18, 31';
+  return [1, 2, 3].map(function (i) { return parseInt(match[i], 16); }).join(', ');
+}
+
 // Bloque <style> con overrides de las variables CSS de marca. Se inyecta
 // antes de </head>, así gana por orden de cascada sobre los defaults de
 // styles.css/admin.css sin necesitar !important.
-// Nota: admin.css todavía usa su propio nombre de variable (--primary-dark)
-// en vez de --color-primary/-hover (deuda documentada en AUDITORIA.md,
-// "unificar tokens de color") — se sobreescriben ambos por ahora.
+// Nota: admin.css todavía usa su propio nombre de variable (--primary/
+// --primary-dark) en vez de --color-primary/-hover (deuda documentada en
+// AUDITORIA.md, "unificar tokens de color") — se sobreescriben las dos
+// parejas de nombres por ahora. Ojo: antes solo se pisaba --primary-dark y
+// nunca --primary, así que el color primario del panel de admin quedaba
+// siempre fijo en rojo sin importar la marca configurada — bug real
+// encontrado y corregido junto con este cambio (ver AUDITORIA.md).
 function brandingStyleTag(effective) {
   effective = effective || getEffectiveBranding();
+  const primaryRgb = hexToRgbTriplet(effective.colorPrimary);
   return '<style>:root{' +
     '--color-primary:' + effective.colorPrimary + ';' +
+    '--color-primary-rgb:' + primaryRgb + ';' +
     '--color-primary-hover:' + effective.colorPrimaryHover + ';' +
     '--color-accent:' + effective.colorAccent + ';' +
+    '--primary:' + effective.colorPrimary + ';' +
+    '--primary-rgb:' + primaryRgb + ';' +
     '--primary-dark:' + effective.colorPrimaryHover + ';' +
     '}</style>';
 }

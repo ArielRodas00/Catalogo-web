@@ -486,3 +486,72 @@ en ambos modos (texto/imagen) y en "Nuevo cliente" (todo en blanco por default) 
 guardaba los campos de marca — solo se había extendido el `PUT`. Se detectó porque el color cargado al crear
 el cliente de prueba no aparecía en `GET /api/licencia`; sin la verificación end-to-end real (no solo tests
 unitarios con mocks) este bug hubiera llegado a producción.
+
+## Fix de seguridad: escapado de storeName/faviconUrl (2026-07-26)
+
+Antes de subir el feature de branding, el usuario preguntó explícitamente si había algún riesgo de seguridad.
+Revisando en serio (no solo confirmando de palabra) encontré que `store_name`/`favicon_url` — que ahora pueden
+venir de un formulario web del Panel Central, no solo de variables de entorno de confianza — se insertaban
+crudos en varios lugares del HTML (`<title>`, meta tags, un bloque `<script type="application/ld+json">`, y
+atributos como `href`/`aria-label`) sin escapar. El `escapeHtml()` de `branding.js` tampoco escapaba comillas,
+así que ni siquiera hubiera cortado un intento de romper un atributo.
+
+- [x] `escapeHtml()` ahora también escapa `"` y `'` (antes solo `&`/`<`/`>`).
+- [x] Se exporta desde `branding.js` y se aplica en `server.js` a `effective.storeName` y
+      `effective.faviconUrl` antes de insertarlos en el HTML (los demás tokens ya estaban cubiertos, sea
+      porque `buildLogoInnerHtml()`/`buildWordmarkHtml()` ya escapaban internamente, sea porque
+      `__COLOR_PRIMARY__` siempre es un hex validado por el Panel Central o viene de una variable de entorno
+      del mismo nivel de confianza que el propio código).
+
+**Verificado con un ataque real**, no solo en teoría: creé un cliente con `store_name` =
+`Foo</script><script>alert(document.cookie)</script>`, conecté un catálogo local a ese cliente, y confirmé
+que el HTML servido lo neutraliza correctamente (`Foo&lt;/script&gt;...`) en los 4 lugares donde aparece
+(title, og:title, JSON-LD, aria-label/wordmark). Test nuevo en `test/branding.test.js` que fija este
+comportamiento.
+
+## Fix: el color primario no llegaba a todo el catálogo ni al admin (2026-07-26)
+
+El usuario reportó, probando el feature de branding recién agregado, que cambiar `COLOR_PRIMARY` no se
+reflejaba en todos lados: el efecto hover al pasar el mouse sobre una tarjeta de producto seguía siendo
+siempre rojo, el fondo del badge de categoría en el detalle de producto quedaba "rojo clarito" fijo, y
+(encontrado al investigar) **todo el panel de administración** seguía siempre rojo sin importar la marca
+configurada.
+
+**Causa raíz — dos variantes del mismo problema:**
+1. Varias reglas CSS usaban `var(--color-primary)` para el texto pero un `rgba(193, 18, 31, ...)` o un hex
+   claro (`#fce8e8`, `#f5d0d0`) hardcodeado para el fondo/sombra — quedaban "medio themeadas": el texto sí
+   cambiaba, el fondo no. Afectaba `.modal-category` (detalle de producto), `.sidebar-filter-link.active` y
+   `.filter-chip` (categorías/filtros activos), y el sweep de `.product-card::before` (el hover sobre las
+   imágenes).
+2. Bug más serio en `admin.css`: define su propia variable `--primary` (en vez de `--color-primary`, deuda ya
+   documentada como "unificar tokens de color") y `brandingStyleTag()` **nunca la sobreescribía** — solo
+   pisaba `--primary-dark`. Resultado: los ~38 usos de `var(--primary)` en el admin (botones, ícono de login,
+   barras de métricas, checkboxes) quedaban permanentemente en rojo sin importar la marca del cliente.
+
+**Fix:**
+- [x] `branding.js`: nueva función `hexToRgbTriplet()` (hex → "R, G, B"). `brandingStyleTag()` ahora también
+      inyecta `--color-primary-rgb`/`--primary-rgb` (mismo valor, los dos nombres — ver nota de "Nota: admin.css
+      todavía usa su propio nombre de variable" más abajo) para poder componer `rgba(var(--...-rgb), alpha)`
+      con la opacidad que haga falta en cada regla, en vez de una variable fija por cada nivel de opacidad.
+      **Y ahora sí sobreescribe `--primary`**, no solo `--primary-dark`.
+- [x] `public/styles.css` / `public/admin.css`: los `rgba(193, 18, 31, X)` y hex claros (`#fce8e8`, `#f5d0d0`)
+      hardcodeados pasan a `rgba(var(--color-primary-rgb), X)` / `rgba(var(--primary-rgb), X)`. Los gradientes
+      que mezclaban `var(--primary)` con un segundo color hardcodeado (`.btn-recibir-stock`,
+      `.btn-solicitar-todo`, `.metrics-bar-fill.vistas`) pasan a usar `var(--primary-dark)` en el segundo stop.
+      Los `accent-color: #c1121f` de los checkboxes de recepción pasan a `var(--primary)`.
+- [x] Default agregado en el `:root` de ambos CSS: `--color-primary-rgb: 193, 18, 31;` / `--primary-rgb: 193, 18, 31;`
+      (mismo valor que el hex por defecto, para que el CSS no rompa si por lo que sea no se inyecta el `<style>`).
+
+**No tocado a propósito**: colores claramente semánticos y no ligados a la marca — el verde oficial de
+WhatsApp (`.icon-whatsapp`, `.metrics-bar-fill.clicks`), el naranja/azul de los badges de "Destacado"/"Promo"
+(`.badge-destacado-card`, `.badge-promo-card`), y el verde de "Generar pedido" (`.btn-generar-pedido`, una
+acción positiva, no la marca del cliente).
+
+**Verificado**: `npm test` (65/65, incluye un test nuevo que fija `--color-primary-rgb`/`--primary-rgb`),
+`npx eslint .` (0 errores). Visual con Playwright y un verde de prueba (`#0a7d3c`): el badge de categoría en
+el detalle de producto quedó con fondo verde clarito (capturado), y el panel de admin (ícono y botón de
+login) pasó de rojo fijo a verde (capturado) — confirmando que el bug de `--primary` en el admin quedó
+resuelto. Durante esta verificación encontré ~19 procesos de Node huérfanos acumulados de toda la
+sesión (por cómo este entorno maneja los procesos en segundo plano) que generaban resultados inconsistentes
+al probar — quedó como lección: si un cambio de color/env var "no se refleja" al probar localmente, matar
+TODOS los procesos de node sueltos antes de sospechar del código.
