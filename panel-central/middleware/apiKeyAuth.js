@@ -15,7 +15,10 @@ async function authenticateApiKey(req, res, next) {
 
   try {
     const result = await pool.query(
-      'SELECT id, nombre, slug, plan, estado FROM clientes WHERE api_key = $1',
+      `SELECT id, nombre, slug, plan, estado,
+              logo_type, store_name, store_name_accent, logo_image_data, logo_image_mime,
+              favicon_url, color_primary, color_primary_hover, color_accent
+       FROM clientes WHERE api_key = $1`,
       [apiKey]
     );
 

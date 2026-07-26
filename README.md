@@ -102,8 +102,13 @@ definidas, este deploy corre "standalone" (todas las funciones sin
 restriccion, el comportamiento de siempre). Si estan definidas, el catalogo
 consulta periodicamente su licencia y las funciones Premium (metricas, por
 ahora) dependen de que el plan sea Premium y el pago este al dia — ver
-`license.js` y `AUDITORIA.md` ("Multi-tenant — Paso 3") para el detalle de
-como se maneja una caida de conexion (nunca bloquea el sitio completo).
+`licenseCheck.js` y `AUDITORIA.md` ("Multi-tenant — Paso 3") para el detalle
+de como se maneja una caida de conexion (nunca bloquea el sitio completo).
+
+Si el catalogo esta conectado al Panel Central, la marca (logo, colores,
+nombre) tambien se puede cargar ahi en vez de en estas variables de entorno —
+y si se carga en los dos lugares, gana el Panel Central. Ver AUDITORIA.md,
+"Branding desde el Panel Central".
 
 ## Scripts disponibles
 

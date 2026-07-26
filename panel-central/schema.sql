@@ -19,9 +19,34 @@ CREATE TABLE IF NOT EXISTS clientes (
   deploy_url VARCHAR(255),
   fecha_proximo_cobro DATE,
   notas TEXT,
+  -- Marca del catálogo de este cliente, editable acá en vez de en variables de
+  -- entorno de Render (ver AUDITORIA.md, "Branding desde el Panel Central").
+  -- Todo NULL = el catálogo usa sus propios defaults/variables de entorno; lo
+  -- que esté cargado acá pisa esos defaults.
+  logo_type VARCHAR(10) NOT NULL DEFAULT 'texto' CHECK (logo_type IN ('texto', 'imagen')),
+  store_name VARCHAR(150),
+  store_name_accent VARCHAR(150),
+  logo_image_data TEXT,
+  logo_image_mime VARCHAR(50),
+  favicon_url VARCHAR(500),
+  color_primary VARCHAR(7),
+  color_primary_hover VARCHAR(7),
+  color_accent VARCHAR(7),
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Migración idempotente para bases ya existentes (creadas antes de agregar
+-- estas columnas) — CREATE TABLE IF NOT EXISTS de arriba no las agrega solo.
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS logo_type VARCHAR(10) NOT NULL DEFAULT 'texto' CHECK (logo_type IN ('texto', 'imagen'));
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS store_name VARCHAR(150);
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS store_name_accent VARCHAR(150);
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS logo_image_data TEXT;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS logo_image_mime VARCHAR(50);
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS favicon_url VARCHAR(500);
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS color_primary VARCHAR(7);
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS color_primary_hover VARCHAR(7);
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS color_accent VARCHAR(7);
 
 CREATE TABLE IF NOT EXISTS pagos (
   id SERIAL PRIMARY KEY,

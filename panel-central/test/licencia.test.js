@@ -66,3 +66,46 @@ test('GET /api/licencia: cliente suspendido devuelve activo:false', async functi
     assert.equal(body.estado, 'suspendido');
   });
 });
+
+test('GET /api/licencia: sin marca cargada, devuelve branding con todo null (el catálogo usa sus defaults)', async function (t) {
+  t.mock.method(pool, 'query', async function () {
+    return { rows: [{ id: 1, nombre: 'Villalba', slug: 'villalba', plan: 'basico', estado: 'activo', logo_type: 'texto' }] };
+  });
+
+  await withServer(buildApp(), async function (base) {
+    const res = await fetch(base + '/api/licencia', {
+      headers: { 'X-API-Key': 'una-key-valida' }
+    });
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.branding.logoType, 'texto');
+    assert.equal(body.branding.colorPrimary, null);
+    assert.equal(body.branding.logoImageDataUri, null);
+  });
+});
+
+test('GET /api/licencia: con marca cargada (color + logo de imagen), la devuelve armada', async function (t) {
+  t.mock.method(pool, 'query', async function () {
+    return {
+      rows: [{
+        id: 1, nombre: 'Villalba', slug: 'villalba', plan: 'premium', estado: 'activo',
+        logo_type: 'imagen', logo_image_data: 'QUJD', logo_image_mime: 'image/png',
+        store_name: 'Repuestos Villalba', store_name_accent: 'Villalba',
+        favicon_url: 'https://villalba.com/favicon.svg',
+        color_primary: '#0000ff', color_primary_hover: '#3333ff', color_accent: '#001133'
+      }]
+    };
+  });
+
+  await withServer(buildApp(), async function (base) {
+    const res = await fetch(base + '/api/licencia', {
+      headers: { 'X-API-Key': 'una-key-valida' }
+    });
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.branding.logoType, 'imagen');
+    assert.equal(body.branding.logoImageDataUri, 'data:image/png;base64,QUJD');
+    assert.equal(body.branding.storeName, 'Repuestos Villalba');
+    assert.equal(body.branding.colorPrimary, '#0000ff');
+  });
+});

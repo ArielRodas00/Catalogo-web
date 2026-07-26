@@ -104,6 +104,79 @@
           <label for="field-notas">Notas</label>
           <textarea id="field-notas" rows="2"></textarea>
         </div>
+
+        <hr class="modal-divider">
+        <h3 class="modal-section-title">Marca del catálogo (opcional)</h3>
+        <p class="modal-section-hint">
+          Lo que cargues acá pisa la configuración por variables de entorno del catálogo de este cliente.
+          Dejar en blanco = usar el default del catálogo.
+        </p>
+
+        <div class="field-group">
+          <label>Tipo de logo</label>
+          <div class="radio-row">
+            <label><input type="radio" name="logo-type" id="field-logo-type-texto" value="texto" checked> Texto (nombre de la tienda)</label>
+            <label><input type="radio" name="logo-type" id="field-logo-type-imagen" value="imagen"> Imagen</label>
+          </div>
+        </div>
+
+        <div id="row-logo-texto">
+          <div class="field-row">
+            <div class="field-group">
+              <label for="field-store-name">Nombre para el catálogo</label>
+              <input type="text" id="field-store-name" placeholder="Repuestos Villalba">
+            </div>
+            <div class="field-group">
+              <label for="field-store-name-accent">Parte resaltada</label>
+              <input type="text" id="field-store-name-accent" placeholder="Villalba">
+            </div>
+          </div>
+        </div>
+
+        <div id="row-logo-imagen" style="display:none">
+          <div class="field-group" id="row-logo-imagen-sin-cliente" style="display:none">
+            <p class="modal-section-hint">Guardá el cliente primero (con nombre/slug) para poder subirle un logo.</p>
+          </div>
+          <div class="field-group" id="row-logo-imagen-upload">
+            <label for="field-logo-file">Logo (PNG, JPEG, WEBP o SVG — máx. 300KB)</label>
+            <div class="logo-upload-row">
+              <img id="logo-preview" class="logo-preview" style="display:none" alt="Logo actual">
+              <input type="file" id="field-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+            </div>
+            <button type="button" id="btn-quitar-logo" class="btn-secondary" style="display:none">Quitar imagen (volver a texto)</button>
+            <p id="logo-upload-hint" class="field-hint"></p>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="field-favicon-url">Ícono de pestaña (favicon, URL)</label>
+          <input type="url" id="field-favicon-url" placeholder="https://.../favicon.svg">
+        </div>
+
+        <div class="field-row field-row-colors">
+          <div class="field-group color-field">
+            <label for="field-color-primary">Color primario</label>
+            <div class="color-input-row">
+              <input type="color" id="field-color-primary-picker" tabindex="-1">
+              <input type="text" id="field-color-primary" placeholder="usar default" pattern="#[0-9a-fA-F]{6}">
+            </div>
+          </div>
+          <div class="field-group color-field">
+            <label for="field-color-primary-hover">Color primario (hover)</label>
+            <div class="color-input-row">
+              <input type="color" id="field-color-primary-hover-picker" tabindex="-1">
+              <input type="text" id="field-color-primary-hover" placeholder="usar default" pattern="#[0-9a-fA-F]{6}">
+            </div>
+          </div>
+          <div class="field-group color-field">
+            <label for="field-color-accent">Color de acento</label>
+            <div class="color-input-row">
+              <input type="color" id="field-color-accent-picker" tabindex="-1">
+              <input type="text" id="field-color-accent" placeholder="usar default" pattern="#[0-9a-fA-F]{6}">
+            </div>
+          </div>
+        </div>
+
         <div class="field-group" id="row-api-key" style="display:none">
           <label>API key (la usa el catálogo del cliente para consultar su licencia)</label>
           <div class="api-key-row">

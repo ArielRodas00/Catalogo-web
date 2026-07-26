@@ -45,6 +45,10 @@ async function checkLicense() {
       plan: data.plan,
       activo: data.activo,
       estado: data.estado,
+      // Marca opcional del Panel Central (ver AUDITORIA.md, "Branding desde
+      // el Panel Central") — null/ausente significa que ese cliente no tiene
+      // nada cargado ahí, y branding.js debe usar sus propios defaults.
+      branding: data.branding || null,
       checkedAt: Date.now()
     };
     console.log('Licencia verificada: plan=' + lastGood.plan + ' estado=' + lastGood.estado);
@@ -57,7 +61,7 @@ async function checkLicense() {
 // bloquea por una falla de red — degrada a Básico como mucho.
 function getLicense() {
   if (isStandalone()) {
-    return { plan: 'premium', activo: true, estado: 'standalone' };
+    return { plan: 'premium', activo: true, estado: 'standalone', branding: null };
   }
 
   if (lastGood && (Date.now() - lastGood.checkedAt) < GRACE_PERIOD_MS) {
@@ -66,8 +70,10 @@ function getLicense() {
 
   // Nunca se pudo confirmar el estado, o pasaron más de 48hs sin poder
   // reconfirmarlo: degradamos a Básico (se pierden las features Premium)
-  // pero el sitio sigue funcionando.
-  return { plan: 'basico', activo: true, estado: lastGood ? 'desconocido' : 'sin_verificar' };
+  // pero el sitio sigue funcionando. La marca también se cae a los defaults
+  // del catálogo — no tiene sentido mantener un color/logo "viejo" más
+  // tiempo del que ya se sostiene el resto del estado de licencia.
+  return { plan: 'basico', activo: true, estado: lastGood ? 'desconocido' : 'sin_verificar', branding: null };
 }
 
 function startLicenseCheck() {

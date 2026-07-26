@@ -1,8 +1,22 @@
 const PLANES = ['basico', 'premium'];
 const ESTADOS = ['activo', 'vencido', 'suspendido'];
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+function isValidHttpUrl(value) {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch (_e) {
+    return false;
+  }
+}
 
 function validateCliente(req, res, next) {
-  const { nombre, slug, plan, estado } = req.body;
+  const {
+    nombre, slug, plan, estado,
+    store_name, store_name_accent, favicon_url,
+    color_primary, color_primary_hover, color_accent
+  } = req.body;
   const errors = [];
   const isUpdate = req.method === 'PUT';
 
@@ -27,6 +41,23 @@ function validateCliente(req, res, next) {
   if (estado !== undefined && !ESTADOS.includes(estado)) {
     errors.push('Estado inválido (debe ser activo, vencido o suspendido)');
   }
+
+  // Marca (todos opcionales — null/vacío significa "usar el default del catálogo")
+  if (store_name !== undefined && store_name !== null && store_name.length > 150) {
+    errors.push('El nombre de marca es demasiado largo');
+  }
+  if (store_name_accent !== undefined && store_name_accent !== null && store_name_accent.length > 150) {
+    errors.push('El acento del nombre de marca es demasiado largo');
+  }
+  if (favicon_url !== undefined && favicon_url !== null && favicon_url !== '' && !isValidHttpUrl(favicon_url)) {
+    errors.push('La URL del favicon debe ser http/https');
+  }
+  [['color_primary', color_primary], ['color_primary_hover', color_primary_hover], ['color_accent', color_accent]]
+    .forEach(function([label, value]) {
+      if (value !== undefined && value !== null && value !== '' && !HEX_COLOR.test(value)) {
+        errors.push('El color ' + label + ' debe ser un hex de 6 dígitos (ej. #c1121f)');
+      }
+    });
 
   if (errors.length > 0) {
     return res.status(400).json({ error: errors.join('. ') });

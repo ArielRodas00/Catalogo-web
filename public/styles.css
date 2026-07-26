@@ -110,6 +110,16 @@ h1, h2, h3 { font-family: var(--font-display); }
   display: none;
 }
 
+/* Logo como imagen (alternativa al texto, cargada desde el Panel Central —
+   ver AUDITORIA.md, "Branding desde el Panel Central"). Vive en el mismo
+   chip claro que el logo de texto, por la misma razón de contraste. */
+.logo-image {
+  display: block;
+  max-height: 42px;
+  max-width: 180px;
+  object-fit: contain;
+}
+
 
 /* ------------------------------------------------------------
    3. BARRA DE BÚSQUEDA
@@ -683,6 +693,11 @@ h1, h2, h3 { font-family: var(--font-display); }
 
   .logo-tagline {
     font-size: 0.62rem;
+  }
+
+  .logo-image {
+    max-height: 32px;
+    max-width: 130px;
   }
 
   .categories-ul {

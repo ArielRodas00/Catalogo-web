@@ -160,6 +160,50 @@ function renderClientesTable() {
 // ------------------------------------------------------------
 let editingId = null;
 
+// Sincroniza un <input type="color"> (solo elige) con su <input type="text">
+// hermano (el que realmente se envía — vacío = "usar default del catálogo",
+// algo que type="color" no puede representar por sí solo).
+function setupColorSync(pickerId, textId) {
+  const picker = document.getElementById(pickerId);
+  const text = document.getElementById(textId);
+  picker.addEventListener('input', function() {
+    text.value = picker.value;
+  });
+  text.addEventListener('input', function() {
+    if (/^#[0-9a-fA-F]{6}$/.test(text.value)) picker.value = text.value;
+  });
+}
+setupColorSync('field-color-primary-picker', 'field-color-primary');
+setupColorSync('field-color-primary-hover-picker', 'field-color-primary-hover');
+setupColorSync('field-color-accent-picker', 'field-color-accent');
+
+function updateLogoTypeUI() {
+  const esImagen = document.getElementById('field-logo-type-imagen').checked;
+  document.getElementById('row-logo-texto').style.display = esImagen ? 'none' : 'block';
+  document.getElementById('row-logo-imagen').style.display = esImagen ? 'block' : 'none';
+  document.getElementById('row-logo-imagen-sin-cliente').style.display =
+    (esImagen && editingId === null) ? 'block' : 'none';
+  document.getElementById('row-logo-imagen-upload').style.display =
+    (esImagen && editingId !== null) ? 'block' : 'none';
+}
+document.getElementById('field-logo-type-texto').addEventListener('change', updateLogoTypeUI);
+document.getElementById('field-logo-type-imagen').addEventListener('change', updateLogoTypeUI);
+
+function resetBrandingFields() {
+  document.getElementById('field-logo-type-texto').checked = true;
+  document.getElementById('field-store-name').value = '';
+  document.getElementById('field-store-name-accent').value = '';
+  document.getElementById('field-favicon-url').value = '';
+  ['field-color-primary', 'field-color-primary-hover', 'field-color-accent'].forEach(function(id) {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('logo-preview').style.display = 'none';
+  document.getElementById('btn-quitar-logo').style.display = 'none';
+  document.getElementById('logo-upload-hint').textContent = '';
+  document.getElementById('field-logo-file').value = '';
+  updateLogoTypeUI();
+}
+
 document.getElementById('btn-new-cliente').addEventListener('click', function() {
   editingId = null;
   document.getElementById('cliente-modal-title').textContent = 'Nuevo cliente';
@@ -167,6 +211,7 @@ document.getElementById('btn-new-cliente').addEventListener('click', function() 
   document.getElementById('field-id').value = '';
   document.getElementById('row-estado').style.display = 'none';
   document.getElementById('row-api-key').style.display = 'none';
+  resetBrandingFields();
   document.getElementById('cliente-modal-overlay').style.display = 'flex';
 });
 
@@ -190,6 +235,32 @@ async function openEditCliente(id) {
     document.getElementById('field-notas').value = c.notas || '';
     document.getElementById('field-api-key').textContent = c.api_key;
 
+    document.getElementById('field-store-name').value = c.store_name || '';
+    document.getElementById('field-store-name-accent').value = c.store_name_accent || '';
+    document.getElementById('field-favicon-url').value = c.favicon_url || '';
+    document.getElementById('field-color-primary').value = c.color_primary || '';
+    document.getElementById('field-color-primary-hover').value = c.color_primary_hover || '';
+    document.getElementById('field-color-accent').value = c.color_accent || '';
+    ['field-color-primary', 'field-color-primary-hover', 'field-color-accent'].forEach(function(id) {
+      const val = document.getElementById(id).value;
+      if (/^#[0-9a-fA-F]{6}$/.test(val)) document.getElementById(id + '-picker').value = val;
+    });
+
+    document.getElementById('field-logo-type-texto').checked = c.logo_type !== 'imagen';
+    document.getElementById('field-logo-type-imagen').checked = c.logo_type === 'imagen';
+    document.getElementById('logo-upload-hint').textContent = '';
+    document.getElementById('field-logo-file').value = '';
+    if (c.logo_type === 'imagen' && c.logo_image_data) {
+      const preview = document.getElementById('logo-preview');
+      preview.src = 'data:' + c.logo_image_mime + ';base64,' + c.logo_image_data;
+      preview.style.display = 'inline-block';
+      document.getElementById('btn-quitar-logo').style.display = 'inline-block';
+    } else {
+      document.getElementById('logo-preview').style.display = 'none';
+      document.getElementById('btn-quitar-logo').style.display = 'none';
+    }
+    updateLogoTypeUI();
+
     document.getElementById('row-estado').style.display = 'block';
     document.getElementById('row-api-key').style.display = 'block';
     document.getElementById('cliente-modal-overlay').style.display = 'flex';
@@ -197,6 +268,54 @@ async function openEditCliente(id) {
     showToast('Error de conexión');
   }
 }
+
+document.getElementById('field-logo-file').addEventListener('change', async function() {
+  const file = this.files[0];
+  if (!file || editingId === null) return;
+
+  const formData = new FormData();
+  formData.append('logo', file);
+
+  try {
+    const res = await fetch('/api/clientes/' + editingId + '/logo', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: formData
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast('Logo actualizado ✓');
+      const reader = new FileReader();
+      reader.onload = function() {
+        const preview = document.getElementById('logo-preview');
+        preview.src = reader.result;
+        preview.style.display = 'inline-block';
+      };
+      reader.readAsDataURL(file);
+      document.getElementById('btn-quitar-logo').style.display = 'inline-block';
+      document.getElementById('logo-upload-hint').textContent = '';
+    } else {
+      document.getElementById('logo-upload-hint').textContent = data.error || 'Error al subir el logo';
+    }
+  } catch (_e) {
+    document.getElementById('logo-upload-hint').textContent = 'Error de conexión';
+  }
+});
+
+document.getElementById('btn-quitar-logo').addEventListener('click', async function() {
+  if (editingId === null) return;
+  try {
+    await fetch('/api/clientes/' + editingId + '/logo', { method: 'DELETE', headers: authHeaders() });
+    showToast('Logo eliminado — vuelve al nombre en texto ✓');
+    document.getElementById('logo-preview').style.display = 'none';
+    document.getElementById('btn-quitar-logo').style.display = 'none';
+    document.getElementById('field-logo-file').value = '';
+    document.getElementById('field-logo-type-texto').checked = true;
+    updateLogoTypeUI();
+  } catch (_e) {
+    showToast('Error de conexión');
+  }
+});
 
 function closeClienteModal() {
   document.getElementById('cliente-modal-overlay').style.display = 'none';
@@ -238,7 +357,13 @@ document.getElementById('cliente-form').addEventListener('submit', async functio
     plan: document.getElementById('field-plan').value,
     deploy_url: document.getElementById('field-deploy-url').value.trim() || null,
     fecha_proximo_cobro: document.getElementById('field-fecha-cobro').value || null,
-    notas: document.getElementById('field-notas').value.trim() || null
+    notas: document.getElementById('field-notas').value.trim() || null,
+    store_name: document.getElementById('field-store-name').value.trim() || null,
+    store_name_accent: document.getElementById('field-store-name-accent').value.trim() || null,
+    favicon_url: document.getElementById('field-favicon-url').value.trim() || null,
+    color_primary: document.getElementById('field-color-primary').value.trim() || null,
+    color_primary_hover: document.getElementById('field-color-primary-hover').value.trim() || null,
+    color_accent: document.getElementById('field-color-accent').value.trim() || null
   };
 
   const isEditing = editingId !== null;

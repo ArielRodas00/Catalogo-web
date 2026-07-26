@@ -7,15 +7,17 @@ plan (Básico/Premium), llevar el estado de pago, y registrar pagos recibidos
 por transferencia.
 
 Cada catálogo de cliente consulta `GET /api/licencia` acá (autenticado con su
-propia API key) para saber si sigue activo y qué plan tiene — eso todavía no
-está conectado del lado del catálogo (es el Paso 3 del roadmap).
+propia API key) para saber si sigue activo, qué plan tiene, y su marca (nombre,
+logo, colores — ver "Branding desde el Panel Central" en `../AUDITORIA.md`).
 
 ## Stack
 
 Mismo stack liviano que el catálogo: Express 5, PostgreSQL (`pg`, sin ORM),
-JWT + bcrypt para el login del super-admin, helmet, rate-limiting. Es un
-proyecto separado (su propio `package.json`, su propia base de datos) para
-poder deployarlo como un servicio de Render independiente.
+JWT + bcrypt para el login del super-admin, helmet, rate-limiting, Multer
+(en memoria, no en disco — el logo de cada cliente se guarda como base64 en
+la propia base, no en el filesystem efímero de Render). Es un proyecto
+separado (su propio `package.json`, su propia base de datos) para poder
+deployarlo como un servicio de Render independiente.
 
 ## Instalación
 
@@ -55,7 +57,9 @@ Login con `ADMIN_USERNAME`/`ADMIN_PASSWORD` en `http://localhost:4000`.
 | DELETE | `/api/clientes/:id` | JWT | Baja |
 | GET | `/api/clientes/:id/pagos` | JWT | Historial de pagos |
 | POST | `/api/clientes/:id/pagos` | JWT | Registrar un pago manual (transferencia, efectivo) |
-| GET | `/api/licencia` | API key (`X-API-Key`) | La consulta el catálogo del cliente: `{ activo, plan, estado }` |
+| POST | `/api/clientes/:id/logo` | JWT | Sube el logo como imagen (`multipart/form-data`, campo `logo`; PNG/JPEG/WEBP/SVG, máx. 300KB) |
+| DELETE | `/api/clientes/:id/logo` | JWT | Quita el logo de imagen (vuelve a logo de texto) |
+| GET | `/api/licencia` | API key (`X-API-Key`) | La consulta el catálogo del cliente: `{ activo, plan, estado, branding }` |
 
 ## Deploy
 

@@ -420,3 +420,69 @@ localmente: `GET /favicon.svg` devuelve 200 con `Content-Type: image/svg+xml`, e
 se reemplaza correctamente en `index.html` y `admin.html`, sin errores de CSP ni de consola. Capturas a 64px,
 32px y 16px (tamaño real de pestaña) confirman que ambos monogramas quedan legibles y con buen contraste
 incluso en el tamaño más chico.
+
+## Branding desde el Panel Central (2026-07-26)
+
+A pedido del usuario: poder cambiar logo y colores de cada cliente desde el Panel Central, en vez de
+depender de variables de entorno en Render. Esto es una extensión del sistema de marca de `branding.js`
+(ver "Multi-tenant, Paso 1"), no un rediseño — las variables de entorno siguen funcionando igual para
+deploys standalone o mientras un cliente no tenga nada cargado en el Panel Central.
+
+**Decisiones de diseño confirmadas con el usuario antes de implementar:**
+- El "logo" puede ser **texto** (nombre de la tienda, como ya existía) o una **imagen subida**, a elección
+  por cliente — para locales que no tienen un logo propio, el texto sigue siendo una opción válida, no un
+  fallback de emergencia.
+- Si un cliente tiene un valor cargado en el Panel Central Y en variables de entorno de Render al mismo
+  tiempo, **gana el Panel Central** (Render queda como fallback de un cliente todavía no conectado, o como
+  lo que se usa mientras el Panel Central esté abajo más de 48hs — mismo caché de gracia que ya tenía la
+  licencia).
+
+**Dónde se guarda la imagen del logo:** el filesystem de Render es efímero (se borra en cada redeploy, ver
+la nota de Multer más abajo en este documento) — subir el logo ahí lo perdería tarde o temprano. En vez de
+reabrir la migración a Cloudinary/S3 (pospuesta explícitamente por el usuario), el logo se guarda como
+**base64 en una columna de la propia base de Postgres del Panel Central** (Neon, persistente). Es viable
+porque son logos chicos (tope de 300KB), no fotos de producto — para eso sí haría falta Cloudinary/S3 en
+algún momento, pero no para esto.
+
+- [x] **`panel-central/schema.sql`**: nuevas columnas en `clientes` — `logo_type` ('texto'|'imagen'),
+      `store_name`, `store_name_accent`, `logo_image_data`/`logo_image_mime` (el logo en sí), `favicon_url`,
+      `color_primary`/`color_primary_hover`/`color_accent`. Todas opcionales (NULL = "usar el default del
+      catálogo"). Se agregaron también como `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` para migrar la base
+      ya existente en producción sin perder los clientes ya cargados.
+- [x] **`panel-central/routes/clientes.js`**: `GET`/`POST`/`PUT` de `/api/clientes` ahora leen/escriben estos
+      campos (la lista, para no ser pesada, no trae el blob de imagen). Nuevos endpoints
+      `POST /api/clientes/:id/logo` (sube el archivo con Multer en memoria, no en disco, lo convierte a
+      base64 y marca `logo_type='imagen'`) y `DELETE /api/clientes/:id/logo` (vuelve a `logo_type='texto'`).
+- [x] **`panel-central/middleware/validate.js`**: valida los colores como hex de 6 dígitos y `favicon_url`
+      como http/https (mismo patrón que ya se usaba para el link a clientes, ver más abajo en este documento).
+- [x] **`panel-central/middleware/apiKeyAuth.js`** y **`routes/licencia.js`**: `GET /api/licencia` ahora
+      devuelve también un objeto `branding` (con todo en `null` si el cliente no cargó nada ahí).
+- [x] **`panel-central/public/`** (`index.html`, `app.js`, `styles.css`): sección "Marca del catálogo" en el
+      modal de cliente — radio texto/imagen, inputs de nombre/acento, favicon, 3 selectores de color
+      (`<input type="color">` sincronizado con un `<input type="text">` hermano, porque `type="color"` no
+      puede representar "sin valor" y acá vacío = "usar default"), y el upload/preview/quitar del logo. La
+      subida de imagen solo está disponible editando un cliente ya creado (necesita su `id`).
+- [x] **`licenseCheck.js`** (catálogo): el objeto cacheado de licencia ahora incluye `branding` tal cual lo
+      manda el Panel Central; se cae a `branding: null` en standalone y cuando se degrada por no poder
+      confirmar el estado (mismo criterio que ya se aplicaba a plan/activo).
+- [x] **`branding.js`** (catálogo, reescrito): `getEffectiveBranding()` combina el override del Panel Central
+      con los defaults de entorno de siempre. `buildLogoInnerHtml()` arma el `<img>` (si hay logo de imagen)
+      o el wordmark de texto + tagline (si no). Import de `licenseCheck` sin desestructurar a propósito, para
+      que los tests puedan mockear `licenseCheck.getLicense` con `t.mock.method`.
+- [x] **`server.js`**: `renderBrandedHtml()` llama a `getEffectiveBranding()` en cada request (barato, todo en
+      memoria) en vez de una sola vez al arrancar — así un cambio hecho en el Panel Central se refleja sin
+      redeploy, en el próximo chequeo de licencia (o al reiniciar, que lo fuerza al toque).
+- [x] **`public/index.html`**/**`styles.css`**: el header pasa a un único token `__STORE_LOGO_INNER__` (en vez
+      de wordmark+tagline por separado), y se agregó `.logo-image` para el caso de logo subido.
+
+**Verificado**: `npm test` (63/63 en el catálogo, incluye 6 tests nuevos de `branding.js`; 22/22 en
+Panel Central, incluye validación de colores/URL y los endpoints de logo). `npx eslint .` (0 errores).
+End-to-end real con Playwright: Panel Central y catálogo corriendo local a la vez, cliente de prueba con
+colores verdes + nombre "Verduras El Sol" — el catálogo lo reflejó correctamente (capturado); logo subido
+como imagen — el header pasó de wordmark a `<img>` sin errores de consola (capturado); interfaz del modal
+en ambos modos (texto/imagen) y en "Nuevo cliente" (todo en blanco por default) revisada visualmente.
+
+**Bug real encontrado y corregido durante la verificación**: el `POST /api/clientes` (alta de cliente) no
+guardaba los campos de marca — solo se había extendido el `PUT`. Se detectó porque el color cargado al crear
+el cliente de prueba no aparecía en `GET /api/licencia`; sin la verificación end-to-end real (no solo tests
+unitarios con mocks) este bug hubiera llegado a producción.

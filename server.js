@@ -18,7 +18,7 @@ const express = require('express');
 const helmet  = require('helmet');
 const cors    = require('cors');
 const pool    = require('./db');
-const { branding, brandingStyleTag, buildWordmarkHtml } = require('./branding');
+const { getEffectiveBranding, brandingStyleTag, buildLogoInnerHtml, escapeHtml } = require('./branding');
 const { startLicenseCheck, getLicense } = require('./licenseCheck');
 
 const { errorHandler } = require('./middleware/errorHandler');
@@ -57,23 +57,32 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(requestLogger);
 
-// --- Marca configurable: index.html y admin.html se sirven con los tokens
-// __STORE_NAME__ / __STORE_LOGO_URL__ / __STORE_WORDMARK__ / __STORE_TAGLINE__
-// / __COLOR_PRIMARY__ / __BASE_URL__ reemplazados, y con las variables CSS de
-// color inyectadas (branding.js). Van ANTES de express.static para
-// interceptar estas dos rutas puntuales; el resto de los archivos de
-// public/ los sigue sirviendo el static normal.
+// --- Marca configurable (env vars y/o Panel Central, ver branding.js):
+// index.html y admin.html se sirven con los tokens __STORE_NAME__ /
+// __STORE_LOGO_URL__ / __STORE_LOGO_INNER__ / __COLOR_PRIMARY__ /
+// __BASE_URL__ reemplazados, y con las variables CSS de color inyectadas.
+// Se recalcula en cada request (getEffectiveBranding() es barato, todo en
+// memoria) para reflejar un cambio hecho en el Panel Central sin redeploy.
+// Van ANTES de express.static para interceptar estas dos rutas puntuales;
+// el resto de los archivos de public/ los sigue sirviendo el static normal.
 function renderBrandedHtml(fileName, res) {
+  const effective = getEffectiveBranding();
   const filePath = path.join(__dirname, 'public', fileName);
   let html = fs.readFileSync(filePath, 'utf8');
+  // __STORE_NAME__ y __STORE_LOGO_URL__ pueden venir de un formulario web
+  // (Panel Central, no solo de variables de entorno puestas a mano) y
+  // aparecen en varios contextos HTML crudos (atributos, <title>, un bloque
+  // JSON-LD) — se escapan acá. __STORE_LOGO_INNER__ ya viene escapado desde
+  // adentro de branding.js; __COLOR_PRIMARY__ siempre es un hex validado
+  // (por el Panel Central) o viene de una variable de entorno (mismo nivel
+  // de confianza que el propio código del deploy), así que no hace falta.
   html = html
-    .split('__STORE_NAME__').join(branding.storeName)
-    .split('__STORE_LOGO_URL__').join(branding.logoUrl)
-    .split('__STORE_WORDMARK__').join(buildWordmarkHtml())
-    .split('__STORE_TAGLINE__').join(branding.storeTagline)
-    .split('__COLOR_PRIMARY__').join(branding.colorPrimary)
+    .split('__STORE_NAME__').join(escapeHtml(effective.storeName))
+    .split('__STORE_LOGO_URL__').join(escapeHtml(effective.faviconUrl))
+    .split('__STORE_LOGO_INNER__').join(buildLogoInnerHtml(effective))
+    .split('__COLOR_PRIMARY__').join(effective.colorPrimary)
     .split('__BASE_URL__').join(BASE_URL)
-    .replace('</head>', brandingStyleTag() + '</head>');
+    .replace('</head>', brandingStyleTag(effective) + '</head>');
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache');

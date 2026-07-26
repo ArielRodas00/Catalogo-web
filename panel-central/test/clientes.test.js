@@ -111,3 +111,115 @@ test('PUT /api/clientes/:id: edición parcial solo del estado', async function (
     assert.equal(body.estado, 'suspendido');
   });
 });
+
+// --- Marca (ver AUDITORIA.md, "Branding desde el Panel Central") ---
+
+test('PUT /api/clientes/:id: rechaza un color que no es hex de 6 dígitos', async function () {
+  await withServer(buildApp(), async function (base) {
+    const res = await fetch(base + '/api/clientes/5', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken() },
+      body: JSON.stringify({ color_primary: 'azul' })
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('PUT /api/clientes/:id: rechaza un favicon_url que no es http/https', async function () {
+  await withServer(buildApp(), async function (base) {
+    const res = await fetch(base + '/api/clientes/5', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken() },
+      body: JSON.stringify({ favicon_url: 'javascript:alert(1)' })
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('PUT /api/clientes/:id: acepta un color hex válido y lo guarda', async function (t) {
+  t.mock.method(pool, 'query', async function (sql, values) {
+    assert.match(sql, /color_primary=\$1/);
+    return { rows: [{ id: 5, color_primary: values[0] }] };
+  });
+
+  await withServer(buildApp(), async function (base) {
+    const res = await fetch(base + '/api/clientes/5', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken() },
+      body: JSON.stringify({ color_primary: '#0000ff' })
+    });
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.color_primary, '#0000ff');
+  });
+});
+
+test('POST /api/clientes/:id/logo: sube un logo y lo guarda como base64', async function (t) {
+  let updateValues = null;
+  t.mock.method(pool, 'query', async function (sql, values) {
+    updateValues = values;
+    return { rows: [{ id: 5, logo_type: 'imagen', logo_image_mime: values[1] }] };
+  });
+
+  await withServer(buildApp(), async function (base) {
+    const formData = new FormData();
+    const bytes = new Uint8Array([137, 80, 78, 71]); // firma PNG, no hace falta un PNG real para el test
+    formData.append('logo', new Blob([bytes], { type: 'image/png' }), 'logo.png');
+
+    const res = await fetch(base + '/api/clientes/5/logo', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + authToken() },
+      body: formData
+    });
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.logo_type, 'imagen');
+    assert.equal(updateValues[1], 'image/png');
+    assert.equal(updateValues[0], Buffer.from(bytes).toString('base64'));
+  });
+});
+
+test('POST /api/clientes/:id/logo: rechaza un formato no soportado', async function () {
+  await withServer(buildApp(), async function (base) {
+    const formData = new FormData();
+    formData.append('logo', new Blob([new Uint8Array([1, 2, 3])], { type: 'application/pdf' }), 'logo.pdf');
+
+    const res = await fetch(base + '/api/clientes/5/logo', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + authToken() },
+      body: formData
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('POST /api/clientes/:id/logo: rechaza un archivo mas pesado que el limite', async function () {
+  await withServer(buildApp(), async function (base) {
+    const formData = new FormData();
+    const big = new Uint8Array(301 * 1024);
+    formData.append('logo', new Blob([big], { type: 'image/png' }), 'logo.png');
+
+    const res = await fetch(base + '/api/clientes/5/logo', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + authToken() },
+      body: formData
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('DELETE /api/clientes/:id/logo: vuelve el cliente a logo de texto', async function (t) {
+  t.mock.method(pool, 'query', async function () {
+    return { rows: [{ id: 5, logo_type: 'texto' }] };
+  });
+
+  await withServer(buildApp(), async function (base) {
+    const res = await fetch(base + '/api/clientes/5/logo', {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + authToken() }
+    });
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.logo_type, 'texto');
+  });
+});
