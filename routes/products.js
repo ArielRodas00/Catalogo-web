@@ -6,6 +6,7 @@ const path    = require('path');
 const { authenticateToken } = require('../middleware/auth');
 const { validateProduct, sanitizeOrder } = require('../middleware/validate');
 const { getLicense } = require('../licenseCheck');
+const imageStorage = require('../imagekit');
 const rateLimit = require('express-rate-limit');
 
 const apiLimiter = rateLimit({
@@ -323,20 +324,11 @@ router.post('/:id/images/url', apiLimiter, authenticateToken, async function(req
   }
 });
 
-// Multer config
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, 'public/uploads/');
-  },
-  filename: function(req, file, cb) {
-    const ext      = path.extname(file.originalname);
-    const filename = Date.now() + ext;
-    cb(null, filename);
-  }
-});
-
+// Multer en memoria (no en disco — el filesystem de Render es efímero, se
+// borra en cada redeploy). El buffer va directo a ImageKit, nunca toca
+// disco. Ver imagekit.js y AUDITORIA.md, "El problema de las imágenes".
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: function(req, file, cb) {
     const allowed = /jpeg|jpg|png|gif|webp/;
@@ -353,16 +345,22 @@ const upload = multer({
 // POST /api/products/:id/images/upload (protegido — auth ANTES de multer)
 router.post('/:id/images/upload', apiLimiter, authenticateToken, upload.single('image'), async function(req, res, next) {
   try {
-    const id  = Number(req.params.id);
+    if (!imageStorage.isConfigured()) {
+      return res.status(503).json({
+        error: 'Subida de imágenes no configurada (faltan las variables IMAGEKIT_* — ver README.md)'
+      });
+    }
+
+    const id = Number(req.params.id);
 
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió el archivo' });
     }
 
-    const url = '/uploads/' + req.file.filename;
+    const { url, fileId } = await imageStorage.uploadImage(req.file.buffer, req.file.originalname);
     const result = await pool.query(
-      'INSERT INTO producto_imagenes (producto_id, url, orden) VALUES ($1, $2, $3) RETURNING *',
-      [id, url, 0]
+      'INSERT INTO producto_imagenes (producto_id, url, orden, imagekit_file_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      [id, url, 0, fileId]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -374,7 +372,17 @@ router.post('/:id/images/upload', apiLimiter, authenticateToken, upload.single('
 router.delete('/images/:imageId', apiLimiter, authenticateToken, async function(req, res, next) {
   try {
     const imageId = Number(req.params.imageId);
-    await pool.query('DELETE FROM producto_imagenes WHERE id=$1', [imageId]);
+    const result = await pool.query(
+      'DELETE FROM producto_imagenes WHERE id=$1 RETURNING imagekit_file_id',
+      [imageId]
+    );
+    // Best-effort: si esta imagen se subió como archivo (tiene file_id), se
+    // borra también de ImageKit para no dejarla huérfana consumiendo cuota.
+    // Si se cargó por URL externa (POST .../images/url) no hay nada que
+    // borrar ahí.
+    if (result.rows.length > 0 && result.rows[0].imagekit_file_id) {
+      await imageStorage.deleteImage(result.rows[0].imagekit_file_id);
+    }
     res.json({ message: 'Imagen eliminada' });
   } catch (err) {
     next(err);

@@ -20,6 +20,7 @@ const cors    = require('cors');
 const pool    = require('./db');
 const { getEffectiveBranding, brandingStyleTag, buildLogoInnerHtml, escapeHtml } = require('./branding');
 const { startLicenseCheck, getLicense } = require('./licenseCheck');
+const imageStorage = require('./imagekit');
 
 const { errorHandler } = require('./middleware/errorHandler');
 const { requestLogger } = require('./middleware/logger');
@@ -226,6 +227,12 @@ app.use(errorHandler);
 
 app.listen(PORT, function() {
   console.log('Servidor corriendo en http://localhost:' + PORT);
+  if (!imageStorage.isConfigured()) {
+    console.warn(
+      'IMAGEKIT_* no configurado — la subida de imágenes de producto por archivo va a fallar ' +
+      '(el filesystem de Render es efímero, no hay fallback a disco a propósito; ver AUDITORIA.md).'
+    );
+  }
 });
 
 startLicenseCheck();

@@ -91,6 +91,10 @@ node server.js
 | COLOR_ACCENT | Color de acento (headers oscuros) | #0d0d0d |
 | PANEL_CENTRAL_URL | URL del Panel Central (ver panel-central/) | - |
 | CLIENTE_API_KEY | API key de este cliente en el Panel Central | - |
+| IMAGEKIT_PUBLIC_KEY | Public key de la cuenta de ImageKit (ver "Imagenes de producto" abajo) | - |
+| IMAGEKIT_PRIVATE_KEY | Private key de ImageKit | - |
+| IMAGEKIT_URL_ENDPOINT | URL endpoint de ImageKit (ej. https://ik.imagekit.io/tu-id) | - |
+| IMAGEKIT_FOLDER | Carpeta dentro de ImageKit para las imagenes de este cliente | catalogo |
 
 Las variables de marca son opcionales: pensadas para reusar el mismo codigo en
 varios clientes (arquitectura "1 deploy por cliente", ver AUDITORIA.md), cada
@@ -222,9 +226,14 @@ catalogo-backend/
    | `NODE_ENV` | production |
 
 ### Importante
-- Las imagenes subidas via Multer se pierden en cada redeploy de Render. Para produccion, migrar a Cloudinary o S3.
-- Neon tiene un tier gratuito de 0.5GB.
-- Render se duerme a los 15 min sin actividad (plan gratis).
+- El filesystem de Render es efimero (se borra en cada redeploy) — por eso las imagenes de producto
+  subidas por archivo se guardan en ImageKit.io (variables `IMAGEKIT_*`, ver tabla arriba), no en disco.
+  Sin esas variables, subir una imagen por archivo devuelve error a proposito (no hay fallback silencioso
+  a disco) — cargar una imagen por URL externa sigue funcionando igual sin ImageKit. Ver AUDITORIA.md,
+  "El problema de las imagenes".
+- Neon tiene un tier gratuito de 0.5GB, con solo 6hs de historial para restaurar (point-in-time recovery).
+  Para una base con datos reales de un cliente pagando, conviene el plan Launch (7 dias de historial).
+- Render se duerme a los 15 min sin actividad (plan gratis) — para un cliente pagando, usar el plan Starter.
 
 ## Versionado
 

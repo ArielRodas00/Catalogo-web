@@ -60,8 +60,16 @@ CREATE TABLE IF NOT EXISTS producto_imagenes (
   producto_id INTEGER REFERENCES productos(id) ON DELETE CASCADE,
   url         TEXT NOT NULL,
   orden       INTEGER DEFAULT 0,
+  -- fileId de ImageKit (ver imagekit.js) — solo se completa para imágenes
+  -- subidas como archivo (POST .../images/upload), no para las cargadas por
+  -- URL externa (POST .../images/url). Hace falta para poder borrar la
+  -- imagen de ImageKit cuando se borra la fila.
+  imagekit_file_id VARCHAR(255),
   CONSTRAINT uq_producto_imagenes_orden UNIQUE (producto_id, orden)
 );
+
+-- Migración idempotente para bases ya existentes.
+ALTER TABLE producto_imagenes ADD COLUMN IF NOT EXISTS imagekit_file_id VARCHAR(255);
 
 -- Índices para performance
 CREATE INDEX IF NOT EXISTS idx_productos_category ON productos(category);

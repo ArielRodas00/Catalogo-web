@@ -117,13 +117,14 @@ public/js/theme.js
 public/admin.js          (reemplazado por public/admin/*.js)
 license.js                (reemplazado por licenseCheck.js — ver "Multi-tenant, Paso 3")
 public/logo.png            (reemplazado por public/favicon.svg — ver "Favicons", más abajo)
+cloudinary.js              (reemplazado por imagekit.js — nunca se llegó a commitear, no afecta git)
 _tmp-*.js                 (varios: scripts de un solo uso para verificar cosas con Playwright,
                            ya neutralizados/gitignorados, no afectan lint ni tests)
 ```
 
 Podés borrarlos vos mismo con:
 ```
-rm pnpm-lock.yaml pnpm-workspace.yaml public/products.js public/js/theme.js public/admin.js license.js _tmp-*.js
+rm pnpm-lock.yaml pnpm-workspace.yaml public/products.js public/js/theme.js public/admin.js license.js cloudinary.js _tmp-*.js
 ```
 
 ## Mejoras de diseño visual
@@ -555,3 +556,53 @@ resuelto. Durante esta verificación encontré ~19 procesos de Node huérfanos a
 sesión (por cómo este entorno maneja los procesos en segundo plano) que generaban resultados inconsistentes
 al probar — quedó como lección: si un cambio de color/env var "no se refleja" al probar localmente, matar
 TODOS los procesos de node sueltos antes de sospechar del código.
+
+## El problema de las imágenes: de Cloudinary a ImageKit.io (2026-07-27)
+
+El usuario preguntó si el catálogo ya estaba en condiciones de venderse. La respuesta fue: técnicamente sí
+para un primer cliente, pero con un problema real sin resolver — las imágenes de producto subidas por
+archivo se pierden en cada redeploy de Render, porque el filesystem del servicio es efímero (`public/uploads/`
+se borraba y se recreaba vacío en cada deploy). No es un caso límite: pasa en cualquier push de código, no
+solo en cambios grandes.
+
+**Intento 1 — Cloudinary**: se implementó completo (`cloudinary.js`, multer en memoria en vez de disco,
+`producto_imagenes.cloudinary_public_id` para poder borrar el archivo al borrar la fila), con 5 tests nuevos.
+Al momento de probarlo en vivo, la cuenta de Cloudinary del usuario resultó inaccesible — el panel devolvía
+"Página no disponible" / "problemas técnicos al procesar su solicitud" de forma reproducible en dos redes
+distintas (wifi y datos móviles) y en una cuenta nueva con otro email, descartando que fuera un problema de
+red/navegador del usuario. El status público de Cloudinary no mostraba ninguna caída — parece haber sido algo
+puntual de esa cuenta/región que no valía la pena seguir persiguiendo.
+
+**Intento 2 — ImageKit.io**: mismo patrón exacto (storage + CDN de imágenes, SDK de Node con upload por
+buffer y borrado por `fileId`), sin el problema de acceso. Se migró todo el código de Cloudinary a ImageKit
+sin haber llegado a commitear la versión de Cloudinary (todo local, sin impacto en git):
+- [x] `cloudinary.js` → `imagekit.js` (mismo diseño: `isConfigured()`, `uploadImage(buffer)`,
+      `deleteImage(id)`, best-effort en el borrado). `cloudinary.js` queda vacío y sin referencias — no se
+      pudo borrar (ver nota de archivos que no se pudieron borrar).
+- [x] `producto_imagenes.cloudinary_public_id` → `imagekit_file_id` en `schema.sql` (con su
+      `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` para bases ya existentes).
+- [x] `routes/products.js`: `POST /:id/images/upload` devuelve 503 con mensaje claro si `IMAGEKIT_*` no está
+      configurado, en vez de fallar en silencio o (peor) volver a guardar en disco. `DELETE /images/:imageId`
+      borra también el archivo en ImageKit si la imagen se subió por archivo (no si se cargó por URL externa).
+- [x] `server.js`: warning en el arranque si `IMAGEKIT_*` no está configurado.
+- [x] Variables nuevas: `IMAGEKIT_PUBLIC_KEY`, `IMAGEKIT_PRIVATE_KEY`, `IMAGEKIT_URL_ENDPOINT`,
+      `IMAGEKIT_FOLDER` (opcional, para separar las imágenes de cada cliente dentro de la misma cuenta —
+      igual que `CLOUDINARY_FOLDER` hubiera hecho).
+- [x] 5 tests nuevos en `test/products-images.test.js` (auth requerida, 503 sin configurar, sube y guarda
+      `url`+`file_id`, borra de ImageKit solo cuando corresponde).
+- [x] `npm audit fix` de paso (sin romper nada): corrigió vulnerabilidades moderate/low en `body-parser`/`qs`
+      que trajo la dependencia nueva. Quedó pendiente una vulnerabilidad high en la cadena de `eslint`
+      (`brace-expansion`, vía `minimatch`) que requiere `--force` (bump mayor de eslint, cambio disruptivo) —
+      es una devDependency, no viaja a producción, se deja para otro momento.
+
+**Verificado end-to-end contra producción real** (no solo con mocks): tras correr la migración de schema
+(`node db-init.js` con `DATABASE_URL` de producción — el primer intento de subida falló con
+`column "imagekit_file_id" does not exist" hasta correrla), se subió una imagen real a un producto real,
+se confirmó que la URL devuelta (`https://ik.imagekit.io/...`) carga de verdad (200), y se borró
+inmediatamente después (fila de la base + archivo en ImageKit) para no dejar nada de prueba en producción.
+`npm test`: 70/70. `npx eslint .`: 0 errores.
+
+**Nota para cuando haya más clientes**: como esta es la misma cuenta de ImageKit para todos los clientes
+(separados por `IMAGEKIT_FOLDER`), a medida que se sumen catálogos reales conviene vigilar el uso contra el
+límite del plan gratis (~20-25GB de banda/mes) — mencionado en la conversación con el usuario, no bloqueante
+para arrancar.
