@@ -68,7 +68,10 @@ test('POST /:id/images/upload: con ImageKit configurado, sube el archivo y guard
   let insertedValues = null;
   t.mock.method(pool, 'query', async function (sql, values) {
     insertedValues = values;
-    return { rows: [{ id: 9, producto_id: values[0], url: values[1], orden: values[2], imagekit_file_id: values[3] }] };
+    // orden ya no es un parámetro (se calcula con una subquery en el SQL —
+    // ver el test de "calcula orden dinámicamente" más abajo), por eso acá
+    // solo hay 3 valores: producto_id, url, file_id.
+    return { rows: [{ id: 9, producto_id: values[0], url: values[1], imagekit_file_id: values[2] }] };
   });
 
   await withServer(buildApp(), async function (base) {
@@ -84,7 +87,7 @@ test('POST /:id/images/upload: con ImageKit configurado, sube el archivo y guard
     assert.equal(body.url, 'https://ik.imagekit.io/demo/catalogo/abc.png');
     assert.equal(body.imagekit_file_id, 'file_abc123');
     assert.ok(Buffer.isBuffer(receivedBuffer), 'el archivo debe pasarse como buffer, nunca escribirse a disco');
-    assert.equal(insertedValues[3], 'file_abc123');
+    assert.equal(insertedValues[2], 'file_abc123');
   });
 });
 
@@ -104,6 +107,52 @@ test('DELETE /images/:imageId: si la imagen tiene file_id, también la borra de 
     });
     assert.equal(res.status, 200);
     assert.equal(deletedFileId, 'file_abc123');
+  });
+});
+
+// --- orden: nunca hardcodeado en 0 (bug real, ver AUDITORIA.md) ---
+// Antes, subir una segunda imagen adicional al mismo producto chocaba con
+// la restricción UNIQUE (producto_id, orden) porque orden quedaba siempre
+// en 0. Ahora se calcula con un MAX(orden)+1 por producto.
+
+test('POST /:id/images/upload: calcula "orden" dinámicamente, nunca lo hardcodea en 0', async function (t) {
+  t.mock.method(imageStorage, 'isConfigured', function () { return true; });
+  t.mock.method(imageStorage, 'uploadImage', async function () {
+    return { url: 'https://ik.imagekit.io/demo/catalogo/x.png', fileId: 'file_x' };
+  });
+  let sqlUsed = null;
+  t.mock.method(pool, 'query', async function (sql) {
+    sqlUsed = sql;
+    return { rows: [{ id: 9 }] };
+  });
+
+  await withServer(buildApp(), async function (base) {
+    const formData = new FormData();
+    formData.append('image', pngBlob(), 'foto.png');
+    await fetch(base + '/api/products/1/images/upload', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + authToken() },
+      body: formData
+    });
+    assert.match(sqlUsed, /COALESCE\(MAX\(orden\), -1\) \+ 1/);
+    assert.doesNotMatch(sqlUsed, /VALUES \(\$1, \$2, 0,/, 'orden no debe seguir hardcodeado en 0');
+  });
+});
+
+test('POST /:id/images/url: calcula "orden" dinámicamente, nunca lo hardcodea en 0', async function (t) {
+  let sqlUsed = null;
+  t.mock.method(pool, 'query', async function (sql) {
+    sqlUsed = sql;
+    return { rows: [{ id: 9 }] };
+  });
+
+  await withServer(buildApp(), async function (base) {
+    await fetch(base + '/api/products/1/images/url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken() },
+      body: JSON.stringify({ url: 'https://example.com/foto.png' })
+    });
+    assert.match(sqlUsed, /COALESCE\(MAX\(orden\), -1\) \+ 1/);
   });
 });
 

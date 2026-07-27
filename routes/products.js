@@ -303,7 +303,7 @@ router.get('/:id/images', getLimiter, async function(req, res, next) {
 router.post('/:id/images/url', apiLimiter, authenticateToken, async function(req, res, next) {
   try {
     const id    = Number(req.params.id);
-    const { url, orden } = req.body;
+    const { url } = req.body;
 
     let parsedUrl;
     try {
@@ -315,9 +315,14 @@ router.post('/:id/images/url', apiLimiter, authenticateToken, async function(req
       return res.status(400).json({ error: 'La URL debe ser http o https' });
     }
 
+    // orden se calcula siempre acá (nunca se toma del body): hardcodearlo en
+    // 0 hacía que la segunda imagen de un mismo producto chocara con la
+    // restricción UNIQUE (producto_id, orden) — bug real, ver AUDITORIA.md.
     const result = await pool.query(
-      'INSERT INTO producto_imagenes (producto_id, url, orden) VALUES ($1, $2, $3) RETURNING *',
-      [id, url, orden || 0]
+      `INSERT INTO producto_imagenes (producto_id, url, orden)
+       VALUES ($1, $2, (SELECT COALESCE(MAX(orden), -1) + 1 FROM producto_imagenes WHERE producto_id = $1))
+       RETURNING *`,
+      [id, url]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -382,9 +387,14 @@ router.post('/:id/images/upload', apiLimiter, authenticateToken, upload.single('
     }
 
     const { url, fileId } = await imageStorage.uploadImage(req.file.buffer, req.file.originalname);
+    // orden se calcula siempre acá — hardcodearlo en 0 hacía que la segunda
+    // imagen de un mismo producto chocara con la restricción UNIQUE
+    // (producto_id, orden) — bug real, ver AUDITORIA.md.
     const result = await pool.query(
-      'INSERT INTO producto_imagenes (producto_id, url, orden, imagekit_file_id) VALUES ($1, $2, $3, $4) RETURNING *',
-      [id, url, 0, fileId]
+      `INSERT INTO producto_imagenes (producto_id, url, orden, imagekit_file_id)
+       VALUES ($1, $2, (SELECT COALESCE(MAX(orden), -1) + 1 FROM producto_imagenes WHERE producto_id = $1), $3)
+       RETURNING *`,
+      [id, url, fileId]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {

@@ -234,6 +234,7 @@ function openNewForm() {
   document.getElementById('product-form').reset();
   document.getElementById('image-preview').style.display  = 'none';
   document.getElementById('extra-images-section').style.display = 'none';
+  resetUploadingExtraImages();
 
   document.getElementById('form-modal-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -244,6 +245,7 @@ function closeFormModal() {
   document.body.style.overflow = '';
   document.getElementById('product-form').reset();
   editingId = null;
+  resetUploadingExtraImages();
 }
 
 async function openEditForm(id) {

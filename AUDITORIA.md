@@ -646,3 +646,76 @@ confirmó que el campo de URL y el `file_id` oculto se completaron solos con una
 (para no crear un producto de prueba) y se borró el archivo subido de ImageKit con un script aparte, para no
 dejar nada huérfano. `npm test`: 73/73 (8 tests nuevos en `test/products-images.test.js`). `npx eslint .`:
 0 errores.
+
+## Dropzone: arrastrar y soltar + selección múltiple (2026-07-27)
+
+El usuario probó la subida de la imagen principal y notó que había que acordarse de apretar un botón
+"Subir archivo" aparte después de elegir el archivo — si no, el formulario tiraba el error nativo de
+"completá este campo" (la URL nunca se llenaba). Preguntó cuál es el estándar actual para este tipo de UI y
+pidió implementarlo completo: arrastrar y soltar, selección múltiple, subida automática, miniaturas con
+progreso — en vez de la versión mínima (que hubiera sido solo "múltiples archivos + subida automática").
+
+- [x] **`public/admin.html`**: tanto la imagen principal como las adicionales pasan a una "dropzone"
+      (`<div class="image-dropzone">` con un `<input type="file">` transparente superpuesto — técnica
+      estándar) en vez de un `<input>` + botón separados. La de adicionales acepta `multiple`.
+- [x] **`public/admin/images.js`** (reescrito): `setupDropzone()` genérico (click-to-browse vía el input +
+      eventos `dragenter`/`dragover`/`dragleave`/`drop` con feedback visual `.dragover`), llamado una vez al
+      iniciar el panel (`setupImageDropzones()` en `init.js`, mismo patrón que `setupImagePreview()`).
+      `uploadMainImageFile()` ahora sube automáticamente apenas se elige/suelta un archivo (ya no depende de
+      un click en un botón aparte — la causa real del problema reportado). `uploadImageFiles()` (antes
+      `uploadImageFile`, singular) sube varias imágenes: cada una aparece de entrada como miniatura con
+      spinner (`URL.createObjectURL`, preview instantánea sin esperar la subida real) y se va reemplazando
+      por la real a medida que cada una termina — no hace falta esperar a que terminen todas para ver la
+      primera. Si una falla, queda con un ícono de error y un botón de reintentar, sin bloquear las demás.
+- [x] **`public/admin.css`**: estilos nuevos para `.image-dropzone` (con estado `.dragover`), la grilla
+      `.images-container`/`.img-item` (que en realidad **nunca había tenido CSS propio** — se le agregó de
+      paso, ver nota abajo) y el spinner.
+
+**Dos bugs reales encontrados durante la verificación en vivo (no antes):**
+
+1. **CSP bloqueaba las previews instantáneas**: `URL.createObjectURL()` genera URLs `blob:`, y el `imgSrc`
+   del CSP (`server.js`) no incluía ese esquema — el navegador bloqueaba silenciosamente cada miniatura de
+   "subiendo" (error visible solo en la consola). Se agregó `blob:` a `imgSrc`.
+2. **`orden` hardcodeado en 0** en los dos endpoints que agregan imágenes adicionales
+   (`POST /:id/images/upload` y `POST /:id/images/url`) — un bug que **ya existía antes de esta sesión**,
+   simplemente nunca se había detectado porque nadie había probado agregar una *segunda* imagen adicional al
+   mismo producto: la tabla tiene `UNIQUE (producto_id, orden)`, así que la segunda imagen siempre chocaba
+   (409 Conflict). Con subida múltiple esto se volvió inevitable de encontrar. Se corrigió calculando
+   `orden` con `(SELECT COALESCE(MAX(orden), -1) + 1 FROM producto_imagenes WHERE producto_id = $1)` en el
+   propio `INSERT`, y de paso se cambió la subida de varios archivos de paralela a **secuencial** en el
+   frontend, para que dos subidas al mismo producto nunca lean el mismo máximo al mismo tiempo.
+
+**Verificado con Playwright contra producción real**: creado un producto de prueba, imagen principal subida
+por dropzone (auto-upload confirmado), 3 imágenes adicionales elegidas de una sola vez → las 3 terminaron
+subidas y confirmadas en la base (antes del fix, la 2ª y 3ª tiraban 409). Producto y las 4 imágenes de
+ImageKit borrados al terminar. `npm test`: 75/75 (2 tests nuevos que fijan el cálculo dinámico de `orden`,
+más el ajuste de un test existente al nuevo shape de parámetros del INSERT). `npx eslint .`: 0 errores.
+
+**Lección de esta verificación**: un primer intento de probar esto localmente falló por timing — `initAdmin()`
+tarda varios segundos en terminar contra producción (la consulta de productos es lenta), y estaba
+interactuando con la dropzone antes de que sus listeners se conectaran. No era un bug del código.
+
+## Fix: el precio "bajaba" según el nombre o si el producto tenía oferta (2026-07-27)
+
+El usuario mandó una captura de "Todos los productos" donde el precio de cada tarjeta aparecía a una altura
+distinta según la fila: unas tarjetas con el precio pegado arriba, otras más abajo, sin una línea recta.
+
+**Causa**: `.product-name` ya reservaba altura fija para 2 líneas (`min-height`), pero **el precio no** —
+cuando un producto tiene oferta se agregan dos elementos (precio tachado + precio vigente) en vez de uno
+solo, y esa línea extra empujaba el precio vigente hacia abajo respecto a una tarjeta sin oferta. En las
+tarjetas del carrusel superior (`.hp-name`/`.hp-price`) pasaba lo mismo, y encima el nombre ahí ni siquiera
+tenía la reserva de 2 líneas que sí tenía `.product-name`.
+
+- [x] **`public/js/render.js`**: los precios (en `createProductCard()` y `renderHighlightTrack()`) ahora se
+      envuelven en un `<div class="product-price-wrap">` / `<div class="hp-price-wrap">`, tenga o no oferta
+      el producto.
+- [x] **`public/styles.css`**: esos wrappers son `flex column` con `justify-content: flex-end` y un
+      `min-height` que alcanza para las 2 líneas (tachado + vigente) — así el precio vigente (último hijo)
+      siempre queda pegado abajo del bloque, en la misma posición tenga o no tachado arriba. `.hp-name` suma
+      el `min-height: 2.6em` que le faltaba (mismo que `.product-name`) para que el nombre tampoco corra el
+      precio según ocupe 1 o 2 líneas.
+
+**Verificado con Playwright contra producción real**: captura de "Todos los productos" con la misma mezcla
+de productos con/sin oferta y nombres cortos/largos que mandó el usuario — los precios y los botones "Ver
+detalle" quedan alineados en una línea recta en las 2 filas visibles, sin errores de consola. `npm test`:
+75/75 (sin cambios de backend en este fix). `npx eslint .`: 0 errores.

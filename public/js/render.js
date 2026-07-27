@@ -48,10 +48,17 @@ function createProductCard(product) {
     (product.destacado    ? '<span class="card-badge badge-destacado-card">⭐ Destacado</span>' : '') +
     (product.en_promocion ? '<span class="card-badge badge-promo-card">🔥 Promo</span>'        : '');
 
+  // .product-price-wrap reserva una altura fija (ver CSS) para que el precio
+  // vigente quede siempre a la misma altura entre tarjetas, tenga o no
+  // oferta (la línea tachada de arriba no debe "empujar" el precio real).
   const cardPrecioHTML = (product.en_oferta && product.precio_oferta)
-    ? '<p class="product-price-old">' + formatPrice(product.price) + '</p>' +
-      '<p class="product-price">'     + formatPrice(product.precio_oferta) + '</p>'
-    : '<p class="product-price">'     + formatPrice(product.price) + '</p>';
+    ? '<div class="product-price-wrap">' +
+        '<p class="product-price-old">' + formatPrice(product.price) + '</p>' +
+        '<p class="product-price">'     + formatPrice(product.precio_oferta) + '</p>' +
+      '</div>'
+    : '<div class="product-price-wrap">' +
+        '<p class="product-price">'     + formatPrice(product.price) + '</p>' +
+      '</div>';
 
   card.innerHTML =
     '<div class="product-image-wrap product-img-wrap">' +
@@ -86,10 +93,16 @@ function renderHighlightTrack(track, products) {
       (product.en_oferta    ? '<span class="card-badge badge-oferta-card">Oferta</span>'          : '') +
       (product.en_promocion ? '<span class="card-badge badge-promo-card">🔥 Promo</span>'        : '');
 
+    // .hp-price-wrap reserva una altura fija (ver CSS) — mismo motivo que
+    // .product-price-wrap en createProductCard().
     const precioHTML = (product.en_oferta && product.precio_oferta)
-      ? '<span class="hp-price-old">' + formatPrice(product.price) + '</span>' +
-        '<span class="hp-price">'     + formatPrice(product.precio_oferta) + '</span>'
-      : '<span class="hp-price">'     + formatPrice(product.price) + '</span>';
+      ? '<div class="hp-price-wrap">' +
+          '<span class="hp-price-old">' + formatPrice(product.price) + '</span>' +
+          '<span class="hp-price">'     + formatPrice(product.precio_oferta) + '</span>' +
+        '</div>'
+      : '<div class="hp-price-wrap">' +
+          '<span class="hp-price">'     + formatPrice(product.price) + '</span>' +
+        '</div>';
 
     card.innerHTML =
       '<div style="position:relative; overflow:hidden">' +

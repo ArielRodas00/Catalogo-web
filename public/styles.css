@@ -386,6 +386,17 @@ h1, h2, h3 { font-family: var(--font-display); }
   min-height: 2.6em;
 }
 
+/* Reserva altura para 2 líneas (tachado + precio real) aunque el producto no
+   tenga oferta — así el precio vigente queda siempre a la misma altura entre
+   tarjetas de la misma fila, en vez de "bajar" cuando hay oferta. El precio
+   real (último hijo) siempre queda pegado abajo de este bloque. */
+.product-price-wrap {
+  min-height: 2.3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
 .product-price {
   font-family: var(--font-display);
   font-size: 1.1rem;
@@ -1711,7 +1722,17 @@ h1, h2, h3 { font-family: var(--font-display); }
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: 2.6em; /* reserva 2 líneas siempre — ver .product-name, mismo motivo */
   /* Limita el nombre a 2 líneas con "..." al final */
+}
+
+/* Mismo motivo que .product-price-wrap: el precio vigente no debe "bajar"
+   cuando el producto tiene oferta (precio tachado arriba). */
+.hp-price-wrap {
+  min-height: 2.1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .hp-price {

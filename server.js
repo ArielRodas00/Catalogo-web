@@ -39,7 +39,10 @@ app.use(helmet({
       scriptSrc: ["'self'"],
       scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "https:", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:", "http:"],
+      // blob: hace falta para las previews instantáneas de archivos recién
+      // elegidos en el admin (URL.createObjectURL, antes de terminar de
+      // subirse — ver public/admin/images.js).
+      imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
       fontSrc: ["'self'", "https:", "data:"],
       connectSrc: ["'self'"],
       formAction: ["'self'"],
