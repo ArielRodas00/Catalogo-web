@@ -260,6 +260,7 @@ async function openEditForm(id) {
   document.getElementById('field-new-category').value      = '';
   document.getElementById('field-description').value       = product.description;
   document.getElementById('field-image-url').value         = product.image;
+  document.getElementById('field-image-imagekit-file-id').value = product.image_imagekit_file_id || '';
   document.getElementById('field-whatsapp').value          = product.whatsapp;
   document.getElementById('field-brand').value        = '';
   document.getElementById('field-brand-select').value = product.brand || '';
@@ -344,6 +345,7 @@ document.getElementById('product-form').addEventListener('submit', async functio
     subcategoria: subcategoria,
     brand:        brand,
   image:          document.getElementById('field-image-url').value.trim(),
+  image_imagekit_file_id: document.getElementById('field-image-imagekit-file-id').value || null,
   description:    document.getElementById('field-description').value.trim(),
   whatsapp:       document.getElementById('field-whatsapp').value.trim(),
   en_stock:       document.getElementById('field-en-stock').checked,
@@ -498,6 +500,11 @@ function setupImagePreview() {
   const preview  = document.getElementById('image-preview');
 
   urlInput.addEventListener('input', function() {
+    // Si el usuario tipea/pega la URL a mano, invalidamos el file_id que
+    // hubiera quedado de una subida anterior — ya no corresponde a esta URL
+    // (uploadMainImageFile() setea .value por código, no dispara este evento,
+    // así que no se pisa a sí mismo).
+    document.getElementById('field-image-imagekit-file-id').value = '';
     const url = this.value.trim();
     if (url) {
       preview.src           = url;

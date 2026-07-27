@@ -606,3 +606,43 @@ inmediatamente después (fila de la base + archivo en ImageKit) para no dejar na
 (separados por `IMAGEKIT_FOLDER`), a medida que se sumen catálogos reales conviene vigilar el uso contra el
 límite del plan gratis (~20-25GB de banda/mes) — mencionado en la conversación con el usuario, no bloqueante
 para arrancar.
+
+## Subir la imagen principal también por archivo (2026-07-27)
+
+Después de armar la subida de "imágenes adicionales" por ImageKit, quedó una inconsistencia: la **imagen
+principal** de un producto (`productos.image`) solo se podía cargar pegando una URL a mano — para poner un
+archivo propio ahí, había que subirlo primero como "adicional", copiar la URL que devolvía, y recién ahí
+pegarla en el campo de imagen principal. El usuario lo notó y pidió simplificarlo.
+
+**Complejidad particular**: a diferencia de las imágenes adicionales (que ya tienen un producto al que
+asociarse, vía `:id` en la URL), la imagen principal se tiene que poder subir **antes** de que el producto
+exista (al crear uno nuevo) — no hay ID todavía. Por eso no alcanzaba con reusar `POST /:id/images/upload`.
+
+- [x] **`routes/products.js`**: nuevo `POST /api/products/upload-image` — sube el archivo a ImageKit y
+      devuelve `{ url, fileId }`, sin tocar la base de datos para nada (no sabe ni le importa a qué producto
+      va a terminar asociada esa imagen). Mismo multer en memoria, mismo chequeo de `isConfigured()` → 503.
+- [x] **`schema.sql`**: nueva columna `productos.image_imagekit_file_id` (con su `ALTER TABLE ADD COLUMN
+      IF NOT EXISTS`) — igual que en `producto_imagenes`, para poder identificar si la imagen principal se
+      subió como archivo o se pegó por URL. **No implementado todavía**: borrar el archivo viejo de ImageKit
+      cuando se reemplaza la imagen principal (si se sube/pega una nueva, la vieja queda huérfana en
+      ImageKit) — se dejó así a propósito para no sumar complejidad al `PUT` sin que se haya pedido; queda
+      documentado acá para no asumir que ya está resuelto.
+- [x] **`routes/products.js`** (`POST`/`PUT` de productos): aceptan el campo opcional
+      `image_imagekit_file_id` y lo guardan junto con `image`.
+- [x] **`public/admin.html`**: al lado del campo "Imagen principal", el mismo patrón de "Subir archivo" que
+      ya existía para las adicionales (input de archivo + botón), y un input oculto para el `file_id`.
+- [x] **`public/admin/images.js`**: nueva `uploadMainImageFile()` — sube por `POST /upload-image` y completa
+      los campos de URL/file_id/preview como si el usuario hubiese pegado la URL a mano.
+- [x] **`public/admin/products.js`**: el listener de `input` que ya existía sobre el campo de URL (para la
+      preview) ahora también limpia el `file_id` oculto cuando el usuario tipea/pega una URL a mano — si no,
+      quedaría un `file_id` de una subida anterior asociado a una URL que ya no le corresponde. La asignación
+      programática de `.value` que hace `uploadMainImageFile()` no dispara ese evento, así que no se pisa a
+      sí misma.
+
+**Verificado con Playwright contra producción real** (este endpoint no toca la base, así que es seguro
+probarlo ahí sin crear nada): se abrió "Nuevo producto", se subió un archivo real por el botón nuevo, se
+confirmó que el campo de URL y el `file_id` oculto se completaron solos con una URL real de ImageKit
+(`ik.imagekit.io`) y que la preview se mostró — sin errores de consola. Se canceló el formulario sin guardar
+(para no crear un producto de prueba) y se borró el archivo subido de ImageKit con un script aparte, para no
+dejar nada huérfano. `npm test`: 73/73 (8 tests nuevos en `test/products-images.test.js`). `npx eslint .`:
+0 errores.

@@ -500,10 +500,18 @@
           <div class="form-row">
             <div class="field-group field-group--full">
               <label for="field-image-url">
-                URL de la imagen principal *
-                <span class="field-hint">(pegá un link directo a la imagen)</span>
+                Imagen principal *
+                <span class="field-hint">(pegá un link, o subí un archivo)</span>
               </label>
+              <input type="hidden" id="field-image-imagekit-file-id">
               <input type="url" id="field-image-url" placeholder="https://..." required>
+              <div class="add-image-row">
+                <input type="file" id="field-image-file" accept="image/*">
+                <button type="button" onclick="uploadMainImageFile()" class="btn-secondary">
+                  <span class="material-symbols-outlined">upload</span>
+                  Subir archivo
+                </button>
+              </div>
               <img id="image-preview" class="image-preview" style="display:none" alt="Preview">
             </div>
           </div>

@@ -56,6 +56,35 @@ async function uploadImageUrl(productId) {
   showToast('Imagen agregada ✓');
 }
 
+// Imagen principal (no asociada todavía a ningún producto — ver
+// POST /api/products/upload-image en routes/products.js): sube el archivo,
+// y con la URL/file_id que devuelve completa los campos del formulario, como
+// si el usuario hubiese pegado esa URL a mano.
+async function uploadMainImageFile() {
+  const input = document.getElementById('field-image-file');
+  if (!input.files[0]) return;
+
+  const formData = new FormData();
+  formData.append('image', input.files[0]);
+
+  const res = await fetch('/api/products/upload-image', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + getToken() },
+    body:   formData
+  });
+  if (!res.ok) { showToast('Error al subir imagen', 'error'); return; }
+
+  const data = await res.json();
+  document.getElementById('field-image-url').value = data.url;
+  document.getElementById('field-image-imagekit-file-id').value = data.fileId;
+  const preview = document.getElementById('image-preview');
+  preview.src = data.url;
+  preview.style.display = 'block';
+
+  input.value = '';
+  showToast('Imagen subida ✓');
+}
+
 async function uploadImageFile(productId) {
   const input = document.getElementById('new-image-file');
   if (!input.files[0]) return;

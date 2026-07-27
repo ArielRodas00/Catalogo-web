@@ -107,6 +107,59 @@ test('DELETE /images/:imageId: si la imagen tiene file_id, también la borra de 
   });
 });
 
+// --- Imagen principal (subida suelta, sin producto asociado todavía) ---
+
+test('POST /upload-image: requiere autenticación', async function () {
+  await withServer(buildApp(), async function (base) {
+    const formData = new FormData();
+    formData.append('image', pngBlob(), 'foto.png');
+    const res = await fetch(base + '/api/products/upload-image', { method: 'POST', body: formData });
+    assert.equal(res.status, 401);
+  });
+});
+
+test('POST /upload-image: sin ImageKit configurado, devuelve 503', async function (t) {
+  t.mock.method(imageStorage, 'isConfigured', function () { return false; });
+
+  await withServer(buildApp(), async function (base) {
+    const formData = new FormData();
+    formData.append('image', pngBlob(), 'foto.png');
+    const res = await fetch(base + '/api/products/upload-image', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + authToken() },
+      body: formData
+    });
+    assert.equal(res.status, 503);
+  });
+});
+
+test('POST /upload-image: sube el archivo y devuelve url + fileId, sin tocar la base', async function (t) {
+  t.mock.method(imageStorage, 'isConfigured', function () { return true; });
+  t.mock.method(imageStorage, 'uploadImage', async function () {
+    return { url: 'https://ik.imagekit.io/demo/catalogo/principal.png', fileId: 'file_principal1' };
+  });
+  let queryCalled = false;
+  t.mock.method(pool, 'query', async function () {
+    queryCalled = true;
+    return { rows: [] };
+  });
+
+  await withServer(buildApp(), async function (base) {
+    const formData = new FormData();
+    formData.append('image', pngBlob(), 'foto.png');
+    const res = await fetch(base + '/api/products/upload-image', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + authToken() },
+      body: formData
+    });
+    const body = await res.json();
+    assert.equal(res.status, 201);
+    assert.equal(body.url, 'https://ik.imagekit.io/demo/catalogo/principal.png');
+    assert.equal(body.fileId, 'file_principal1');
+    assert.equal(queryCalled, false, 'este endpoint no debe tocar la base — solo sube y devuelve la url');
+  });
+});
+
 test('DELETE /images/:imageId: si la imagen se cargó por URL externa (sin file_id), no llama a ImageKit', async function (t) {
   let deleteCalled = false;
   t.mock.method(imageStorage, 'deleteImage', async function () {

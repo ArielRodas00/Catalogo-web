@@ -173,24 +173,24 @@ router.post('/', apiLimiter, authenticateToken, validateProduct, async function(
   try {
     const {
       name, price, category, subcategoria, brand,
-      image, description, whatsapp,
+      image, image_imagekit_file_id, description, whatsapp,
       en_oferta, precio_oferta, en_stock,
       destacado, en_promocion, fecha_fin_promo,
       stock_cantidad, stock_minimo
     } = req.body;
 
     const result = await pool.query(
-      `INSERT INTO productos 
+      `INSERT INTO productos
         (name, price, category, subcategoria, brand,
-         image, description, whatsapp,
+         image, image_imagekit_file_id, description, whatsapp,
          en_oferta, precio_oferta, en_stock,
          destacado, en_promocion, fecha_fin_promo,
          stock_cantidad, stock_minimo)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
        RETURNING *`,
       [
         name, price, category, subcategoria || '', brand || '',
-        image, description, whatsapp,
+        image, image_imagekit_file_id || null, description, whatsapp,
         en_oferta || false,
         precio_oferta || null,
         en_stock !== undefined ? en_stock : true,
@@ -225,6 +225,7 @@ router.put('/:id', apiLimiter, authenticateToken, validateProduct, async functio
       subcategoria: 'subcategoria',
       brand: 'brand',
       image: 'image',
+      image_imagekit_file_id: 'image_imagekit_file_id',
       description: 'description',
       whatsapp: 'whatsapp',
       en_oferta: 'en_oferta',
@@ -339,6 +340,29 @@ const upload = multer({
     } else {
       cb(new Error('Solo se permiten imágenes'));
     }
+  }
+});
+
+// POST /api/products/upload-image — sube un archivo y devuelve su URL + file_id,
+// sin asociarlo a ningún producto todavía. Existe para la imagen PRINCIPAL: a
+// diferencia de las imágenes adicionales (producto_imagenes), la principal es
+// un campo suelto (productos.image) que hace falta poder completar por archivo
+// tanto al crear un producto (todavía sin id) como al editarlo.
+router.post('/upload-image', apiLimiter, authenticateToken, upload.single('image'), async function(req, res, next) {
+  try {
+    if (!imageStorage.isConfigured()) {
+      return res.status(503).json({
+        error: 'Subida de imágenes no configurada (faltan las variables IMAGEKIT_* — ver README.md)'
+      });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se recibió el archivo' });
+    }
+
+    const { url, fileId } = await imageStorage.uploadImage(req.file.buffer, req.file.originalname);
+    res.status(201).json({ url: url, fileId: fileId });
+  } catch (err) {
+    next(err);
   }
 });
 

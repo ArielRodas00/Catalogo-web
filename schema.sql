@@ -13,6 +13,11 @@ CREATE TABLE IF NOT EXISTS productos (
   subcategoria    VARCHAR(100) DEFAULT '',
   brand           VARCHAR(100) DEFAULT '',
   image           TEXT DEFAULT '',
+  -- fileId de ImageKit (ver imagekit.js) — solo se completa cuando la imagen
+  -- principal se subió como archivo (POST /upload-image), no cuando se pegó
+  -- una URL externa. No se usa hoy para borrar el archivo viejo al reemplazar
+  -- la imagen (no implementado todavía, ver AUDITORIA.md).
+  image_imagekit_file_id VARCHAR(255),
   description     TEXT DEFAULT '',
   whatsapp        VARCHAR(50) DEFAULT '',
   en_oferta       BOOLEAN DEFAULT false,
@@ -70,6 +75,7 @@ CREATE TABLE IF NOT EXISTS producto_imagenes (
 
 -- Migración idempotente para bases ya existentes.
 ALTER TABLE producto_imagenes ADD COLUMN IF NOT EXISTS imagekit_file_id VARCHAR(255);
+ALTER TABLE productos ADD COLUMN IF NOT EXISTS image_imagekit_file_id VARCHAR(255);
 
 -- Índices para performance
 CREATE INDEX IF NOT EXISTS idx_productos_category ON productos(category);
