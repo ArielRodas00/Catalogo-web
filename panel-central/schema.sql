@@ -13,12 +13,22 @@ CREATE TABLE IF NOT EXISTS clientes (
   id SERIAL PRIMARY KEY,
   nombre VARCHAR(150) NOT NULL,
   slug VARCHAR(50) UNIQUE NOT NULL,
+  -- Qué producto es este cliente — separa la tabla en dos negocios distintos
+  -- que comparten el mismo Panel Central. 'catalogo' es el default para no
+  -- romper las filas ya cargadas antes de que este campo existiera.
+  producto VARCHAR(20) NOT NULL DEFAULT 'catalogo' CHECK (producto IN ('catalogo', 'lavadero360')),
   plan VARCHAR(20) NOT NULL DEFAULT 'basico' CHECK (plan IN ('basico', 'premium')),
   estado VARCHAR(20) NOT NULL DEFAULT 'activo' CHECK (estado IN ('activo', 'vencido', 'suspendido')),
   api_key VARCHAR(64) UNIQUE NOT NULL,
   deploy_url VARCHAR(255),
   fecha_proximo_cobro DATE,
   notas TEXT,
+  -- Solo para producto='lavadero360': el slug con el que ese dueño ya se
+  -- registró en Lavadero360 (self-signup, ver signup.service.ts allá). El
+  -- Panel Central NO crea la cuenta — la cuenta ya existe con su propio
+  -- período de prueba; acá solo se administra el pago y el corte de acceso.
+  -- Se sincroniza contra la API de Lavadero360 cuando cambia `estado`.
+  lavadero360_org_slug VARCHAR(50),
   -- Marca del catálogo de este cliente, editable acá en vez de en variables de
   -- entorno de Render (ver AUDITORIA.md, "Branding desde el Panel Central").
   -- Todo NULL = el catálogo usa sus propios defaults/variables de entorno; lo
@@ -47,6 +57,8 @@ ALTER TABLE clientes ADD COLUMN IF NOT EXISTS favicon_url VARCHAR(500);
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS color_primary VARCHAR(7);
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS color_primary_hover VARCHAR(7);
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS color_accent VARCHAR(7);
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS producto VARCHAR(20) NOT NULL DEFAULT 'catalogo' CHECK (producto IN ('catalogo', 'lavadero360'));
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS lavadero360_org_slug VARCHAR(50);
 
 CREATE TABLE IF NOT EXISTS pagos (
   id SERIAL PRIMARY KEY,
@@ -60,4 +72,5 @@ CREATE TABLE IF NOT EXISTS pagos (
 
 CREATE INDEX IF NOT EXISTS idx_clientes_slug ON clientes(slug);
 CREATE INDEX IF NOT EXISTS idx_clientes_api_key ON clientes(api_key);
+CREATE INDEX IF NOT EXISTS idx_clientes_producto ON clientes(producto);
 CREATE INDEX IF NOT EXISTS idx_pagos_cliente ON pagos(cliente_id);

@@ -1,6 +1,8 @@
 const PLANES = ['basico', 'premium'];
 const ESTADOS = ['activo', 'vencido', 'suspendido'];
+const PRODUCTOS = ['catalogo', 'lavadero360'];
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+const SLUG = /^[a-z0-9-]+$/;
 
 function isValidHttpUrl(value) {
   try {
@@ -13,7 +15,7 @@ function isValidHttpUrl(value) {
 
 function validateCliente(req, res, next) {
   const {
-    nombre, slug, plan, estado,
+    nombre, slug, producto, plan, estado, lavadero360_org_slug,
     store_name, store_name_accent, favicon_url,
     color_primary, color_primary_hover, color_accent
   } = req.body;
@@ -27,11 +29,15 @@ function validateCliente(req, res, next) {
   }
 
   if (slug !== undefined) {
-    if (typeof slug !== 'string' || !/^[a-z0-9-]+$/.test(slug)) {
+    if (typeof slug !== 'string' || !SLUG.test(slug)) {
       errors.push('El slug debe tener solo minúsculas, números y guiones');
     }
   } else if (!isUpdate) {
     errors.push('El slug es requerido');
+  }
+
+  if (producto !== undefined && !PRODUCTOS.includes(producto)) {
+    errors.push('Producto inválido (debe ser catalogo o lavadero360)');
   }
 
   if (plan !== undefined && !PLANES.includes(plan)) {
@@ -40,6 +46,17 @@ function validateCliente(req, res, next) {
 
   if (estado !== undefined && !ESTADOS.includes(estado)) {
     errors.push('Estado inválido (debe ser activo, vencido o suspendido)');
+  }
+
+  // Solo tiene sentido para producto='lavadero360' — la cuenta ya existe en
+  // Lavadero360 (self-signup) y esto la vincula por su slug, no la crea.
+  if (
+    lavadero360_org_slug !== undefined &&
+    lavadero360_org_slug !== null &&
+    lavadero360_org_slug !== '' &&
+    !SLUG.test(lavadero360_org_slug)
+  ) {
+    errors.push('El slug de Lavadero360 debe tener solo minúsculas, números y guiones');
   }
 
   // Marca (todos opcionales — null/vacío significa "usar el default del catálogo")
@@ -74,4 +91,4 @@ function validatePago(req, res, next) {
   next();
 }
 
-module.exports = { validateCliente, validatePago, PLANES, ESTADOS };
+module.exports = { validateCliente, validatePago, PLANES, ESTADOS, PRODUCTOS };

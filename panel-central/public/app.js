@@ -122,37 +122,52 @@ function badgePlan(plan) {
   return '<span class="badge badge-' + plan + '">' + labels[plan] + '</span>';
 }
 
+function clienteRowHTML(c, slugLabel) {
+  const cobro = c.fecha_proximo_cobro
+    ? new Date(c.fecha_proximo_cobro).toLocaleDateString('es-PY')
+    : '—';
+  const nombreCell = (c.deploy_url && isSafeHttpUrl(c.deploy_url))
+    ? '<a href="' + escapeHTML(c.deploy_url) + '" target="_blank" rel="noopener noreferrer" class="cliente-link" title="Abrir el catálogo de este cliente">' +
+        escapeHTML(c.nombre) + ' <span class="cliente-link-icon">↗</span></a>'
+    : escapeHTML(c.nombre);
+  return '<tr>' +
+    '<td>' + nombreCell + '</td>' +
+    '<td>' + escapeHTML(slugLabel) + '</td>' +
+    '<td>' + badgePlan(c.plan) + '</td>' +
+    '<td>' + badgeEstado(c.estado) + '</td>' +
+    '<td>' + cobro + '</td>' +
+    '<td>' +
+      '<button class="btn-secondary btn-icon-small" onclick="openEditCliente(' + c.id + ')">Editar</button>' +
+      '<button class="btn-secondary btn-icon-small" onclick="openPagos(' + c.id + ')">Pagos</button>' +
+      '<button class="btn-danger btn-icon-small" onclick="confirmDeleteCliente(' + c.id + ')">Eliminar</button>' +
+    '</td>' +
+  '</tr>';
+}
+
+// Dos secciones separadas, no una tabla mezclada — ver product-section en
+// styles.css. Cada una con su propio contador, así se entiende de un
+// vistazo cuántos clientes tenés de cada producto.
 function renderClientesTable() {
-  const tbody = document.getElementById('clientes-tbody');
   document.getElementById('cliente-count').textContent =
     clientesCache.length + ' cliente' + (clientesCache.length !== 1 ? 's' : '');
 
-  if (clientesCache.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6">Todavía no hay clientes cargados.</td></tr>';
-    return;
-  }
+  const catalogos = clientesCache.filter(function(c) { return c.producto !== 'lavadero360'; });
+  const lavaderos = clientesCache.filter(function(c) { return c.producto === 'lavadero360'; });
 
-  tbody.innerHTML = clientesCache.map(function(c) {
-    const cobro = c.fecha_proximo_cobro
-      ? new Date(c.fecha_proximo_cobro).toLocaleDateString('es-PY')
-      : '—';
-    const nombreCell = (c.deploy_url && isSafeHttpUrl(c.deploy_url))
-      ? '<a href="' + escapeHTML(c.deploy_url) + '" target="_blank" rel="noopener noreferrer" class="cliente-link" title="Abrir el catálogo de este cliente">' +
-          escapeHTML(c.nombre) + ' <span class="cliente-link-icon">↗</span></a>'
-      : escapeHTML(c.nombre);
-    return '<tr>' +
-      '<td>' + nombreCell + '</td>' +
-      '<td>' + escapeHTML(c.slug) + '</td>' +
-      '<td>' + badgePlan(c.plan) + '</td>' +
-      '<td>' + badgeEstado(c.estado) + '</td>' +
-      '<td>' + cobro + '</td>' +
-      '<td>' +
-        '<button class="btn-secondary btn-icon-small" onclick="openEditCliente(' + c.id + ')">Editar</button>' +
-        '<button class="btn-secondary btn-icon-small" onclick="openPagos(' + c.id + ')">Pagos</button>' +
-        '<button class="btn-danger btn-icon-small" onclick="confirmDeleteCliente(' + c.id + ')">Eliminar</button>' +
-      '</td>' +
-    '</tr>';
-  }).join('');
+  document.getElementById('catalogo-count').textContent =
+    catalogos.length + ' cliente' + (catalogos.length !== 1 ? 's' : '');
+  document.getElementById('lavadero360-count').textContent =
+    lavaderos.length + ' cliente' + (lavaderos.length !== 1 ? 's' : '');
+
+  const catalogoTbody = document.getElementById('catalogo-tbody');
+  catalogoTbody.innerHTML = catalogos.length === 0
+    ? '<tr><td colspan="6">Todavía no hay clientes de catálogo cargados.</td></tr>'
+    : catalogos.map(function(c) { return clienteRowHTML(c, c.slug); }).join('');
+
+  const lavaderoTbody = document.getElementById('lavadero360-tbody');
+  lavaderoTbody.innerHTML = lavaderos.length === 0
+    ? '<tr><td colspan="6">Todavía no hay clientes de Lavadero360 cargados.</td></tr>'
+    : lavaderos.map(function(c) { return clienteRowHTML(c, c.lavadero360_org_slug || '—'); }).join('');
 }
 
 // ------------------------------------------------------------
@@ -189,6 +204,21 @@ function updateLogoTypeUI() {
 document.getElementById('field-logo-type-texto').addEventListener('change', updateLogoTypeUI);
 document.getElementById('field-logo-type-imagen').addEventListener('change', updateLogoTypeUI);
 
+// Lavadero360 no usa marca de catálogo (branding.js allá no existe) ni
+// api_key (no consulta licencia por polling, ver lavadero360Sync.js) — en
+// cambio necesita el campo de slug para saber a qué cuenta apunta.
+function updateProductoUI() {
+  const esLavadero360 = document.getElementById('field-producto').value === 'lavadero360';
+  document.getElementById('row-branding-section').style.display = esLavadero360 ? 'none' : 'block';
+  document.getElementById('row-lavadero360-org-slug').style.display = esLavadero360 ? 'block' : 'none';
+  if (esLavadero360) {
+    document.getElementById('row-api-key').style.display = 'none';
+  } else if (editingId !== null) {
+    document.getElementById('row-api-key').style.display = 'block';
+  }
+}
+document.getElementById('field-producto').addEventListener('change', updateProductoUI);
+
 function resetBrandingFields() {
   document.getElementById('field-logo-type-texto').checked = true;
   document.getElementById('field-store-name').value = '';
@@ -209,9 +239,12 @@ document.getElementById('btn-new-cliente').addEventListener('click', function() 
   document.getElementById('cliente-modal-title').textContent = 'Nuevo cliente';
   document.getElementById('cliente-form').reset();
   document.getElementById('field-id').value = '';
+  document.getElementById('field-producto').value = 'catalogo';
+  document.getElementById('field-lavadero360-org-slug').value = '';
   document.getElementById('row-estado').style.display = 'none';
   document.getElementById('row-api-key').style.display = 'none';
   resetBrandingFields();
+  updateProductoUI();
   document.getElementById('cliente-modal-overlay').style.display = 'flex';
 });
 
@@ -224,6 +257,8 @@ async function openEditCliente(id) {
     editingId = c.id;
     document.getElementById('cliente-modal-title').textContent = 'Editar cliente';
     document.getElementById('field-id').value = c.id;
+    document.getElementById('field-producto').value = c.producto || 'catalogo';
+    document.getElementById('field-lavadero360-org-slug').value = c.lavadero360_org_slug || '';
     document.getElementById('field-nombre').value = c.nombre;
     document.getElementById('field-slug').value = c.slug;
     document.getElementById('field-plan').value = c.plan;
@@ -263,6 +298,7 @@ async function openEditCliente(id) {
 
     document.getElementById('row-estado').style.display = 'block';
     document.getElementById('row-api-key').style.display = 'block';
+    updateProductoUI();
     document.getElementById('cliente-modal-overlay').style.display = 'flex';
   } catch (_e) {
     showToast('Error de conexión');
@@ -352,8 +388,10 @@ document.getElementById('cliente-form').addEventListener('submit', async functio
   e.preventDefault();
 
   const payload = {
+    producto: document.getElementById('field-producto').value,
     nombre: document.getElementById('field-nombre').value.trim(),
     slug: document.getElementById('field-slug').value.trim().toLowerCase(),
+    lavadero360_org_slug: document.getElementById('field-lavadero360-org-slug').value.trim().toLowerCase() || null,
     plan: document.getElementById('field-plan').value,
     deploy_url: document.getElementById('field-deploy-url').value.trim() || null,
     fecha_proximo_cobro: document.getElementById('field-fecha-cobro').value || null,
@@ -380,7 +418,11 @@ document.getElementById('cliente-form').addEventListener('submit', async functio
     const data = await res.json();
 
     if (res.ok) {
-      showToast(isEditing ? 'Cliente actualizado ✓' : 'Cliente creado ✓');
+      if (data.sync_warning) {
+        showToast('Guardado, pero no se pudo sincronizar con Lavadero360: ' + data.sync_warning);
+      } else {
+        showToast(isEditing ? 'Cliente actualizado ✓' : 'Cliente creado ✓');
+      }
       closeClienteModal();
       await loadClientes();
     } else {

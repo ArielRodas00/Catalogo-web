@@ -42,21 +42,53 @@
         <button id="btn-new-cliente" class="btn-primary">+ Nuevo cliente</button>
       </div>
 
-      <div class="table-wrapper">
-        <table id="clientes-table">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Slug</th>
-              <th>Plan</th>
-              <th>Estado</th>
-              <th>Próx. cobro</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="clientes-tbody"></tbody>
-        </table>
-      </div>
+      <!-- Dos secciones separadas a propósito, no una tabla mezclada: son
+           dos productos distintos que solo comparten este panel. -->
+      <section class="product-section product-section-catalogo">
+        <div class="section-header">
+          <span class="section-icon" aria-hidden="true">📇</span>
+          <h2 class="section-title">Catálogos</h2>
+          <span id="catalogo-count" class="section-count"></span>
+        </div>
+        <div class="table-wrapper">
+          <table id="catalogo-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Slug</th>
+                <th>Plan</th>
+                <th>Estado</th>
+                <th>Próx. cobro</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="catalogo-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="product-section product-section-lavadero360">
+        <div class="section-header">
+          <span class="section-icon" aria-hidden="true">🚗</span>
+          <h2 class="section-title">Lavadero360</h2>
+          <span id="lavadero360-count" class="section-count"></span>
+        </div>
+        <div class="table-wrapper">
+          <table id="lavadero360-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Slug en Lavadero360</th>
+                <th>Plan</th>
+                <th>Estado</th>
+                <th>Próx. cobro</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="lavadero360-tbody"></tbody>
+          </table>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -68,12 +100,27 @@
       <form id="cliente-form">
         <input type="hidden" id="field-id">
         <div class="field-group">
+          <label for="field-producto">Producto</label>
+          <select id="field-producto">
+            <option value="catalogo">📇 Catálogo</option>
+            <option value="lavadero360">🚗 Lavadero360</option>
+          </select>
+        </div>
+        <div class="field-group">
           <label for="field-nombre">Nombre</label>
           <input type="text" id="field-nombre" required placeholder="Repuestos Villalba">
         </div>
         <div class="field-group">
           <label for="field-slug">Slug</label>
           <input type="text" id="field-slug" required placeholder="villalba" pattern="[a-z0-9\-]+">
+        </div>
+        <div class="field-group" id="row-lavadero360-org-slug" style="display:none">
+          <label for="field-lavadero360-org-slug">Slug en Lavadero360</label>
+          <input type="text" id="field-lavadero360-org-slug" placeholder="lavadero-norte" pattern="[a-z0-9\-]+">
+          <p class="modal-section-hint">
+            El slug con el que ese dueño ya se registró en Lavadero360 (no lo crea este panel —
+            la cuenta ya existe, acá solo se administra el pago y el corte de acceso).
+          </p>
         </div>
         <div class="field-row">
           <div class="field-group">
@@ -105,6 +152,7 @@
           <textarea id="field-notas" rows="2"></textarea>
         </div>
 
+        <div id="row-branding-section">
         <hr class="modal-divider">
         <h3 class="modal-section-title">Marca del catálogo (opcional)</h3>
         <p class="modal-section-hint">
@@ -175,6 +223,7 @@
               <input type="text" id="field-color-accent" placeholder="usar default" pattern="#[0-9a-fA-F]{6}">
             </div>
           </div>
+        </div>
         </div>
 
         <div class="field-group" id="row-api-key" style="display:none">
