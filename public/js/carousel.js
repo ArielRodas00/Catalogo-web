@@ -36,19 +36,41 @@ async function initCarousel() {
     const slide = document.createElement('div');
     slide.className = 'carousel-slide' + (index === 0 ? ' active' : '');
 
-    const whatsappMsg  = encodeURIComponent('Hola! Me interesa: ' + product.name);
+    // Precio: mismo criterio que el resto del sitio (ver getPriceInfo en
+    // state.js) — si el producto está en oferta se muestra el precio con
+    // descuento, con el anterior tachado arriba.
+    const precio = getPriceInfo(product);
+    const carouselPriceHTML = precio.hasOferta
+      ? '<p class="carousel-price-old">' + formatPrice(precio.oldPrice) + '</p>' +
+        '<p class="carousel-price">' + formatPrice(precio.effectivePrice) + '</p>'
+      : '<p class="carousel-price">' + formatPrice(precio.effectivePrice) + '</p>';
+
+    const whatsappMsg  = encodeURIComponent(
+      'Hola! Me interesa: ' + product.name + ' (Gs. ' + precio.effectivePrice + ')'
+    );
     const whatsappLink = 'https://wa.me/' + product.whatsapp + '?text=' + whatsappMsg;
 
+    // Layout dividido (texto | imagen) en vez de la foto como fondo a
+    // pantalla completa: las fotos de producto son verticales y chicas
+    // (ej. 272x475px), así que estirarlas a todo el ancho del hero las
+    // ampliaba ~7x y solo dejaba ver una franja del medio, borrosa. Acá la
+    // imagen va contenida en su propio panel, nunca se recorta ni se
+    // pixela, y el texto no depende de la foto para ser legible.
+    // Ver AUDITORIA.md.
     slide.innerHTML =
-      '<div class="carousel-bg" style="background-image: url(\'' + encodeURI(product.image || '') + '\')"></div>' +
-      '<div class="carousel-overlay"></div>' +
-      '<div class="carousel-content">' +
-        '<span class="carousel-category">' + product.category.toUpperCase() + '</span>' +
-        '<h2 class="carousel-title">' + escapeHTML(product.name) + '</h2>' +
-        '<p class="carousel-price">' + formatPrice(product.price) + '</p>' +
-        '<div class="carousel-actions">' +
-          '<button class="btn-carousel-detail" data-id="' + product.id + '">Ver detalle</button>' +
-          '<a href="' + whatsappLink + '" target="_blank" class="btn-carousel-whatsapp">Consultar</a>' +
+      '<div class="carousel-split">' +
+        '<div class="carousel-info">' +
+          '<span class="carousel-category">' + escapeHTML(product.category.toUpperCase()) + '</span>' +
+          '<h2 class="carousel-title">' + escapeHTML(product.name) + '</h2>' +
+          carouselPriceHTML +
+          '<div class="carousel-actions">' +
+            '<button class="btn-carousel-detail" data-id="' + product.id + '">Ver detalle</button>' +
+            '<a href="' + whatsappLink + '" target="_blank" class="btn-carousel-whatsapp">Consultar</a>' +
+          '</div>' +
+        '</div>' +
+        '<div class="carousel-media">' +
+          '<img class="carousel-img" src="' + escapeAttr(product.image || '') + '" ' +
+            'alt="' + escapeHTML(product.name) + '" loading="lazy">' +
         '</div>' +
       '</div>';
 

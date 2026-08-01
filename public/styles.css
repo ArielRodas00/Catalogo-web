@@ -729,13 +729,13 @@ h1, h2, h3 { font-family: var(--font-display); }
   }
 
   .hero-carousel {
-    height: 280px;
+    /* Más alto que antes (280px) porque el layout dividido se apila en
+       mobile: imagen arriba, texto abajo. */
+    height: 400px;
   }
 
-  .carousel-content {
-    left: 16px;
-    right: 16px;
-    max-width: 100%;
+  .carousel-info {
+    padding: 16px 20px 20px;
   }
 
   .carousel-title {
@@ -1454,39 +1454,55 @@ h1, h2, h3 { font-family: var(--font-display); }
      de todas las demás que tienen z-index: 0 */
 }
 
-.carousel-bg {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  transform: scale(1.05);
+/* Hero dividido: texto a la izquierda sobre el color de marca, imagen a la
+   derecha contenida en su propio panel. Reemplaza a la foto usada como
+   fondo a pantalla completa (background-size: cover), que con fotos de
+   producto verticales y de baja resolución las ampliaba muchísimo y solo
+   mostraba una franja borrosa del medio al maximizar la ventana.
+   Ver AUDITORIA.md. */
+.carousel-split {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+.carousel-info {
+  flex: 1 1 50%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-accent, #0d0d0d) 0%, #2a2a2a 100%);
+  /* padding-left generoso: deja libre la flecha "anterior" del carrusel,
+     que va posicionada sobre este panel */
+  padding: 40px 44px 40px 76px;
+}
+
+.carousel-media {
+  flex: 1 1 50%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface, #fff);
+  padding: 28px;
+  overflow: hidden;
+}
+
+.carousel-img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  /* Zoom sutil al entrar la slide — reemplaza al Ken Burns del fondo */
+  transform: scale(0.97);
   transition: transform 6s ease;
-  /* Efecto Ken Burns: la imagen se agranda levemente */
 }
 
-.carousel-slide.active .carousel-bg {
+.carousel-slide.active .carousel-img {
   transform: scale(1);
-}
-
-.carousel-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(0,0,0,0.6) 0%,
-    rgba(0,0,0,0.2) 50%,
-    transparent 100%
-  );
-  /* Gradiente sutil para destacar texto sobre imágenes */
-}
-
-.carousel-content {
-  position: absolute;
-  left: 60px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: white;
-  max-width: 500px;
 }
 
 .carousel-category {
@@ -1496,6 +1512,9 @@ h1, h2, h3 { font-family: var(--font-display); }
   letter-spacing: 2px;
   color: #fff;
   display: inline-block;
+  /* El panel es flex column: sin esto el badge se estiraría a todo el ancho
+     en vez de ajustarse a su texto. */
+  align-self: flex-start;
   padding: 4px 12px;
   background: var(--color-primary, #c1121f);
   border-radius: 4px;
@@ -1509,7 +1528,21 @@ h1, h2, h3 { font-family: var(--font-display); }
   font-weight: 800;
   line-height: 1.2;
   margin-bottom: 10px;
-  text-shadow: 0 1px 6px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.4);
+  /* Sin text-shadow: ahora el texto va sobre un panel de color liso, no
+     sobre la foto — la sombra que hacía falta antes acá solo ensucia. */
+}
+
+/* Precio anterior tachado cuando el producto está en oferta — mismo criterio
+   que las tarjetas y el modal (ver getPriceInfo en state.js). Blanco
+   translúcido porque va sobre el panel oscuro de marca, no sobre el fondo
+   claro de las tarjetas. */
+.carousel-price-old {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: line-through;
+  margin-bottom: 2px;
 }
 
 .carousel-price {
@@ -1776,13 +1809,26 @@ h1, h2, h3 { font-family: var(--font-display); }
    ============================================================ */
 @media (max-width: 640px) {
   .hero-carousel {
-    height: 320px;
+    /* Más alto que antes (320px) porque acá el layout dividido se apila */
+    height: 420px;
   }
 
-  .carousel-content {
-    left: 20px;
-    right: 20px;
-    max-width: 100%;
+  /* En pantallas angostas no hay lugar para dos columnas: se apila. El texto
+     queda arriba a propósito (sigue el orden del DOM) para que el nombre,
+     el precio y los botones entren en pantalla sin scrollear. */
+  .carousel-split {
+    flex-direction: column;
+  }
+
+  .carousel-media {
+    flex: 0 0 45%;
+    padding: 16px;
+  }
+
+  .carousel-info {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+    padding: 16px 20px 20px;
   }
 
   .carousel-title {

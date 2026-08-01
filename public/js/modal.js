@@ -70,16 +70,15 @@ async function openModal(productId) {
 
   let currentImageIndex = 0;
 
-  const hasOferta   = product.en_oferta && product.precio_oferta;
-  const effectivePrice = hasOferta ? product.precio_oferta : product.price;
+  const precio = getPriceInfo(product); // ver state.js
 
-  const modalPriceHTML = hasOferta
-    ? '<p class="product-price-old">' + formatPrice(product.price) + '</p>' +
-      '<p class="modal-price">'       + formatPrice(product.precio_oferta) + '</p>'
-    : '<p class="modal-price">'       + formatPrice(product.price) + '</p>';
+  const modalPriceHTML = precio.hasOferta
+    ? '<p class="product-price-old">' + formatPrice(precio.oldPrice) + '</p>' +
+      '<p class="modal-price">'       + formatPrice(precio.effectivePrice) + '</p>'
+    : '<p class="modal-price">'       + formatPrice(precio.effectivePrice) + '</p>';
 
   const whatsappMessage = encodeURIComponent(
-    'Hola! Me interesa el producto: ' + product.name + ' (Gs. ' + effectivePrice + ')'
+    'Hola! Me interesa el producto: ' + product.name + ' (Gs. ' + precio.effectivePrice + ')'
   );
   const whatsappLink = 'https://wa.me/' + product.whatsapp + '?text=' + whatsappMessage;
 

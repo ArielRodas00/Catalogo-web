@@ -51,13 +51,14 @@ function createProductCard(product) {
   // .product-price-wrap reserva una altura fija (ver CSS) para que el precio
   // vigente quede siempre a la misma altura entre tarjetas, tenga o no
   // oferta (la línea tachada de arriba no debe "empujar" el precio real).
-  const cardPrecioHTML = (product.en_oferta && product.precio_oferta)
+  const precio = getPriceInfo(product); // ver state.js
+  const cardPrecioHTML = precio.hasOferta
     ? '<div class="product-price-wrap">' +
-        '<p class="product-price-old">' + formatPrice(product.price) + '</p>' +
-        '<p class="product-price">'     + formatPrice(product.precio_oferta) + '</p>' +
+        '<p class="product-price-old">' + formatPrice(precio.oldPrice) + '</p>' +
+        '<p class="product-price">'     + formatPrice(precio.effectivePrice) + '</p>' +
       '</div>'
     : '<div class="product-price-wrap">' +
-        '<p class="product-price">'     + formatPrice(product.price) + '</p>' +
+        '<p class="product-price">'     + formatPrice(precio.effectivePrice) + '</p>' +
       '</div>';
 
   card.innerHTML =
@@ -95,13 +96,14 @@ function renderHighlightTrack(track, products) {
 
     // .hp-price-wrap reserva una altura fija (ver CSS) — mismo motivo que
     // .product-price-wrap en createProductCard().
-    const precioHTML = (product.en_oferta && product.precio_oferta)
+    const precio = getPriceInfo(product); // ver state.js
+    const precioHTML = precio.hasOferta
       ? '<div class="hp-price-wrap">' +
-          '<span class="hp-price-old">' + formatPrice(product.price) + '</span>' +
-          '<span class="hp-price">'     + formatPrice(product.precio_oferta) + '</span>' +
+          '<span class="hp-price-old">' + formatPrice(precio.oldPrice) + '</span>' +
+          '<span class="hp-price">'     + formatPrice(precio.effectivePrice) + '</span>' +
         '</div>'
       : '<div class="hp-price-wrap">' +
-          '<span class="hp-price">'     + formatPrice(product.price) + '</span>' +
+          '<span class="hp-price">'     + formatPrice(precio.effectivePrice) + '</span>' +
         '</div>';
 
     card.innerHTML =
