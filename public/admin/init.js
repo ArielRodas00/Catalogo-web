@@ -5,7 +5,6 @@
 async function initAdmin() {
   await renderAdminTable();
   await populateCategorySelect();
-  setupImagePreview();
   setupImageDropzones();
   initTabs();
   initAdminViewToggle();

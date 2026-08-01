@@ -719,3 +719,112 @@ tenía la reserva de 2 líneas que sí tenía `.product-name`.
 de productos con/sin oferta y nombres cortos/largos que mandó el usuario — los precios y los botones "Ver
 detalle" quedan alineados en una línea recta en las 2 filas visibles, sin errores de consola. `npm test`:
 75/75 (sin cambios de backend en este fix). `npx eslint .`: 0 errores.
+
+## Galería unificada de imágenes en el admin (2026-08-01)
+
+El usuario reportó que no podía subir más de una imagen a la vez. No era un bug: la subida múltiple existía
+solo en "imágenes adicionales", y él estaba probando en "imagen principal" (que es una sola por definición).
+Pero al explicarlo quedó claro que la separación entre "principal" y "adicionales" era artificial, así que
+pidió unificarlas: **un solo lugar donde arrastrar varias imágenes y reordenarlas, y que la primera sea la
+principal**.
+
+**Modelo de datos: no cambia.** La principal sigue en `productos.image` y el resto en `producto_imagenes`
+(es lo que consumen el catálogo, el carrusel y el modal). Lo que cambia es que el admin ahora las presenta
+como **una sola lista ordenada** y traduce esa lista al modelo de siempre al guardar. Se evitó a propósito
+migrar todo a `producto_imagenes` con un flag "es principal": hubiera obligado a tocar todas las vistas
+públicas y sus queries, con mucho más riesgo, para el mismo resultado visible.
+
+- [x] **`routes/products.js`**: nuevo `PUT /:id/images/reorder` — recibe `{ images: [{url, fileId}, ...] }`
+      en el orden final; el primero pasa a `productos.image` y el resto reemplaza la galería. Corre en una
+      transacción y **reconstruye la galería entera** (DELETE + INSERT) en vez de actualizar `orden` fila por
+      fila, porque hacerlo de a una choca contra la restricción `UNIQUE (producto_id, orden)` de las filas que
+      todavía no se movieron. Además borra de ImageKit los archivos que dejaron de estar en la lista, para no
+      dejarlos huérfanos consumiendo cuota (fuera de la transacción, best-effort, igual que el borrado
+      individual). `POST /:id/images/url` acepta ahora un `imagekit_file_id` opcional, para cuando esa "URL"
+      es en realidad un archivo que el propio admin ya subió.
+- [x] **`public/admin/images.js`** (reescrito): una sola lista `galleryImages` con estado por imagen
+      (`uploading` / `ready` / `error`). Dropzone con selección múltiple, subida automática y secuencial, y
+      **reordenar arrastrando las miniaturas** (drag & drop nativo). La primera muestra el badge "Principal".
+      Editando un producto existente cada cambio se persiste solo; creando uno nuevo se guarda al enviar el
+      formulario (recién ahí hay un `id` al que asociar la galería).
+- [x] **`public/admin.html` / `admin.css` / `admin/products.js`**: se reemplazaron los dos bloques separados
+      por la galería única. El campo de URL suelto y el `image-preview` dejaron de existir; el submit toma la
+      principal de `getGalleryMainImage()`.
+- [x] **6 tests nuevos** en `test/products-images.test.js` (auth, validación, promover una imagen de la
+      galería a principal, orden secuencial, limpieza de huérfanos en ImageKit, rollback + 404).
+
+**Bug encontrado al verificar en vivo (no lo agarraron los tests):** después de una subida exitosa las
+miniaturas quedaban rotas. `renderGallery()` prioriza `previewUrl` (la preview local) sobre `url` (la real),
+y el código liberaba el blob con `URL.revokeObjectURL()` pero **no limpiaba `previewUrl`** — así que la
+miniatura seguía apuntando a un blob ya revocado (`ERR_FILE_NOT_FOUND` en consola). Corregido: en éxito se
+libera *y* se limpia; en error se conserva la preview (es lo único que muestra qué archivo falló) y se
+libera al quitarla o cerrar el formulario.
+
+**Verificado end-to-end contra la base real**: se creó un producto subiendo 2 imágenes de una sola vez, se
+confirmó que quedó la primera como principal y la segunda en la galería, se reordenó arrastrando y se
+verificó **contra la base** que el nuevo principal quedó persistido, y se borró todo (producto + archivos en
+ImageKit) al terminar. `npm test`: 79/79. `npx eslint .`: 0 errores. Cero errores de consola.
+
+## Fix: el carrusel del hero no mostraba el precio de oferta (2026-08-01)
+
+El usuario reportó que en el carrusel de arriba los precios "no concordaban" con los de abajo. Confirmado
+consultando la API de producción: `GET /api/products/destacados` **sí** devolvía `en_oferta`/`precio_oferta`
+correctamente (3 destacados en oferta: 40.000→35.000, 450.000→400.000, 30.000→20.000), pero `carousel.js`
+renderizaba siempre `product.price`, ignorando la oferta. Bug puramente de frontend.
+
+**Causa de fondo: la misma lógica estaba duplicada en 4 lugares.** Ya había pasado antes con el modal
+(documentado más arriba); el carrusel simplemente quedó afuera cuando se corrigieron los demás.
+
+- [x] **`public/js/state.js`**: nuevo `getPriceInfo(product)` — devuelve `{hasOferta, effectivePrice,
+      oldPrice}`. Es el único lugar donde se decide qué precio corresponde mostrar.
+- [x] **`carousel.js`, `modal.js`, `render.js`** (tarjetas y destacados): los 4 puntos pasan a usarlo. Cada
+      vista mantiene su propio HTML/CSS, pero ninguna vuelve a decidir por su cuenta. El carrusel ahora
+      muestra el precio anterior tachado como el resto del sitio, y su mensaje de WhatsApp usa el precio con
+      descuento (antes mandaba el precio sin oferta).
+
+**Verificado** recorriendo las 7 slides del carrusel y comparando contra lo que devuelve la API: las 3 en
+oferta muestran tachado + precio nuevo, las otras 4 solo su precio. Sin errores de consola.
+
+## Fix: las imágenes del hero se rompían al maximizar la ventana (2026-08-01)
+
+El usuario mandó una captura del hero con la imagen enormemente ampliada y borrosa, mostrando solo una
+franja del medio del envase.
+
+**Causa, con números**: `.carousel-bg` usaba la foto del producto como `background-size: cover` en un hero
+de ancho completo × 480px. La foto de esa captura mide **272×475 px**. En una ventana de 1920px, `cover` la
+escala **7,06x** para cubrir el ancho → pixelado severo, y como queda 3354px de alto contra un contenedor de
+480px, solo se ve el **14%** de la imagen. El problema es estructural: las fotos de producto son verticales,
+chicas y con fondo blanco; no son fotos editoriales panorámicas.
+
+Se le ofrecieron 3 opciones (dividido / fondo borroso + imagen nítida / bajar el alto sin recortar) y eligió
+el **layout dividido**.
+
+- [x] **`carousel.js` / `styles.css`**: cada slide pasa de "foto de fondo + texto encima" a dos paneles —
+      texto sobre el color de marca a la izquierda, imagen `object-fit: contain` en su propio panel claro a
+      la derecha. La imagen nunca se recorta ni se amplía más allá de su tamaño real. Se quitaron
+      `.carousel-bg` y `.carousel-overlay` (ya no hay foto de fondo que oscurecer) y el `text-shadow` del
+      título, que sobre un panel liso solo ensuciaba. El zoom sutil de entrada (Ken Burns) se movió del fondo
+      a la imagen.
+- [x] **Mobile**: en pantallas angostas los paneles se apilan, con el texto arriba para que nombre, precio y
+      botones entren sin scrollear, y el hero se hizo más alto (420px) para que ambos respiren.
+- [x] Se corrigió de paso que el badge de categoría se estiraba a todo el ancho del panel (le faltaba
+      `align-self: flex-start` dentro del flex column).
+
+**Verificado midiendo el escalado real de la imagen en el navegador**, con el mismo producto de la captura
+del usuario: pasó de **7,06x de ampliación** a **0,87x** (se reduce en vez de ampliarse — siempre nítida) en
+una ventana de 1920px, y a 0,32x en mobile. Capturas en 1920px y 390px sin errores de consola.
+
+### Pendiente (elegido, no implementado): mosaico de categorías
+
+El usuario mostró la home de Nissei (mosaico de banners) y preguntó si se podía algo así. Se le explicó que
+lo que hace que ese diseño funcione **no es el layout sino las imágenes**: son banners diseñados
+(horizontales, alta resolución, con el texto incrustado), no fotos de producto. Con las fotos actuales el
+mosaico volvería a romperse igual que el hero.
+
+Eligió la opción **"mosaico de categorías"**: recuadros generados automáticamente a partir de los datos ya
+cargados (una categoría por recuadro, con su color de marca y una foto representativa contenida), que
+linkean a esa categoría filtrada. No requiere diseñar nada y le sirve igual a cualquier cliente al que se le
+venda el catálogo. **Queda pendiente de implementar.** Punto de partida ya relevado: haría falta un endpoint
+tipo `GET /api/categories/resumen` que devuelva por categoría su cantidad de productos y una imagen
+representativa (hoy `GET /api/categories` solo devuelve `{categoria: [subcategorías]}` y lo consumen 3
+lugares, así que conviene no cambiarle la forma).

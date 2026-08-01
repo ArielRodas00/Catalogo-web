@@ -499,42 +499,23 @@
 
           <div class="form-row">
             <div class="field-group field-group--full">
-              <label for="field-image-url">
-                Imagen principal *
-                <span class="field-hint">(arrastrá una imagen, o pegá un link abajo)</span>
+              <label>
+                Imágenes del producto *
+                <span class="field-hint">(la primera es la principal — arrastrá las miniaturas para reordenar)</span>
               </label>
-              <input type="hidden" id="field-image-imagekit-file-id">
-              <div id="main-image-dropzone" class="image-dropzone">
-                <input type="file" id="field-image-file" accept="image/*" class="dropzone-input">
-                <div class="dropzone-content">
-                  <span class="material-symbols-outlined">cloud_upload</span>
-                  <p>Arrastrá una imagen acá, o hacé click para elegir</p>
-                </div>
-                <img id="image-preview" class="image-preview" style="display:none" alt="Preview">
-                <div id="main-image-uploading" class="dropzone-uploading" style="display:none">
-                  <span class="spinner" aria-hidden="true"></span> Subiendo...
-                </div>
-              </div>
-              <input type="url" id="field-image-url" placeholder="...o pegá un link acá" required>
-            </div>
-          </div>
-
-          <div class="form-row" id="extra-images-section" style="display:none">
-            <div class="field-group field-group--full">
-              <label>Imágenes adicionales</label>
-              <div id="images-container" class="images-container"></div>
-              <div id="extra-images-dropzone" class="image-dropzone">
-                <input type="file" id="new-image-files" accept="image/*" multiple class="dropzone-input">
+              <div id="gallery-container" class="images-container"></div>
+              <div id="gallery-dropzone" class="image-dropzone">
+                <input type="file" id="gallery-files" accept="image/*" multiple class="dropzone-input">
                 <div class="dropzone-content">
                   <span class="material-symbols-outlined">cloud_upload</span>
                   <p>Arrastrá una o varias imágenes acá, o hacé click para elegir</p>
                 </div>
               </div>
               <div class="add-image-row">
-                <input type="url" id="new-image-url" placeholder="https://... (URL de imagen)">
-                <button type="button" onclick="uploadImageUrl(editingId)" class="btn-secondary">
+                <input type="url" id="gallery-url-input" placeholder="...o pegá un link externo">
+                <button type="button" onclick="addGalleryImageUrl()" class="btn-secondary">
                   <span class="material-symbols-outlined">add_link</span>
-                  Agregar URL
+                  Agregar
                 </button>
               </div>
             </div>

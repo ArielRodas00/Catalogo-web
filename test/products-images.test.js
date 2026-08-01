@@ -156,6 +156,113 @@ test('POST /:id/images/url: calcula "orden" dinámicamente, nunca lo hardcodea e
   });
 });
 
+// --- Galería unificada: reordenar (la primera pasa a ser la principal) ---
+
+test('PUT /:id/images/reorder: requiere autenticación', async function () {
+  await withServer(buildApp(), async function (base) {
+    const res = await fetch(base + '/api/products/1/images/reorder', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ images: [{ url: 'https://example.com/a.png' }] })
+    });
+    assert.equal(res.status, 401);
+  });
+});
+
+test('PUT /:id/images/reorder: rechaza sin "images" o con el array vacío', async function () {
+  await withServer(buildApp(), async function (base) {
+    const res = await fetch(base + '/api/products/1/images/reorder', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken() },
+      body: JSON.stringify({ images: [] })
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+// fakeClient para /images/reorder: responde según el prefijo de la consulta,
+// simulando que el producto 1 ya tenía como principal file_a y en la galería
+// (producto_imagenes) tenía file_old (una imagen que ya no va a estar en la
+// lista nueva — sirve para probar la limpieza de huérfanos en ImageKit).
+function buildReorderFakeClient(queries, opts) {
+  opts = opts || {};
+  return {
+    query: async function (sql, params) {
+      queries.push({ sql: sql, params: params });
+      if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') return {};
+      if (sql.startsWith('SELECT image_imagekit_file_id FROM productos')) {
+        return opts.productExists === false ? { rows: [] } : { rows: [{ image_imagekit_file_id: 'file_a' }] };
+      }
+      if (sql.startsWith('SELECT imagekit_file_id FROM producto_imagenes')) {
+        return { rows: [{ imagekit_file_id: 'file_old' }] };
+      }
+      if (sql.startsWith('UPDATE productos')) {
+        return { rows: [{ id: 1, image: params[0], image_imagekit_file_id: params[1] }] };
+      }
+      if (sql.startsWith('DELETE')) return {};
+      return { rows: [{}] }; // INSERT en producto_imagenes
+    },
+    release: function () {}
+  };
+}
+
+test('PUT /:id/images/reorder: la primera imagen pasa a ser la principal, el resto se reconstruye como galería', async function (t) {
+  const queries = [];
+  t.mock.method(pool, 'connect', async function () { return buildReorderFakeClient(queries); });
+  let deletedFileIds = [];
+  t.mock.method(imageStorage, 'deleteImage', async function (fileId) { deletedFileIds.push(fileId); });
+
+  await withServer(buildApp(), async function (base) {
+    const res = await fetch(base + '/api/products/1/images/reorder', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken() },
+      body: JSON.stringify({
+        images: [
+          { url: 'https://ik.imagekit.io/demo/b.png', fileId: 'file_b' }, // era de la galería, ahora principal
+          { url: 'https://ik.imagekit.io/demo/a.png', fileId: 'file_a' }, // era la principal, ahora galería
+          { url: 'https://ik.imagekit.io/demo/c.png', fileId: null }
+        ]
+      })
+    });
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.image, 'https://ik.imagekit.io/demo/b.png');
+    assert.equal(body.image_imagekit_file_id, 'file_b');
+
+    const inserts = queries.filter(function (q) { return q.sql.startsWith('INSERT INTO producto_imagenes'); });
+    assert.equal(inserts.length, 2, 'la galería nueva tiene 2 imágenes (a y c)');
+    assert.equal(inserts[0].params[1], 'https://ik.imagekit.io/demo/a.png');
+    assert.equal(inserts[0].params[2], 0, 'orden secuencial arrancando en 0');
+    assert.equal(inserts[1].params[1], 'https://ik.imagekit.io/demo/c.png');
+    assert.equal(inserts[1].params[2], 1);
+
+    assert.ok(queries.some(function (q) { return q.sql.startsWith('DELETE FROM producto_imagenes'); }),
+      'la galería vieja se borra entera antes de reinsertar, para no chocar con la UNIQUE (producto_id, orden)');
+    assert.ok(queries.some(function (q) { return q.sql === 'COMMIT'; }));
+    assert.ok(!queries.some(function (q) { return q.sql === 'ROLLBACK'; }));
+
+    // file_a y file_b siguen en la lista nueva (aunque cambiaron de rol) — no
+    // se borran. file_old ya no aparece en ningún lado — se borra de ImageKit.
+    assert.deepEqual(deletedFileIds, ['file_old']);
+  });
+});
+
+test('PUT /:id/images/reorder: si el producto no existe, hace rollback y devuelve 404', async function (t) {
+  const queries = [];
+  t.mock.method(pool, 'connect', async function () { return buildReorderFakeClient(queries, { productExists: false }); });
+
+  await withServer(buildApp(), async function (base) {
+    const res = await fetch(base + '/api/products/999/images/reorder', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken() },
+      body: JSON.stringify({ images: [{ url: 'https://example.com/a.png' }] })
+    });
+    assert.equal(res.status, 404);
+    assert.ok(queries.some(function (q) { return q.sql === 'ROLLBACK'; }));
+    assert.ok(!queries.some(function (q) { return q.sql === 'COMMIT'; }));
+  });
+});
+
 // --- Imagen principal (subida suelta, sin producto asociado todavía) ---
 
 test('POST /upload-image: requiere autenticación', async function () {

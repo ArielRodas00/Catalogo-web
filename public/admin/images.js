@@ -1,26 +1,92 @@
 // ============================================================
-// admin/images.js — Gestión de imágenes (principal y adicionales)
-// Dropzone (arrastrar y soltar + selección múltiple + subida automática),
-// el estándar actual para este tipo de UI — ver AUDITORIA.md.
+// admin/images.js — Galería unificada de imágenes de un producto
+// ============================================================
+// Una sola lista ordenada (galleryImages): la posición 0 es la imagen
+// principal (productos.image), el resto es la galería (producto_imagenes).
+// Arrastrar y soltar + selección múltiple + reordenar arrastrando las
+// miniaturas — el estándar actual para este tipo de UI (ver AUDITORIA.md).
 // ============================================================
 
-// Imágenes adicionales que están subiéndose ahora mismo (todavía no
-// confirmadas por el servidor) — se muestran como miniaturas con spinner
-// mezcladas con las ya confirmadas, y se sacan de acá cuando terminan.
-let uploadingExtraImages = [];
-let extraImagesProductId = null;
+// { tempId, url, fileId, previewUrl, status: 'uploading'|'ready'|'error' }
+let galleryImages = [];
+// null mientras se crea un producto nuevo (todavía sin id) — en ese caso los
+// cambios se guardan recién al enviar el formulario completo. Con un id ya
+// asignado (editando un producto existente), cada cambio se persiste solo.
+let galleryProductId = null;
+
+function resetGallery() {
+  galleryImages.forEach(function(item) {
+    if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+  });
+  galleryImages = [];
+  galleryProductId = null;
+  renderGallery();
+}
+
+// Arma el estado inicial de la galería a partir de un producto ya guardado
+// (su imagen principal + su galería en producto_imagenes).
+async function loadGalleryForProduct(product) {
+  galleryProductId = product.id;
+  let extra = [];
+  try {
+    const res = await fetch('/api/products/' + product.id + '/images');
+    extra = await res.json();
+  } catch (_e) {
+    extra = [];
+  }
+  galleryImages = [
+    { tempId: 'main', url: product.image, fileId: product.image_imagekit_file_id || null, status: 'ready' }
+  ].concat(extra.map(function(img) {
+    return { tempId: 'g' + img.id, url: img.url, fileId: img.imagekit_file_id || null, status: 'ready' };
+  }));
+  renderGallery();
+}
+
+function renderGallery() {
+  const container = document.getElementById('gallery-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  galleryImages.forEach(function(item, index) {
+    const div = document.createElement('div');
+    const canDrag = item.status === 'ready';
+    div.className = 'img-item' + (item.status === 'uploading' ? ' uploading' : item.status === 'error' ? ' error' : '');
+    div.draggable = canDrag;
+    div.dataset.index = String(index);
+
+    let inner = '<img src="' + escapeAttr(item.previewUrl || item.url) + '" alt="imagen">';
+    if (index === 0 && item.status === 'ready') {
+      inner += '<span class="img-item-main-badge">Principal</span>';
+    }
+    if (item.status === 'uploading') {
+      inner += '<div class="img-item-spinner"><span class="spinner" aria-hidden="true"></span></div>';
+    } else if (item.status === 'error') {
+      inner += '<div class="img-item-error-icon" title="No se pudo subir"><span class="material-symbols-outlined" aria-hidden="true">error</span></div>' +
+        '<button onclick="removeGalleryImage(' + index + ')" class="btn-delete-img" aria-label="Quitar" title="Quitar">' +
+          '<span class="material-symbols-outlined" aria-hidden="true">close</span>' +
+        '</button>';
+    } else {
+      inner += '<button onclick="removeGalleryImage(' + index + ')" class="btn-delete-img" aria-label="Eliminar imagen" title="Eliminar imagen">' +
+        '<span class="material-symbols-outlined" aria-hidden="true">delete</span>' +
+      '</button>';
+    }
+    div.innerHTML = inner;
+    container.appendChild(div);
+  });
+
+  setupGalleryDragReorder();
+}
 
 // ------------------------------------------------------------
-// Dropzone genérico: click-to-browse (vía el <input> superpuesto) +
-// arrastrar y soltar, con feedback visual (.dragover) mientras se arrastra.
+// Dropzone: click-to-browse + arrastrar y soltar (selección múltiple)
 // ------------------------------------------------------------
-function setupDropzone(dropzoneId, inputId, onFiles) {
-  const dropzone = document.getElementById(dropzoneId);
-  const input = document.getElementById(inputId);
+function setupImageDropzones() {
+  const dropzone = document.getElementById('gallery-dropzone');
+  const input = document.getElementById('gallery-files');
   if (!dropzone || !input) return;
 
   input.addEventListener('change', function() {
-    if (input.files.length > 0) onFiles(Array.from(input.files));
+    if (input.files.length > 0) addGalleryFiles(Array.from(input.files));
     input.value = '';
   });
 
@@ -30,192 +96,99 @@ function setupDropzone(dropzoneId, inputId, onFiles) {
       dropzone.classList.add('dragover');
     });
   });
-
   ['dragleave', 'drop'].forEach(function(evt) {
     dropzone.addEventListener(evt, function(e) {
       e.preventDefault();
       dropzone.classList.remove('dragover');
     });
   });
-
   dropzone.addEventListener('drop', function(e) {
-    const files = Array.from(e.dataTransfer.files).filter(function(f) {
-      return f.type.startsWith('image/');
-    });
-    if (files.length > 0) onFiles(files);
-  });
-}
-
-function setupImageDropzones() {
-  setupDropzone('main-image-dropzone', 'field-image-file', function(files) {
-    uploadMainImageFile(files[0]); // la principal es una sola — si sueltan varias, se usa la primera
-  });
-  setupDropzone('extra-images-dropzone', 'new-image-files', function(files) {
-    uploadImageFiles(extraImagesProductId, files);
+    const files = Array.from(e.dataTransfer.files).filter(function(f) { return f.type.startsWith('image/'); });
+    if (files.length > 0) addGalleryFiles(files);
   });
 }
 
 // ------------------------------------------------------------
-// Imagen principal
+// Reordenar arrastrando las miniaturas entre sí (drag & drop nativo)
 // ------------------------------------------------------------
-async function uploadMainImageFile(file) {
-  if (!file) return;
-
-  const preview = document.getElementById('image-preview');
-  const uploadingIndicator = document.getElementById('main-image-uploading');
-  uploadingIndicator.style.display = 'flex';
-
-  try {
-    const formData = new FormData();
-    formData.append('image', file);
-
-    const res = await fetch('/api/products/upload-image', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + getToken() },
-      body: formData
-    });
-    if (!res.ok) { showToast('Error al subir imagen', 'error'); return; }
-
-    const data = await res.json();
-    document.getElementById('field-image-url').value = data.url;
-    document.getElementById('field-image-imagekit-file-id').value = data.fileId;
-    preview.src = data.url;
-    preview.style.display = 'block';
-    showToast('Imagen subida ✓');
-  } catch (_e) {
-    showToast('Error de conexión al subir la imagen', 'error');
-  } finally {
-    uploadingIndicator.style.display = 'none';
-  }
-}
-
-// ------------------------------------------------------------
-// Imágenes adicionales
-// ------------------------------------------------------------
-async function loadProductImages(productId) {
-  extraImagesProductId = productId;
-  let images;
-  try {
-    const res = await fetch('/api/products/' + productId + '/images');
-    images = await res.json();
-  } catch (err) {
-    showToast('Error al cargar imágenes');
-    return;
-  }
-  renderImagesGrid(images);
-}
-
-// Combina las imágenes ya confirmadas por el servidor con las que todavía
-// se están subiendo (uploadingExtraImages), para que el usuario vea de
-// entrada la miniatura con spinner apenas suelta/elige el archivo, sin
-// esperar a que termine de subir.
-function renderImagesGrid(confirmedImages) {
-  const container = document.getElementById('images-container');
+function setupGalleryDragReorder() {
+  const container = document.getElementById('gallery-container');
   if (!container) return;
+  let dragSrcIndex = null;
 
-  container.innerHTML = '';
-
-  confirmedImages.forEach(function(img) {
-    const div = document.createElement('div');
-    div.className = 'img-item';
-    div.innerHTML =
-      '<img src="' + escapeAttr(img.url) + '" alt="imagen">' +
-      '<button onclick="deleteImage(' + img.id + ', ' + extraImagesProductId + ')" class="btn-delete-img" aria-label="Eliminar imagen" title="Eliminar imagen">' +
-        '<span class="material-symbols-outlined" aria-hidden="true">delete</span>' +
-      '</button>';
-    container.appendChild(div);
-  });
-
-  uploadingExtraImages.forEach(function(item) {
-    const div = document.createElement('div');
-    div.className = 'img-item ' + (item.status === 'error' ? 'error' : 'uploading');
-    if (item.status === 'error') {
-      div.innerHTML =
-        '<img src="' + escapeAttr(item.previewUrl) + '" alt="imagen">' +
-        '<div class="img-item-error-icon" title="' + escapeAttr(item.errorMessage || 'Error al subir') + '">' +
-          '<span class="material-symbols-outlined" aria-hidden="true">error</span>' +
-        '</div>' +
-        '<button onclick="retryUploadingImage(\'' + item.tempId + '\')" class="btn-delete-img" aria-label="Reintentar" title="Reintentar">' +
-          '<span class="material-symbols-outlined" aria-hidden="true">refresh</span>' +
-        '</button>';
-    } else {
-      div.innerHTML =
-        '<img src="' + escapeAttr(item.previewUrl) + '" alt="imagen">' +
-        '<div class="img-item-spinner"><span class="spinner" aria-hidden="true"></span></div>';
-    }
-    container.appendChild(div);
+  container.querySelectorAll('.img-item[draggable="true"]').forEach(function(el) {
+    el.addEventListener('dragstart', function() {
+      dragSrcIndex = Number(el.dataset.index);
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', function() {
+      el.classList.remove('dragging');
+    });
+    el.addEventListener('dragover', function(e) { e.preventDefault(); });
+    el.addEventListener('drop', function(e) {
+      e.preventDefault();
+      const targetIndex = Number(el.dataset.index);
+      if (dragSrcIndex === null || dragSrcIndex === targetIndex) return;
+      const [moved] = galleryImages.splice(dragSrcIndex, 1);
+      galleryImages.splice(targetIndex, 0, moved);
+      dragSrcIndex = null;
+      renderGallery();
+      persistGalleryIfEditing();
+    });
   });
 }
 
-async function deleteImage(imageId, productId) {
-  const res = await fetch('/api/products/images/' + imageId, {
-    method: 'DELETE',
-    headers: { 'Authorization': 'Bearer ' + getToken() }
-  });
-  if (!res.ok) { showToast('Error al eliminar imagen', 'error'); return; }
-  await loadProductImages(productId);
-  showToast('Imagen eliminada ✓');
-}
-
-async function uploadImageUrl(productId) {
-  const input = document.getElementById('new-image-url');
-  const url   = input.value.trim();
-  if (!url) return;
-
-  const res = await fetch('/api/products/' + productId + '/images/url', {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
-    body:    JSON.stringify({ url: url, orden: 0 })
-  });
-  if (!res.ok) { showToast('Error al agregar imagen', 'error'); return; }
-
-  input.value = '';
-  await loadProductImages(productId);
-  showToast('Imagen agregada ✓');
-}
-
-// Sube varias imágenes a la vez: cada una aparece de entrada como miniatura
-// con spinner (uploadingExtraImages) y se va reemplazando por la real a
-// medida que cada subida termina — no hace falta esperar a que terminen
-// todas para ver la primera.
-async function uploadImageFiles(productId, files) {
-  if (!productId || !files || files.length === 0) return;
-
+// ------------------------------------------------------------
+// Agregar imágenes (archivo o URL)
+// ------------------------------------------------------------
+async function addGalleryFiles(files) {
   const items = files.map(function(file) {
     return {
       tempId: 'up_' + Date.now() + '_' + Math.random().toString(36).slice(2),
       file: file,
       previewUrl: URL.createObjectURL(file),
+      url: null,
+      fileId: null,
       status: 'uploading'
     };
   });
-  uploadingExtraImages = uploadingExtraImages.concat(items);
-  renderImagesGrid(await currentConfirmedImages(productId));
+  galleryImages = galleryImages.concat(items);
+  renderGallery();
 
-  // Secuencial, no en paralelo: el servidor calcula el "orden" de cada
-  // imagen mirando el máximo ya guardado para ese producto (ver
-  // routes/products.js) — subiendo de a una evitamos que dos subidas
-  // simultáneas lean el mismo máximo y choquen entre sí.
+  // Secuencial, no en paralelo — ver el mismo motivo documentado en
+  // AUDITORIA.md para la subida de imágenes adicionales de antes.
   let successCount = 0;
   for (const item of items) {
     try {
       const formData = new FormData();
       formData.append('image', item.file);
-      const res = await fetch('/api/products/' + productId + '/images/upload', {
+      const res = await fetch('/api/products/upload-image', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + getToken() },
         body: formData
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      item.url = data.url;
+      item.fileId = data.fileId;
+      item.status = 'ready';
       successCount++;
-      uploadingExtraImages = uploadingExtraImages.filter(function(i) { return i.tempId !== item.tempId; });
+      // Recién acá se suelta la preview local: ya tenemos la URL real que la
+      // reemplaza. Hay que limpiar previewUrl además de liberarla, porque
+      // renderGallery() la prioriza sobre url — si queda seteada, la
+      // miniatura apuntaría a un blob ya revocado y se vería rota.
+      URL.revokeObjectURL(item.previewUrl);
+      item.previewUrl = null;
     } catch (_e) {
       item.status = 'error';
-      item.errorMessage = 'No se pudo subir';
+      // En error se conserva la preview local (es lo único que hay para
+      // mostrar qué archivo falló). Se libera al quitarla o al cerrar el
+      // formulario — ver removeGalleryImage() y resetGallery().
     }
-    URL.revokeObjectURL(item.previewUrl);
-    await loadProductImages(productId);
+    renderGallery();
   }
+
+  await persistGalleryIfEditing();
 
   if (successCount === items.length) {
     showToast(successCount > 1 ? successCount + ' imágenes subidas ✓' : 'Imagen subida ✓');
@@ -226,26 +199,74 @@ async function uploadImageFiles(productId, files) {
   }
 }
 
-async function retryUploadingImage(tempId) {
-  const item = uploadingExtraImages.find(function(i) { return i.tempId === tempId; });
-  if (!item) return;
-  uploadingExtraImages = uploadingExtraImages.filter(function(i) { return i.tempId !== tempId; });
-  await uploadImageFiles(extraImagesProductId, [item.file]);
-}
+function addGalleryImageUrl() {
+  const input = document.getElementById('gallery-url-input');
+  const url = input.value.trim();
+  if (!url) return;
 
-// Se llama al abrir/cerrar el modal de producto — evita que quede una
-// miniatura "subiendo" de un producto anterior colgada en el siguiente.
-function resetUploadingExtraImages() {
-  uploadingExtraImages.forEach(function(item) { URL.revokeObjectURL(item.previewUrl); });
-  uploadingExtraImages = [];
-  extraImagesProductId = null;
-}
-
-async function currentConfirmedImages(productId) {
+  let parsed;
   try {
-    const res = await fetch('/api/products/' + productId + '/images');
-    return await res.json();
+    parsed = new URL(url);
   } catch (_e) {
-    return [];
+    showToast('URL inválida', 'error');
+    return;
   }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    showToast('La URL debe ser http o https', 'error');
+    return;
+  }
+
+  galleryImages.push({ tempId: 'url_' + Date.now(), url: url, fileId: null, status: 'ready' });
+  input.value = '';
+  renderGallery();
+  persistGalleryIfEditing();
+  showToast('Imagen agregada ✓');
+}
+
+async function removeGalleryImage(index) {
+  const remaining = galleryImages.filter(function(_item, i) { return i !== index; });
+  if (remaining.filter(function(i) { return i.status !== 'error'; }).length === 0) {
+    showToast('Tiene que quedar al menos una imagen', 'error');
+    return;
+  }
+  const item = galleryImages[index];
+  if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+  galleryImages.splice(index, 1);
+  renderGallery();
+  await persistGalleryIfEditing();
+  showToast('Imagen quitada ✓');
+}
+
+// Guarda el orden/composición actual en el servidor — solo si ya estamos
+// editando un producto real (con id). Para uno nuevo, se persiste recién al
+// guardar el formulario completo (ver products.js).
+async function persistGalleryIfEditing() {
+  if (galleryProductId === null) return;
+  const confirmed = galleryImages.filter(function(i) { return i.status === 'ready'; });
+  if (confirmed.length === 0) return;
+
+  await fetch('/api/products/' + galleryProductId + '/images/reorder', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+    body: JSON.stringify({
+      images: confirmed.map(function(i) { return { url: i.url, fileId: i.fileId }; })
+    })
+  });
+}
+
+// Para cuando se crea un producto nuevo: recién ahí existe un id, así que se
+// asocia la galería completa (la principal ya quedó guardada en el POST de
+// creación — ver products.js — pero volver a mandarla acá no hace daño y
+// simplifica no tener casos especiales).
+async function attachGalleryToNewProduct(productId) {
+  galleryProductId = productId;
+  await persistGalleryIfEditing();
+}
+
+// Devuelve { image, image_imagekit_file_id } de la primera imagen de la
+// galería, para incluir en el payload del formulario (creación o edición).
+function getGalleryMainImage() {
+  const main = galleryImages.filter(function(i) { return i.status === 'ready'; })[0];
+  if (!main) return null;
+  return { image: main.url, image_imagekit_file_id: main.fileId || null };
 }

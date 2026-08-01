@@ -232,9 +232,7 @@ function openNewForm() {
   editingId = null;
   document.getElementById('form-title').textContent = 'Nuevo Producto';
   document.getElementById('product-form').reset();
-  document.getElementById('image-preview').style.display  = 'none';
-  document.getElementById('extra-images-section').style.display = 'none';
-  resetUploadingExtraImages();
+  resetGallery();
 
   document.getElementById('form-modal-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -245,7 +243,7 @@ function closeFormModal() {
   document.body.style.overflow = '';
   document.getElementById('product-form').reset();
   editingId = null;
-  resetUploadingExtraImages();
+  resetGallery();
 }
 
 async function openEditForm(id) {
@@ -261,8 +259,6 @@ async function openEditForm(id) {
   document.getElementById('field-category').value          = product.category;
   document.getElementById('field-new-category').value      = '';
   document.getElementById('field-description').value       = product.description;
-  document.getElementById('field-image-url').value         = product.image;
-  document.getElementById('field-image-imagekit-file-id').value = product.image_imagekit_file_id || '';
   document.getElementById('field-whatsapp').value          = product.whatsapp;
   document.getElementById('field-brand').value        = '';
   document.getElementById('field-brand-select').value = product.brand || '';
@@ -295,12 +291,7 @@ async function openEditForm(id) {
       : '';
   // → Fin líneas nuevas
 
-  const preview         = document.getElementById('image-preview');
-  preview.src           = product.image;
-  preview.style.display = 'block';
-
-  document.getElementById('extra-images-section').style.display = 'block';
-  await loadProductImages(id);
+  await loadGalleryForProduct(product);
 
   document.getElementById('form-modal-overlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -340,14 +331,22 @@ document.getElementById('product-form').addEventListener('submit', async functio
   const selSubcat = document.getElementById('field-subcategoria-select').value;
   const subcategoria = newSubcat !== '' ? newSubcat : selSubcat;
 
+  // La imagen principal es la primera de la galería (ver images.js) — no un
+  // campo de formulario aparte.
+  const mainImage = getGalleryMainImage();
+  if (!mainImage) {
+    showToast('Agregá al menos una imagen del producto.', 'error');
+    return;
+  }
+
   const productData = {
     name:        document.getElementById('field-name').value.trim(),
     price:       Number(document.getElementById('field-price').value),
     category:    category,
     subcategoria: subcategoria,
     brand:        brand,
-  image:          document.getElementById('field-image-url').value.trim(),
-  image_imagekit_file_id: document.getElementById('field-image-imagekit-file-id').value || null,
+  image:          mainImage.image,
+  image_imagekit_file_id: mainImage.image_imagekit_file_id,
   description:    document.getElementById('field-description').value.trim(),
   whatsapp:       document.getElementById('field-whatsapp').value.trim(),
   en_stock:       document.getElementById('field-en-stock').checked,
@@ -365,8 +364,14 @@ document.getElementById('product-form').addEventListener('submit', async functio
   };
 
   if (editingId === null) {
-    await addProduct(productData);
+    const created = await addProduct(productData);
     // await espera que el servidor confirme que guardó el producto
+    if (created && created.id) {
+      // La imagen principal ya quedó guardada en el POST de arriba — esto
+      // asocia el resto de la galería (si había más de una imagen), ahora
+      // que el producto ya tiene un id real.
+      await attachGalleryToNewProduct(created.id);
+    }
     showToast('Producto agregado correctamente ✓');
   } else {
     productData.id = editingId;
@@ -494,28 +499,3 @@ function updateSubcatSelect(category, allProducts) {
   });
 }
 
-// ------------------------------------------------------------
-// Preview de imagen
-// ------------------------------------------------------------
-function setupImagePreview() {
-  const urlInput = document.getElementById('field-image-url');
-  const preview  = document.getElementById('image-preview');
-
-  urlInput.addEventListener('input', function() {
-    // Si el usuario tipea/pega la URL a mano, invalidamos el file_id que
-    // hubiera quedado de una subida anterior — ya no corresponde a esta URL
-    // (uploadMainImageFile() setea .value por código, no dispara este evento,
-    // así que no se pisa a sí mismo).
-    document.getElementById('field-image-imagekit-file-id').value = '';
-    const url = this.value.trim();
-    if (url) {
-      preview.src           = url;
-      preview.style.display = 'block';
-      preview.onerror = function() {
-        preview.style.display = 'none';
-      };
-    } else {
-      preview.style.display = 'none';
-    }
-  });
-}

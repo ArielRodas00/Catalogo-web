@@ -303,7 +303,12 @@ router.get('/:id/images', getLimiter, async function(req, res, next) {
 router.post('/:id/images/url', apiLimiter, authenticateToken, async function(req, res, next) {
   try {
     const id    = Number(req.params.id);
-    const { url } = req.body;
+    // imagekit_file_id es opcional y de uso interno: lo manda el propio
+    // frontend cuando esta "URL" en realidad es un archivo que ya se subió a
+    // ImageKit vía POST /upload-image (galería unificada, ver
+    // AUDITORIA.md) — así se puede borrar el archivo real más adelante. Si
+    // es una URL externa de verdad (pegada a mano), queda null como siempre.
+    const { url, imagekit_file_id } = req.body;
 
     let parsedUrl;
     try {
@@ -319,10 +324,10 @@ router.post('/:id/images/url', apiLimiter, authenticateToken, async function(req
     // 0 hacía que la segunda imagen de un mismo producto chocara con la
     // restricción UNIQUE (producto_id, orden) — bug real, ver AUDITORIA.md.
     const result = await pool.query(
-      `INSERT INTO producto_imagenes (producto_id, url, orden)
-       VALUES ($1, $2, (SELECT COALESCE(MAX(orden), -1) + 1 FROM producto_imagenes WHERE producto_id = $1))
+      `INSERT INTO producto_imagenes (producto_id, url, orden, imagekit_file_id)
+       VALUES ($1, $2, (SELECT COALESCE(MAX(orden), -1) + 1 FROM producto_imagenes WHERE producto_id = $1), $3)
        RETURNING *`,
-      [id, url]
+      [id, url, imagekit_file_id || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -418,6 +423,96 @@ router.delete('/images/:imageId', apiLimiter, authenticateToken, async function(
       await imageStorage.deleteImage(result.rows[0].imagekit_file_id);
     }
     res.json({ message: 'Imagen eliminada' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/products/:id/images/reorder — galería unificada (principal +
+// adicionales en un solo orden, ver AUDITORIA.md). El primer elemento del
+// array pasa a ser la imagen principal (productos.image); el resto es la
+// galería (producto_imagenes), en ese orden.
+//
+// Body: { images: [{ url, fileId }, ...] } — en el orden final deseado.
+//
+// La galería se reconstruye entera (se borra y se vuelve a insertar) en vez
+// de actualizar el "orden" fila por fila: actualizar de a una corre el
+// riesgo de chocar momentáneamente con la restricción UNIQUE
+// (producto_id, orden) de otra fila que todavía no se movió (mismo tipo de
+// bug que ya se corrigió en POST .../images/url — ver AUDITORIA.md).
+router.put('/:id/images/reorder', apiLimiter, authenticateToken, async function(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    const { images } = req.body;
+
+    if (!Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ error: 'Se requiere "images" (array) con al menos 1 imagen' });
+    }
+    for (const img of images) {
+      if (!img || typeof img.url !== 'string' || !img.url) {
+        return res.status(400).json({ error: 'Cada imagen necesita una url' });
+      }
+    }
+
+    const [newMain, ...gallery] = images;
+
+    const client = await pool.connect();
+    let notFound = false;
+    let orphanedFileIds = [];
+    try {
+      await client.query('BEGIN');
+
+      const oldProductRes = await client.query(
+        'SELECT image_imagekit_file_id FROM productos WHERE id=$1',
+        [id]
+      );
+      if (oldProductRes.rows.length === 0) {
+        notFound = true;
+        await client.query('ROLLBACK');
+      } else {
+        // file_id que había antes (principal + galería) — lo que no aparezca
+        // en la lista nueva se borra de ImageKit después de confirmar (si no,
+        // quedaría huérfano consumiendo cuota — igual que ya hace el borrado
+        // individual de una imagen).
+        const oldGalleryRes = await client.query(
+          'SELECT imagekit_file_id FROM producto_imagenes WHERE producto_id=$1',
+          [id]
+        );
+        const oldFileIds = [oldProductRes.rows[0].image_imagekit_file_id]
+          .concat(oldGalleryRes.rows.map(function(r) { return r.imagekit_file_id; }))
+          .filter(Boolean);
+        const newFileIds = new Set(images.map(function(i) { return i.fileId; }).filter(Boolean));
+        orphanedFileIds = oldFileIds.filter(function(fid) { return !newFileIds.has(fid); });
+
+        const productResult = await client.query(
+          'UPDATE productos SET image=$1, image_imagekit_file_id=$2 WHERE id=$3 RETURNING *',
+          [newMain.url, newMain.fileId || null, id]
+        );
+
+        await client.query('DELETE FROM producto_imagenes WHERE producto_id=$1', [id]);
+        for (let i = 0; i < gallery.length; i++) {
+          await client.query(
+            'INSERT INTO producto_imagenes (producto_id, url, orden, imagekit_file_id) VALUES ($1,$2,$3,$4)',
+            [id, gallery[i].url, i, gallery[i].fileId || null]
+          );
+        }
+        await client.query('COMMIT');
+        res.json(productResult.rows[0]);
+      }
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+    if (notFound) return res.status(404).json({ error: 'Producto no encontrado' });
+
+    // Fuera de la transacción a propósito: no debe demorar ni romper la
+    // respuesta si ImageKit tarda o falla (best-effort, igual que el borrado
+    // individual de una imagen).
+    for (const fid of orphanedFileIds) {
+      await imageStorage.deleteImage(fid);
+    }
   } catch (err) {
     next(err);
   }
