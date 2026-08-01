@@ -110,7 +110,7 @@ async function openModal(productId) {
       '<h2 class="modal-name">' + escapeHTML(product.name) + '</h2>' +
       modalPriceHTML +
       '<p class="modal-description">' + escapeHTML(product.description) + '</p>' +
-      '<a href="' + whatsappLink + '" target="_blank" class="btn-whatsapp" onclick="registrarClickWhatsapp(' + product.id + ')">' +
+      '<a href="' + escapeAttr(whatsappLink) + '" target="_blank" rel="noopener" class="btn-whatsapp" onclick="registrarClickWhatsapp(' + Number(product.id) + ')">' +
         '<span class="material-symbols-outlined">chat</span>' +
         'Consultar por WhatsApp' +
       '</a>' +

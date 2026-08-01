@@ -86,6 +86,40 @@ test('validateProduct: rechaza whatsapp muy corto salvo el placeholder "0000"', 
   assert.equal(calledPlaceholder, true);
 });
 
+test('validateProduct: rechaza un whatsapp que no sea solo dígitos (vector de XSS)', function () {
+  // Este campo se interpola en el href del botón "Consultar" del catálogo.
+  // Aceptar cualquier string permitía cerrar el atributo e inyectar un
+  // manejador de eventos (XSS almacenado) — ver AUDITORIA.md.
+  const base = { name: 'X', price: 10, category: 'motor', image: 'x.jpg' };
+
+  const maliciosos = [
+    '5959" onmouseover="alert(1)',
+    '595981234567"><script>alert(1)</script>',
+    'javascript:alert(1)',
+    '0981-123-456'
+  ];
+  maliciosos.forEach(function (whatsapp) {
+    let paso = false;
+    validateProduct(
+      { method: 'POST', body: Object.assign({}, base, { whatsapp: whatsapp }) },
+      mockRes(),
+      function () { paso = true; }
+    );
+    assert.equal(paso, false, 'debe rechazar: ' + whatsapp);
+  });
+
+  // Los números legítimos siguen entrando (incluido el formato internacional)
+  ['595981234567', '+595981234567', '0000'].forEach(function (whatsapp) {
+    let paso = false;
+    validateProduct(
+      { method: 'POST', body: Object.assign({}, base, { whatsapp: whatsapp }) },
+      mockRes(),
+      function () { paso = true; }
+    );
+    assert.equal(paso, true, 'debe aceptar: ' + whatsapp);
+  });
+});
+
 test('sanitizeOrder: descarta valores no permitidos y devuelve "reciente"', function () {
   assert.equal(sanitizeOrder('precio-asc'), 'precio-asc');
   assert.equal(sanitizeOrder("'; DROP TABLE productos; --"), 'reciente');

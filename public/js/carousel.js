@@ -65,7 +65,7 @@ async function initCarousel() {
           carouselPriceHTML +
           '<div class="carousel-actions">' +
             '<button class="btn-carousel-detail" data-id="' + product.id + '">Ver detalle</button>' +
-            '<a href="' + whatsappLink + '" target="_blank" class="btn-carousel-whatsapp">Consultar</a>' +
+            '<a href="' + escapeAttr(whatsappLink) + '" target="_blank" rel="noopener" class="btn-carousel-whatsapp">Consultar</a>' +
           '</div>' +
         '</div>' +
         '<div class="carousel-media">' +

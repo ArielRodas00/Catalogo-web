@@ -21,3 +21,19 @@ public/uploads/*
 
 # Scripts/archivos temporales de scripting/depuración (ej. capturas con Playwright)
 _tmp-*
+
+# Backups y dumps de base de datos. IMPORTANTE: el dump del Panel Central
+# contiene las api_key de todos los clientes (en texto plano) y los hashes de
+# contraseña del super-admin — este repo es PÚBLICO, nunca deben versionarse.
+backups*/
+*.sql.gz
+*.dump
+*.sql.bak
+
+# Scripts sueltos de un solo uso (ej. resetear una contraseña): suelen
+# ejecutarse con credenciales reales por variable de entorno y no aportan
+# nada al repo.
+scratch-*.js
+
+# Carpeta local de trabajo con imágenes originales (no es contenido del sitio)
+Images/

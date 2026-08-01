@@ -41,9 +41,13 @@ function validateProduct(req, res, next) {
     errors.push('La imagen es requerida');
   }
   
+  // Solo dígitos (con un + opcional adelante). Antes se aceptaba cualquier
+  // string de 5+ caracteres, y ese valor se interpola en el href del botón
+  // "Consultar" del catálogo: un valor con comillas podía cerrar el atributo
+  // e inyectar un manejador de eventos (XSS almacenado). Ver AUDITORIA.md.
   if (whatsapp !== undefined) {
-    if (typeof whatsapp !== 'string' || (whatsapp.trim().length < 5 && whatsapp.trim() !== '0000')) {
-      errors.push('El número de WhatsApp debe tener al menos 5 caracteres');
+    if (typeof whatsapp !== 'string' || !/^\+?[0-9]{4,20}$/.test(whatsapp.trim())) {
+      errors.push('El número de WhatsApp debe tener solo dígitos (entre 4 y 20, con + opcional)');
     }
   } else if (!isUpdate) {
     errors.push('El número de WhatsApp es requerido');

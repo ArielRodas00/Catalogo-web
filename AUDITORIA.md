@@ -814,6 +814,81 @@ el **layout dividido**.
 del usuario: pasó de **7,06x de ampliación** a **0,87x** (se reduce en vez de ampliarse — siempre nítida) en
 una ventana de 1920px, y a 0,32x en mobile. Capturas en 1920px y 390px sin errores de consola.
 
+## Auditoría de seguridad completa (2026-08-01)
+
+Pedida por el usuario tras hacer el repositorio **público**. Se revisó: historial de git, archivos sin
+trackear, dependencias, autenticación/autorización, inyección SQL, XSS, y configuración de producción en
+vivo. Resultado: **el proyecto no está comprometido**; se encontraron y corrigieron 2 problemas reales y 1
+riesgo latente.
+
+**Lo que se verificó y está correcto:**
+- **Historial de git (53 commits)**: ningún `.env` fue commiteado nunca, y no aparece ninguno de los secretos
+  reales de la sesión (contraseñas, connection strings de Neon, claves de ImageKit, API keys de clientes).
+- **Archivos trackeados**: sin credenciales en duro. Ningún connection string real.
+- **Dependencias**: Panel Central 0 vulnerabilidades. El catálogo reporta 2 moderadas en `uuid` (transitiva
+  de `imagekit`), pero **no son alcanzables**: el aviso aplica a `v3/v5/v6` cuando se pasa un buffer, e
+  ImageKit solo llama `uuid.v4()` sin buffer. Corregirlo exigiría bajar a `imagekit@1.5.0` (cambio
+  disruptivo), peor remedio que la enfermedad. Revisar cuando ImageKit actualice su dependencia.
+- **Autorización**: en el catálogo todas las escrituras exigen JWT; solo son públicas las lecturas y el
+  registro de métricas (con rate limit). En el Panel Central, `/api/clientes/*` está protegido globalmente
+  y **la `api_key` no se expone en el listado**, solo al abrir un cliente puntual.
+- **Inyección SQL**: no hay interpolación de `req.query/body/params` en SQL. El único lugar que concatena
+  (`metrics.js`) usa strings literales fijos elegidos por `switch` sobre un valor ya pasado por whitelist
+  (`sanitizePeriod`), y el `ORDER BY` sale de un mapa fijo (`ORDER_MAP` + `sanitizeOrder`).
+- **Producción en vivo**: CSP, HSTS (1 año, includeSubDomains), `nosniff`, `X-Frame-Options`,
+  `Referrer-Policy`, y sin `x-powered-by`. Todos los endpoints protegidos responden 401 sin credenciales.
+  No hay archivos sensibles servidos (`.env`, `.git/config`, `db.js` → 404).
+- **Login**: bcrypt + rate limit de 10 intentos / 15 min en ambos servicios. Sin secreto JWT por defecto en
+  el código (eso hubiera sido crítico).
+
+### Corregido: XSS almacenado vía el campo `whatsapp`
+
+El valor de `productos.whatsapp` se interpolaba **crudo** dentro del `href` del botón "Consultar"
+(`carousel.js` y `modal.js`), y la validación del backend solo exigía "string de 5+ caracteres". Un valor
+como `5959" onmouseover="alert(1)` cerraba el atributo antes de tiempo e inyectaba un manejador de eventos
+ejecutable en el catálogo público. Requiere acceso de admin para inyectarlo, pero también un admin
+distraído podía romper su propia página con una comilla suelta.
+
+- [x] **`middleware/validate.js`**: `whatsapp` ahora exige solo dígitos con `+` opcional
+      (`/^\+?[0-9]{4,20}$/`). Se verificó primero contra producción que los valores existentes (`0000`,
+      `00000`) siguen siendo válidos, para no romper datos ya cargados.
+- [x] **`carousel.js` / `modal.js`**: el `href` pasa por `escapeAttr()` (defensa en profundidad: no depende
+      solo de la validación) y se agregó `rel="noopener"` a los enlaces con `target="_blank"`.
+- [x] **Test de regresión** en `test/validate.test.js` con 4 payloads maliciosos y 3 números legítimos.
+
+### Corregido: `JWT_SECRET` no se validaba al arrancar en producción
+
+La comprobación de variables obligatorias vivía **solo en la rama de desarrollo local** (la que usa
+`DB_HOST`/`DB_PORT`/...). Un deploy de producción, que usa `DATABASE_URL`, podía arrancar sin `JWT_SECRET`
+y recién fallar al intentar loguearse. No es un bypass de autenticación (sin secreto, `jwt.sign` lanza y no
+emite tokens: falla cerrado, no abierto), pero con el modelo "1 deploy por cliente" olvidarlo en un cliente
+nuevo es un error realista que conviene que explote en el arranque y no en el primer login.
+
+- [x] `server.js` y `panel-central/server.js`: `JWT_SECRET` se valida siempre, antes de cualquier otra cosa.
+      Verificado que el proceso sale con código 1 y mensaje claro si falta.
+
+### Corregido: backup de base de datos a un `git add .` de filtrarse
+
+`backups-panel-central/*.sql.gz` **no estaba en `.gitignore`**. Ese dump contiene la tabla `clientes` con
+la columna `api_key` (las claves en texto plano con las que cada catálogo se autentica) y los hashes de
+contraseña del super-admin. No estaba filtrado (nunca se trackeó), pero un `git add .` lo hubiera subido a
+un repositorio público.
+
+- [x] `.gitignore`: se agregaron `backups*/`, `*.sql.gz`, `*.dump`, `*.sql.bak`, `scratch-*.js` e `Images/`.
+      Verificado con `git check-ignore` que el backup y el script de reseteo de contraseña ya están
+      protegidos.
+
+### Pendientes (no bloqueantes, decisiones del usuario)
+
+- **Rotar credenciales**: varias credenciales reales (Postgres local, connection string de Neon, claves de
+  ImageKit, contraseñas de admin) se compartieron por chat durante el desarrollo. No están en el repo ni
+  filtradas públicamente, pero conviene rotarlas al pasar a operación real con clientes que paguen.
+- **JWT en `localStorage`**: sigue siendo la decisión tomada al inicio (migrar a cookie httpOnly quedó
+  pospuesto explícitamente). Con el XSS de arriba corregido el riesgo baja, pero sigue siendo la mejora
+  pendiente más relevante de autenticación.
+- **Rate limiting en el Panel Central**: solo el login lo tiene; `/api/clientes/*` y `/api/licencia` no.
+  Están protegidos por JWT y API key respectivamente, así que el riesgo es bajo.
+
 ### Pendiente (elegido, no implementado): mosaico de categorías
 
 El usuario mostró la home de Nissei (mosaico de banners) y preguntó si se podía algo así. Se le explicó que
