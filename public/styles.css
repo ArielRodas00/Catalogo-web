@@ -1646,6 +1646,174 @@ h1, h2, h3 { font-family: var(--font-display); }
 
 
 /* ============================================================
+  MOSAICO DE CATEGORÍAS
+  Baldosas generadas con los datos de la base (ver js/mosaico.js).
+   ============================================================ */
+.mosaico-section {
+  max-width: 1200px;
+  margin: 40px auto 0;
+  padding: 0 20px;
+}
+
+.mosaico-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.mosaico-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 150px;
+  padding: 18px;
+  border: 1px solid #e6e6e6;
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+  font-family: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Franja de color de la marca: liga el mosaico al resto del catálogo
+   sin pintar la baldosa entera (las fotos de producto son sobre fondo
+   claro y sobre color se ensucian). */
+.mosaico-tile::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--color-primary);
+}
+
+.mosaico-tile:hover {
+  transform: translateY(-3px);
+  border-color: rgba(var(--color-primary-rgb), 0.45);
+  box-shadow: 0 10px 24px rgba(var(--color-primary-rgb), 0.16);
+}
+
+.mosaico-tile:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* La primera baldosa ocupa el doble de ancho: le da al mosaico el ritmo
+   irregular del ejemplo sin tener que diseñar cada pieza. */
+.mosaico-tile-lg {
+  grid-column: span 2;
+}
+
+.mosaico-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mosaico-nombre {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #111;
+  line-height: 1.2;
+}
+
+.mosaico-cantidad {
+  font-size: 0.85rem;
+  color: #777;
+}
+
+.mosaico-cta {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.mosaico-media {
+  flex: 0 0 40%;
+  max-width: 130px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* contain, nunca cover: las fotos de repuesto vienen en tamaños muy
+   distintos y recortarlas o ampliarlas las rompe (mismo criterio que el
+   carrusel del hero, ver AUDITORIA.md). */
+.mosaico-img {
+  max-width: 100%;
+  max-height: 110px;
+  object-fit: contain;
+  transition: transform 0.25s ease;
+}
+
+.mosaico-tile:hover .mosaico-img {
+  transform: scale(1.06);
+}
+
+@media (max-width: 900px) {
+  .mosaico-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .mosaico-tile-lg {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 560px) {
+  .mosaico-section {
+    margin-top: 28px;
+    padding: 0 14px;
+  }
+  .mosaico-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  /* En celular todas iguales: una baldosa a lo ancho se ve desbalanceada */
+  .mosaico-tile-lg {
+    grid-column: span 1;
+  }
+  .mosaico-tile {
+    min-height: 118px;
+    padding: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .mosaico-media {
+    flex: none;
+    width: 100%;
+    max-width: none;
+    /* height:auto pisa el 100% del bloque de escritorio: acá la tarjeta es
+       columna, y con alto al 100% la imagen se salía por abajo y quedaba
+       cortada por el overflow:hidden de la baldosa. */
+    height: auto;
+    justify-content: flex-end;
+    align-items: flex-end;
+  }
+  .mosaico-img {
+    max-height: 52px;
+  }
+  .mosaico-nombre {
+    font-size: 0.95rem;
+  }
+  .mosaico-cantidad {
+    font-size: 0.75rem;
+  }
+  .mosaico-cta {
+    display: none;
+  }
+}
+
+/* ============================================================
   SECCIONES DESTACADOS Y PROMOCIONES
    ============================================================ */
 .highlight-section {

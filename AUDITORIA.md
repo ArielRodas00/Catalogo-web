@@ -889,7 +889,7 @@ un repositorio público.
 - **Rate limiting en el Panel Central**: solo el login lo tiene; `/api/clientes/*` y `/api/licencia` no.
   Están protegidos por JWT y API key respectivamente, así que el riesgo es bajo.
 
-### Pendiente (elegido, no implementado): mosaico de categorías
+### Mosaico de categorías (implementado)
 
 El usuario mostró la home de Nissei (mosaico de banners) y preguntó si se podía algo así. Se le explicó que
 lo que hace que ese diseño funcione **no es el layout sino las imágenes**: son banners diseñados
@@ -899,7 +899,34 @@ mosaico volvería a romperse igual que el hero.
 Eligió la opción **"mosaico de categorías"**: recuadros generados automáticamente a partir de los datos ya
 cargados (una categoría por recuadro, con su color de marca y una foto representativa contenida), que
 linkean a esa categoría filtrada. No requiere diseñar nada y le sirve igual a cualquier cliente al que se le
-venda el catálogo. **Queda pendiente de implementar.** Punto de partida ya relevado: haría falta un endpoint
-tipo `GET /api/categories/resumen` que devuelva por categoría su cantidad de productos y una imagen
-representativa (hoy `GET /api/categories` solo devuelve `{categoria: [subcategorías]}` y lo consumen 3
-lugares, así que conviene no cambiarle la forma).
+venda el catálogo.
+
+**Backend**: nuevo `GET /api/categories/resumen` (`routes/categories.js`), aparte de `GET /api/categories`
+a propósito — esa ruta devuelve `{categoria: [subcategorías]}` y la consumen 3 lugares (`filters.js` ×2,
+`storage.js`), así que no se le tocó la forma. El nuevo endpoint usa `DISTINCT ON (category)` con
+`COUNT(*) OVER (PARTITION BY category)` para traer, en una sola query, el conteo real por categoría (no 1,
+que es lo que daría un `COUNT` combinado ingenuamente con `DISTINCT ON`) y una imagen representativa,
+priorizando por `ORDER BY` un producto que tenga imagen, esté en stock y sea destacado, en ese orden.
+
+**Frontend**: `public/js/mosaico.js` (nuevo) arma las baldosas y, al clickear una, aplica el mismo estado de
+filtro que ya usa el menú "Categorías" del nav (`selectedCategories = [cat]` + `renderProducts(1)`) — no se
+reinventó el filtrado. La sección arranca oculta (`display:none` en `index.html`) y solo se muestra si hay
+2+ categorías; con una sola categoría un "mosaico" no aporta nada. Estilos en `public/styles.css`: igual que
+el hero, las imágenes usan `object-fit: contain` (nunca `cover`) para no romperse con fotos de producto de
+tamaños dispares — ver el fix del hero, arriba. La primera baldosa ocupa el doble de ancho en escritorio
+(clase `.mosaico-tile-lg`) para el ritmo irregular tipo mosaico, sin diseñar nada a mano; en celular todas
+quedan del mismo tamaño porque una baldosa ancha a lo alto se veía desbalanceada.
+
+**Bug encontrado y corregido en la verificación con Playwright** (celular, 390px): las imágenes se cortaban
+por abajo. `.mosaico-media` heredaba `height: 100%` del bloque de escritorio, pero en el layout de celular
+la tarjeta pasa a `flex-direction: column` y con `height:100%` la imagen se salía del contenedor y quedaba
+recortada por el `overflow:hidden` de la baldosa. Fix: `height: auto` en el media query de 560px. Verificado
+antes/después con una medición real de desborde (`getBoundingClientRect()` de la imagen vs. la baldosa), no
+solo a ojo con la captura.
+
+Verificado en escritorio y celular (390px): sin errores de consola, sin scroll horizontal, click en una
+baldosa filtra correctamente (chip activo + productos de esa categoría), y ninguna imagen se ve ampliada
+(escalas medidas entre 0.04x y 0.25x — muy por debajo del 1x que la pixelaría). Tests nuevos en
+`test/categories.test.js`: el conteo real por categoría (no 1), la imagen ausente se normaliza a `null` en
+vez de romper, y una prueba de regresión de que `GET /api/categories` sigue devolviendo exactamente la forma
+que ya consumen los filtros.
