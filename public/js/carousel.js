@@ -50,6 +50,40 @@ async function initCarousel() {
     );
     const whatsappLink = 'https://wa.me/' + product.whatsapp + '?text=' + whatsappMsg;
 
+    // Características debajo del precio — solo escritorio (ver
+    // .carousel-features en styles.css, oculto en el media query mobile).
+    // Rellena el espacio libre del panel al maximizar la ventana, que hasta
+    // ahora quedaba vacío. Se arma con datos que ya existen en el producto,
+    // no hace falta un campo nuevo: marca/subcategoría como chips cortos, y
+    // la descripción (si existe) recortada a una línea aproximada.
+    const featureItems = [];
+    if (product.brand && product.brand.trim() !== '') {
+      featureItems.push(
+        '<li><span class="material-symbols-outlined">verified</span>' + escapeHTML(product.brand) + '</li>'
+      );
+    }
+    if (product.subcategoria && product.subcategoria.trim() !== '') {
+      const sub = product.subcategoria.trim();
+      featureItems.push(
+        '<li><span class="material-symbols-outlined">category</span>' +
+          escapeHTML(sub.charAt(0).toUpperCase() + sub.slice(1)) + '</li>'
+      );
+    }
+    featureItems.push(
+      product.en_stock
+        ? '<li><span class="material-symbols-outlined">check_circle</span>Disponible</li>'
+        : '<li><span class="material-symbols-outlined">cancel</span>Sin stock</li>'
+    );
+
+    const desc = (product.description || '').trim();
+    const shortDesc = desc.length > 140 ? desc.slice(0, 140).trimEnd() + '…' : desc;
+
+    const carouselFeaturesHTML =
+      '<div class="carousel-features">' +
+        '<ul class="carousel-feature-list">' + featureItems.join('') + '</ul>' +
+        (shortDesc ? '<p class="carousel-description">' + escapeHTML(shortDesc) + '</p>' : '') +
+      '</div>';
+
     // Layout dividido (texto | imagen) en vez de la foto como fondo a
     // pantalla completa: las fotos de producto son verticales y chicas
     // (ej. 272x475px), así que estirarlas a todo el ancho del hero las
@@ -63,6 +97,7 @@ async function initCarousel() {
           '<span class="carousel-category">' + escapeHTML(product.category.toUpperCase()) + '</span>' +
           '<h2 class="carousel-title">' + escapeHTML(product.name) + '</h2>' +
           carouselPriceHTML +
+          carouselFeaturesHTML +
           '<div class="carousel-actions">' +
             '<button class="btn-carousel-detail" data-id="' + product.id + '">Ver detalle</button>' +
             '<a href="' + escapeAttr(whatsappLink) + '" target="_blank" rel="noopener" class="btn-carousel-whatsapp">Consultar</a>' +

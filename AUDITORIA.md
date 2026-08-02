@@ -903,3 +903,39 @@ venda el catálogo. **Queda pendiente de implementar.** Punto de partida ya rele
 tipo `GET /api/categories/resumen` que devuelva por categoría su cantidad de productos y una imagen
 representativa (hoy `GET /api/categories` solo devuelve `{categoria: [subcategorías]}` y lo consumen 3
 lugares, así que conviene no cambiarle la forma).
+
+*Actualización (2026-08-02): se llegó a implementar, verificar y desplegar (commit `22ce9ff`), pero el
+usuario pidió revertirlo (`git revert`, commit `08927c0`) a favor de mejoras más simples y puntuales sobre
+el carrusel existente — ver la sección siguiente. El código y el endpoint quedaron completamente removidos;
+si se retoma en el futuro, la implementación revertida sirve de referencia en el historial de git.*
+
+### Refinamientos del carrusel del hero (2026-08-02)
+
+Tres ajustes puntuales sobre el layout dividido texto|imagen (ver más arriba), a partir de una captura del
+usuario donde se veían dos problemas concretos y pidió además rellenar el espacio vacío del panel al
+maximizar la ventana:
+
+1. **Los puntos de navegación se perdían contra el fondo blanco.** Están centrados horizontalmente sobre
+   todo el hero (`left: 50%`), así que en el layout dividido caen justo sobre el borde entre el panel oscuro
+   y el panel blanco — la mitad de cada punto quedaba invisible según el ancho de ventana. Fix: una píldora
+   semitransparente (`rgba(0,0,0,0.45)` + `backdrop-filter: blur`) detrás de los puntos, así tienen contraste
+   sin importar qué color haya debajo. No se tocó su posición.
+
+2. **Línea recta y agresiva entre el panel negro y el blanco.** Se agregó un degradé (`.carousel-media::before`,
+   pseudo-elemento con `linear-gradient` de negro semitransparente a transparente) pegado al borde de
+   `.carousel-media` que linda con el panel oscuro. Se ancló a `.carousel-media` (no a `.carousel-split`) a
+   propósito: ese es siempre "el borde que toca el panel oscuro", sea el izquierdo en escritorio (columnas
+   lado a lado) o el de arriba en mobile (paneles apilados) — el media query de 640px solo rota la dirección
+   del degradé (`to right` → `to bottom`), sin duplicar lógica de posicionamiento.
+
+3. **Características del producto debajo del precio, solo en escritorio.** Rellena el espacio libre del
+   panel al maximizar la ventana (antes quedaba vacío entre el precio y los botones). Se arma con datos que
+   ya existían en el producto, sin agregar ningún campo nuevo: marca y subcategoría como chips cortos con
+   ícono (si están cargados), disponibilidad (`en_stock`), y la descripción recortada a ~140 caracteres si
+   tiene. Oculto explícitamente en el media query mobile (`display:none` en `.carousel-features`): ahí el
+   panel ya está justo de alto con título + precio + botones, y agregar más texto lo hubiera apretado.
+
+Verificado con Playwright a 1920px de ancho (el caso que reportó el problema) y en mobile (390px): los
+puntos miden con fondo opaco (`rgba(0,0,0,0.45)`) incluso cuando caen sobre el panel blanco, las
+características aparecen en escritorio y se confirmó que están ocultas en mobile, y no hay errores de
+consola en ningún caso.

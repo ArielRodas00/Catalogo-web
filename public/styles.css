@@ -1480,6 +1480,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 }
 
 .carousel-media {
+  position: relative;
   flex: 1 1 50%;
   min-width: 0;
   display: flex;
@@ -1488,6 +1489,24 @@ h1, h2, h3 { font-family: var(--font-display); }
   background: var(--color-surface, #fff);
   padding: 28px;
   overflow: hidden;
+}
+
+/* Degradé en el borde del panel blanco, pegado al panel oscuro: suaviza la
+   línea recta y agresiva entre ambos fondos. Va en .carousel-media (no en
+   .carousel-split) a propósito: ese borde es siempre "el lado que linda con
+   el panel oscuro", sea el izquierdo en el layout de escritorio (columnas
+   lado a lado) o el de arriba en mobile (apilado) — ver el media query de
+   abajo, que solo cambia de qué lado sale el degradé. */
+.carousel-media::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 110px;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.35), transparent);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .carousel-img {
@@ -1553,6 +1572,43 @@ h1, h2, h3 { font-family: var(--font-display); }
   margin-bottom: 24px;
 }
 
+/* Características debajo del precio — solo escritorio (ver el media query
+   de abajo). Rellena el espacio libre del panel al maximizar la ventana; en
+   mobile ese mismo espacio no sobra (el panel ya está justo de alto), así
+   que ahí se oculta en vez de apretar el layout. */
+.carousel-features {
+  margin-bottom: 20px;
+}
+
+.carousel-feature-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.carousel-feature-list li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.carousel-feature-list .material-symbols-outlined {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.carousel-description {
+  max-width: 46ch;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.75);
+}
+
 .carousel-actions {
   display: flex;
   gap: 12px;
@@ -1615,7 +1671,11 @@ h1, h2, h3 { font-family: var(--font-display); }
 .carousel-prev { left: 16px; }
 .carousel-next { right: 16px; }
 
-/* Dots de navegación */
+/* Dots de navegación. Quedan centrados sobre el borde entre el panel oscuro
+   y el panel claro (mitad del hero) — sin fondo propio, un dot blanco se
+   perdía contra el panel blanco y uno oscuro contra el panel oscuro. La
+   píldora semitransparente les da contraste sin importar qué color tengan
+   detrás. */
 .carousel-dots {
   position: absolute;
   bottom: 16px;
@@ -1623,6 +1683,10 @@ h1, h2, h3 { font-family: var(--font-display); }
   transform: translateX(-50%);
   display: flex;
   gap: 8px;
+  padding: 7px 10px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  border-radius: 999px;
   z-index: 10;
 }
 
@@ -1630,7 +1694,7 @@ h1, h2, h3 { font-family: var(--font-display); }
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.5);
   border: none;
   cursor: pointer;
   transition: background 0.2s, transform 0.2s;
@@ -1825,6 +1889,18 @@ h1, h2, h3 { font-family: var(--font-display); }
     padding: 16px;
   }
 
+  /* El panel apilado (columna) hace que el borde con el panel oscuro pase
+     de estar a la izquierda a estar arriba — el degradé rota con él. */
+  .carousel-media::before {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: auto;
+    width: auto;
+    height: 48px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.35), transparent);
+  }
+
   .carousel-info {
     flex: 1 1 auto;
     justify-content: flex-start;
@@ -1837,6 +1913,12 @@ h1, h2, h3 { font-family: var(--font-display); }
 
   .carousel-price {
     font-size: 1.1rem;
+  }
+
+  /* No hay lugar en mobile: el panel ya está justo de alto con
+     título+precio+botones. Ver comentario en .carousel-features. */
+  .carousel-features {
+    display: none;
   }
 
   .btn-carousel-detail,
