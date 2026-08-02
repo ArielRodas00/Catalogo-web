@@ -115,7 +115,6 @@ async function init() {
 
   initDropdowns();
   await initCarousel();
-  await initMosaicoCategorias();
   await initHighlightSections();
   await populateCategoryNav();
   await populateBrandNav();
