@@ -568,9 +568,10 @@ h1, h2, h3 { font-family: var(--font-display); }
   background-color: #1ebe57;
 }
 
-.btn-whatsapp .material-symbols-outlined {
-  scale: 1;                   /* Resetea el scale global del ícono */
-  font-size: 20px;
+.btn-whatsapp .icon-whatsapp {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 
