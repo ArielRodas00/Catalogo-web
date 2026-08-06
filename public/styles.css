@@ -1108,7 +1108,10 @@ h1, h2, h3 { font-family: var(--font-display); }
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
-  justify-content: space-between;
+  /* Centrado, no space-between: ese reparto tenía sentido cuando acá había
+     dos elementos (copyright + link al admin). Al quitar el link, el texto
+     solo quedaba descolgado a la izquierda. */
+  justify-content: center;
   align-items: center;
   font-size: 0.8rem;
   color: var(--color-text-muted);

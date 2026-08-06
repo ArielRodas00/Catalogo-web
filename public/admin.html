@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- El panel no debe aparecer nunca en buscadores. noindex evita que se
+       indexe y nofollow que se sigan sus enlaces; "noarchive" evita además
+       la copia en caché. Va acompañado de un Disallow en robots.txt y de
+       haber quitado el link del pie del catálogo — ver AUDITORIA.md. -->
+  <meta name="robots" content="noindex, nofollow, noarchive">
   <link rel="icon" href="__STORE_LOGO_URL__">
   <title>__STORE_NAME__ — Panel de Administración</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">

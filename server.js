@@ -107,6 +107,9 @@ app.get(['/', '/index.html'], function(req, res) {
 });
 
 app.get('/admin.html', function(req, res) {
+  // Defensa en profundidad junto al <meta name="robots"> del HTML: la
+  // cabecera la respetan también los bots que no llegan a parsear la página.
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
   renderBrandedHtml('admin.html', res);
 });
 
@@ -129,9 +132,18 @@ app.use(express.static('public', {
 }));
 
 // --- SEO: robots.txt ---
+// El catálogo sí se indexa (es el objetivo del producto), pero el panel de
+// administración no: aparecer en buscadores solo lo expone a escaneos
+// automáticos sin ningún beneficio. Ver AUDITORIA.md, "Reducir la superficie
+// de ataque del admin".
 app.get('/robots.txt', function(req, res) {
   res.type('text/plain');
-  res.send('User-agent: *\nAllow: /\nSitemap: ' + BASE_URL + '/sitemap.xml\n');
+  res.send(
+    'User-agent: *\n' +
+    'Disallow: /admin.html\n' +
+    'Allow: /\n' +
+    'Sitemap: ' + BASE_URL + '/sitemap.xml\n'
+  );
 });
 
 // --- SEO: Sitemap.xml ---

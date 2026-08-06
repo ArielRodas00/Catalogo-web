@@ -939,3 +939,49 @@ Verificado con Playwright a 1920px de ancho (el caso que reportó el problema) y
 puntos miden con fondo opaco (`rgba(0,0,0,0.45)`) incluso cuando caen sobre el panel blanco, las
 características aparecen en escritorio y se confirmó que están ocultas en mobile, y no hay errores de
 consola en ningún caso.
+
+## Reducir la superficie de ataque del admin (2026-08-06)
+
+El usuario preguntó cómo hacer que el panel de administración sea menos atractivo para ataques. Al revisar
+el estado real, el panel **estaba siendo anunciado activamente**, en tres frentes a la vez:
+
+1. Un link visible `⚙ Administración` en el pie de página del catálogo público, que lo mostraba a cualquier
+   visitante.
+2. `robots.txt` con `Allow: /`, es decir, invitando explícitamente a Google y a cualquier bot a indexarlo.
+3. `admin.html` sin ninguna etiqueta `robots`, así que nada impedía que apareciera en resultados de búsqueda.
+
+Corregido:
+- [x] **`public/index.html`**: se quitó el link del pie. El dueño entra escribiendo la URL o con un favorito;
+      el link no aportaba nada y lo exponía a todos.
+- [x] **`public/admin.html`**: `<meta name="robots" content="noindex, nofollow, noarchive">`.
+- [x] **`server.js`**: `robots.txt` ahora emite `Disallow: /admin.html` (el catálogo sí se sigue indexando,
+      que es el objetivo del producto), y la ruta `/admin.html` responde además con la cabecera
+      `X-Robots-Tag: noindex, nofollow, noarchive` — defensa en profundidad, porque la cabecera la respetan
+      también los bots que no llegan a parsear el HTML.
+- [x] **`public/styles.css`**: `.footer-bottom` pasó de `justify-content: space-between` a `center`. Ese
+      reparto tenía sentido con dos elementos (copyright + link al admin); al quedar uno solo, el texto se
+      veía descolgado a la izquierda.
+
+**Error cometido y corregido durante la implementación**: la primera versión dejaba un comentario HTML
+explicando *por qué* se había quitado el link — y ese comentario nombraba la ruta `/admin.html`. Los
+comentarios HTML se sirven al navegador, así que le estaba indicando al atacante exactamente lo que se
+intentaba ocultar. Se quitó el comentario del HTML (la explicación vive acá, en AUDITORIA.md, que no se
+sirve). Verificado después: **cero menciones a "admin" en el HTML público**.
+
+Verificado con Playwright: el pie se sigue viendo bien (centrado, sin hueco), el admin sigue funcionando
+entrando directo por `/admin.html` (login + panel + 10 productos listados), y no hay errores de consola.
+
+### Nota honesta sobre el alcance de esta medida
+
+Esto **no es seguridad real, es reducción de ruido**: baja mucho el tráfico de bots que escanean rutas
+comunes, pero no detiene a alguien que ataque a propósito (la URL sigue siendo `/admin.html`). Lo que
+realmente protege el panel es lo que ya existe —bcrypt, JWT, y el rate limit de 10 intentos cada 15
+minutos— más las dos mejoras que quedan pendientes y que sí mueven la aguja:
+
+- **Token en cookie httpOnly** en vez de `localStorage` (pendiente de larga data): hoy un XSS podría robar
+  la sesión.
+- **Login con Google (OAuth)**: elimina la contraseña por completo (nada que adivinar por fuerza bruta) y
+  hereda el 2FA de la cuenta de Google. En el modelo "1 deploy por cliente" se resuelve con una sola app de
+  Google para todos los deploys + una variable por deploy con el correo autorizado.
+
+Se le presentaron ambas al usuario; eligió por ahora solo ocultar el panel.
