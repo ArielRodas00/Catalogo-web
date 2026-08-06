@@ -1045,3 +1045,55 @@ propósito; conviene borrarlo en algún momento, pero no como parte de este camb
 
 **Pendiente relacionado**: el Panel Central (`panel-central/`) sigue usando `localStorage` con el mismo patrón
 y la misma exposición. El cambio equivalente ahí es prácticamente idéntico.
+
+*Resuelto el mismo día — ver la sección siguiente.*
+
+## Panel Central a cookie httpOnly, y limpieza de código muerto (2026-08-06)
+
+### Panel Central
+
+Se aplicó el mismo cambio que en el catálogo, y acá la exposición era **más grave**: desde este panel se
+administran todos los clientes, sus `api_key` y sus pagos, así que robar esa sesión da acceso a todo el
+negocio, no a un solo catálogo.
+
+- **`panel-central/authCookie.js`** (nuevo): espejo del módulo del catálogo. Son dos apps separadas, con su
+  propio deploy y su propio `JWT_SECRET`, así que no comparten código; el único cambio real es el nombre de
+  la cookie (`panel_token`), para que si algún día se sirven desde el mismo dominio no se pisen.
+- **`middleware/auth.js`**: lee la cookie, con el header `Authorization` como alternativa para clientes que
+  no son navegador.
+- **`routes/auth.js`**: el login setea la cookie y ya no devuelve el token; nuevo `POST /api/auth/logout`.
+- **`server.js`**: se agregó `cookie-parser`.
+- **`public/app.js`**: se eliminaron `getToken()` y todos los `localStorage`. `authHeaders()` quedó
+  devolviendo `{}` para no tocar los ~10 lugares que la llaman (varios hacen
+  `Object.assign({'Content-Type': ...}, authHeaders())`, que sigue funcionando igual).
+
+Verificado: 24/24 tests (3 nuevos, mismos casos que el catálogo) y 13/13 end-to-end con Playwright, incluida
+la prueba clave (`document.cookie` y `localStorage` vacíos estando logueado), que la sesión sobrevive a
+recargar, que `GET /api/clientes` responde autenticado y que tras el logout el servidor devuelve 401.
+
+### Código muerto eliminado
+
+El entorno bloqueaba el borrado de archivos durante buena parte del desarrollo (`rm` fallaba con *Permission
+denied*), así que varios archivos quedaron vaciados o con un comentario "esto ya no se usa" en vez de
+borrados — incluido un `rm` que quedó anotado más arriba en este documento y nunca se pudo ejecutar. La
+restricción ya no aplica, así que se eliminaron de verdad:
+
+| Archivo | Estado |
+|---|---|
+| `public/admin.js` | 1559 líneas. Monolito reemplazado por los módulos de `public/admin/*.js`. **Se servía públicamente** (HTTP 200) aunque ningún HTML lo cargaba. |
+| `public/products.js` | Datos hardcodeados de antes de la API; ya era solo un comentario. |
+| `public/js/theme.js` | Archivo vacío. |
+| `test/license.test.js` | Stub obsoleto; las pruebas reales están en `test/licenseCheck.test.js`. |
+| `license.js` | Duplicado huérfano de `licenseCheck.js` (se renombró porque en filesystems *case-insensitive* `require('../license')` resolvía al archivo `LICENSE` de texto plano). |
+| `cloudinary.js` | Reemplazado por `imagekit.js`. |
+
+Antes de borrar se verificó archivo por archivo que ningún `<script src>` los cargara y que ningún
+`require()` los referenciara — las coincidencias de un grep ingenuo eran engañosas (`admin/products.js` es
+un módulo vivo, y las menciones a `license.js` eran comentarios explicando justamente el renombre).
+
+También se limpiaron los ~52 scripts `_tmp-*.js` de depuración acumulados (estaban gitignorados) y se
+actualizó el árbol de archivos del `README.md`, que además de listar los archivos borrados no incluía
+`public/admin/`, `authCookie.js`, `branding.js`, `imagekit.js` ni `licenseCheck.js`.
+
+Verificado después del borrado: 111/111 tests (87 catálogo + 24 Panel Central), y en el navegador que el
+catálogo y el admin siguen funcionando y que los archivos eliminados ahora devuelven **404**.

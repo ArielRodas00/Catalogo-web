@@ -22,6 +22,7 @@ if (process.env.DATABASE_URL) {
 const express = require('express');
 const helmet  = require('helmet');
 const cors    = require('cors');
+const cookieParser = require('cookie-parser');
 const pool    = require('./db');
 
 const { errorHandler } = require('./middleware/errorHandler');
@@ -60,6 +61,9 @@ app.use(cors({
     : ['http://localhost:4000', 'http://127.0.0.1:4000']
 }));
 app.use(express.json({ limit: '1mb' }));
+// Necesario para leer la cookie de sesión del super-admin (ver authCookie.js).
+// Express no parsea cookies por su cuenta.
+app.use(cookieParser());
 app.use(requestLogger);
 app.use(express.static('public', {
   etag: true,

@@ -4,6 +4,7 @@ const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const pool    = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { COOKIE_NAME, cookieOptions, clearCookieOptions } = require('../authCookie');
 const rateLimit = require('express-rate-limit');
 
 const loginLimiter = rateLimit({
@@ -43,10 +44,24 @@ router.post('/login', loginLimiter, async function(req, res, next) {
       { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
     );
 
-    res.json({ token: token, username: admin.username });
+    // El token va en una cookie httpOnly y NO en el cuerpo de la respuesta:
+    // si lo devolviéramos acá, el JavaScript del panel volvería a tenerlo a
+    // mano y un XSS podría robarlo — que es justo lo que este cambio evita.
+    // Ver authCookie.js y AUDITORIA.md.
+    res.cookie(COOKIE_NAME, token, cookieOptions());
+    res.json({ ok: true, username: admin.username });
   } catch (err) {
     next(err);
   }
+});
+
+// POST /api/auth/logout
+// Antes no existía: el "cerrar sesión" solo borraba el token del navegador.
+// Con la cookie httpOnly el frontend ya no puede borrarla por su cuenta, así
+// que el cierre de sesión pasa a ser responsabilidad del servidor.
+router.post('/logout', function(req, res) {
+  res.clearCookie(COOKIE_NAME, clearCookieOptions());
+  res.json({ ok: true });
 });
 
 // GET /api/auth/verify

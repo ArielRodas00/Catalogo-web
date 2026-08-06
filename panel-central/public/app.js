@@ -11,12 +11,17 @@ function escapeHTML(str) {
     .replace(/"/g, '&quot;');
 }
 
-function getToken() {
-  return localStorage.getItem('panel_token');
-}
-
+// La sesión viaja en una cookie httpOnly que setea el servidor al hacer
+// login: este archivo nunca ve ni guarda el token, y el navegador la adjunta
+// sola en cada petición al mismo origen. Antes se guardaba en localStorage,
+// donde cualquier XSS podía leerla — y desde este panel se administran TODOS
+// los clientes, sus api_key y sus pagos. Ver authCookie.js y AUDITORIA.md.
+//
+// authHeaders() se mantiene (aunque ya no aporta nada) para no tocar los ~10
+// lugares que la usan y conservar un único punto donde agregar headers
+// comunes en el futuro.
 function authHeaders() {
-  return { 'Authorization': 'Bearer ' + getToken() };
+  return {};
 }
 
 function showToast(message) {
@@ -29,16 +34,16 @@ function showToast(message) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
+// No hay forma (ni necesidad) de "mirar si hay token": la única fuente de
+// verdad es el servidor, así que le preguntamos.
 async function checkAuth() {
-  const token = getToken();
-  if (!token) return showLogin();
-
   try {
-    const res = await fetch('/api/auth/verify', { headers: authHeaders() });
+    const res = await fetch('/api/auth/verify');
     if (res.ok) {
       showPanel();
     } else {
-      localStorage.removeItem('panel_token');
+      // Sin cookie, o vencida/inválida: no hay nada que limpiar del lado del
+      // navegador, el servidor ya la considera inválida.
       showLogin();
     }
   } catch (_e) {
@@ -70,7 +75,8 @@ document.getElementById('login-form').addEventListener('submit', async function(
     });
     const data = await res.json();
     if (res.ok) {
-      localStorage.setItem('panel_token', data.token);
+      // No recibimos ningún token: vino en la cookie httpOnly de la respuesta
+      // y el navegador ya la guardó por su cuenta.
       document.getElementById('login-error').style.display = 'none';
       showPanel();
     } else {
@@ -83,8 +89,15 @@ document.getElementById('login-form').addEventListener('submit', async function(
   }
 });
 
-document.getElementById('btn-logout').addEventListener('click', function() {
-  localStorage.removeItem('panel_token');
+// Cerrar sesión — ahora lo tiene que hacer el servidor: el JavaScript no
+// puede borrar una cookie httpOnly.
+document.getElementById('btn-logout').addEventListener('click', async function() {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' });
+  } catch (_e) {
+    // Si falla la red igual volvemos al login: la cookie sigue viva pero el
+    // usuario ve la pantalla de acceso, y el token vence solo en 8hs.
+  }
   showLogin();
 });
 

@@ -127,33 +127,49 @@ npm run dev     # Iniciar con hot-reload (Node 18+ --watch)
 catalogo-backend/
 ├── server.js              # Punto de entrada
 ├── db.js                  # Conexion PostgreSQL (Pool)
+├── db-init.js             # Crea el esquema y el admin inicial
 ├── schema.sql             # Esquema de base de datos
+├── authCookie.js          # Cookie de sesion del admin (httpOnly)
+├── branding.js            # Marca configurable (colores, logo)
+├── imagekit.js            # Subida de imagenes a ImageKit
+├── licenseCheck.js        # Chequeo de plan contra el Panel Central
 ├── routes/
 │   ├── products.js        # CRUD productos + batch-stock
-│   ├── auth.js            # Autenticacion
+│   ├── auth.js            # Login, logout y verificacion de sesion
 │   ├── metrics.js         # Metricas y dashboard
 │   └── categories.js      # Categorias
 ├── middleware/
-│   ├── auth.js            # Middleware JWT
+│   ├── auth.js            # Lee la sesion (cookie o header)
 │   ├── validate.js        # Validacion de productos
 │   ├── logger.js          # Logging de requests
 │   └── errorHandler.js    # Manejo de errores
-└── public/
-    ├── index.html         # Catalogo publico
-    ├── admin.html         # Panel de administracion
-    ├── styles.css         # Estilos del catalogo
-    ├── admin.css          # Estilos del admin
-    ├── js/                # Modulos frontend
-    │   ├── main.js
-    │   ├── render.js
-    │   ├── filters.js
-    │   ├── modal.js
-    │   ├── carousel.js
-    │   ├── state.js
-    │   └── toast.js
-    ├── storage.js         # API de datos
-    ├── admin.js           # Logica del admin
-    └── products.js        # (deprecado)
+├── public/
+│   ├── index.html         # Catalogo publico
+│   ├── admin.html         # Panel de administracion
+│   ├── styles.css         # Estilos del catalogo
+│   ├── admin.css          # Estilos del admin
+│   ├── storage.js         # Capa de datos (compartida)
+│   ├── js/                # Frontend del catalogo publico
+│   │   ├── main.js
+│   │   ├── render.js
+│   │   ├── filters.js
+│   │   ├── modal.js
+│   │   ├── carousel.js
+│   │   ├── state.js
+│   │   ├── tilt.js
+│   │   └── toast.js
+│   └── admin/             # Frontend del panel, un modulo por responsabilidad
+│       ├── init.js
+│       ├── auth.js
+│       ├── products.js
+│       ├── images.js
+│       ├── stock.js
+│       ├── recepcion.js
+│       ├── metrics.js
+│       ├── tabs.js
+│       ├── toast.js
+│       └── utils.js
+└── panel-central/         # App aparte: control de clientes y licencias
 ```
 
 ## API endpoints
