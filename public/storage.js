@@ -5,22 +5,19 @@
 const API_URL = '/api/products';
 
 // ------------------------------------------------------------
-// getToken() — obtiene el token JWT guardado
+// authHeaders() — headers de las peticiones protegidas
 // ------------------------------------------------------------
-function getToken() {
-  return localStorage.getItem('admin_token');
-  // El token se guarda en localStorage al hacer login
-}
-
-// ------------------------------------------------------------
-// authHeaders() — genera los headers con el token
-// Todas las peticiones protegidas usan estos headers
-// ------------------------------------------------------------
+// Ya no lleva el token: la sesión viaja en una cookie httpOnly que el
+// navegador adjunta sola en cada petición al mismo origen, y que el
+// JavaScript de la página no puede leer (antes estaba en localStorage, donde
+// cualquier XSS podía robarla). Ver authCookie.js y AUDITORIA.md.
+//
+// Se mantiene la función, en vez de borrarla de los ~10 lugares que la usan,
+// porque sigue aportando el Content-Type y deja un solo punto donde cambiar
+// los headers comunes en el futuro.
 function authHeaders() {
   return {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ' + getToken()
-    // "Bearer TOKEN" es el formato estándar para JWT
+    'Content-Type': 'application/json'
   };
 }
 

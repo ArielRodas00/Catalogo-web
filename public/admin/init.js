@@ -61,9 +61,7 @@ async function initAdmin() {
 // a mano, solo pierde las herramientas de conveniencia (ver AUDITORIA.md).
 async function checkPlanStatus() {
   try {
-    const res = await fetch('/api/plan', {
-      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('admin_token') }
-    });
+    const res = await fetch('/api/plan');
     if (!res.ok) return;
     const plan = await res.json();
     document.getElementById('suspended-banner').style.display = plan.activo ? 'none' : 'flex';

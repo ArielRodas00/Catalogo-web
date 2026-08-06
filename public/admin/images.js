@@ -164,7 +164,9 @@ async function addGalleryFiles(files) {
       formData.append('image', item.file);
       const res = await fetch('/api/products/upload-image', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + getToken() },
+        // Sin headers: la sesión va en la cookie httpOnly, y el Content-Type
+        // lo tiene que poner el navegador solo (necesita agregar el boundary
+        // del multipart/form-data).
         body: formData
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -247,7 +249,7 @@ async function persistGalleryIfEditing() {
 
   await fetch('/api/products/' + galleryProductId + '/images/reorder', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       images: confirmed.map(function(i) { return { url: i.url, fileId: i.fileId }; })
     })

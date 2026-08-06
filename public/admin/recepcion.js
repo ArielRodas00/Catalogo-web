@@ -157,7 +157,7 @@ function initRecepcion() {
 
     fetch('/api/products/batch-stock', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items: items })
     })
     .then(function(r) { return r.json(); })

@@ -985,3 +985,63 @@ minutos— más las dos mejoras que quedan pendientes y que sí mueven la aguja:
   Google para todos los deploys + una variable por deploy con el correo autorizado.
 
 Se le presentaron ambas al usuario; eligió por ahora solo ocultar el panel.
+
+## Sesión del admin en cookie httpOnly, en vez de localStorage (2026-08-06)
+
+Era el pendiente de seguridad más viejo del proyecto (venía postergado explícitamente desde el inicio). El
+token JWT del panel se guardaba en `localStorage`, que **cualquier JavaScript de la página puede leer**: un
+XSS bastaba para robar la sesión del administrador sin conocer su contraseña. El XSS del campo `whatsapp`
+que se corrigió el 2026-08-01 era explotable exactamente por esta vía.
+
+Ahora el token viaja en una cookie `httpOnly`: el navegador la adjunta sola en cada request al mismo origen,
+pero el JavaScript no la puede leer.
+
+**Archivos nuevos**
+- **`authCookie.js`**: fuente única de verdad del nombre y las opciones de la cookie. Existe a propósito para
+  que los tres lugares que la tocan (login la setea, logout la borra, el middleware la lee) no se
+  desincronicen: si por ejemplo el `path` difiere entre el login y el logout, el navegador las trata como
+  cookies distintas y el "cerrar sesión" deja de funcionar — un bug silencioso y molesto de rastrear.
+  Atributos: `httpOnly: true`, `secure` solo en producción (en `http://localhost` el navegador descartaría
+  una cookie `Secure` y el login "no haría nada"), `sameSite: 'strict'` y `path: '/'`.
+
+**Backend**
+- **`middleware/auth.js`**: lee el token de la cookie y, si no está, cae al header `Authorization`. Mantener
+  el header no debilita nada —para usarlo hay que tener ya un token válido— y deja funcionando a los tests y
+  a cualquier cliente que no sea un navegador. La cookie tiene prioridad, con un test que lo fija.
+- **`routes/auth.js`**: el login setea la cookie y **ya no devuelve el token en el cuerpo** (si lo devolviera,
+  el JS del panel volvería a tenerlo a mano y el cambio no serviría de nada). Se agregó `POST /api/auth/logout`,
+  que antes no existía: con la cookie httpOnly el frontend ya no puede borrarla por su cuenta, así que cerrar
+  sesión pasó a ser responsabilidad del servidor.
+- **`server.js`**: se agregó `cookie-parser` (Express no parsea cookies solo).
+
+**CSRF**: al viajar la cookie automáticamente en cada request, un sitio malicioso podría disparar acciones en
+el panel desde el navegador del dueño. Lo cubre `SameSite=Strict`, que le dice al navegador que no adjunte la
+cookie en requests originados en otro sitio. Es la contrapartida obligatoria de este cambio, no un extra.
+
+**Frontend** (`public/storage.js`, `public/admin/auth.js`, `images.js`, `init.js`, `metrics.js`,
+`recepcion.js`): se eliminaron todos los `localStorage.getItem/setItem('admin_token')` y todos los headers
+`Authorization` armados a mano. `authHeaders()` se mantuvo (aunque ya solo aporta el `Content-Type`) para no
+tocar los ~10 lugares que la llaman y conservar un único punto donde cambiar headers comunes. En la subida de
+imágenes se quitó el header por completo: el `Content-Type` del `multipart/form-data` lo tiene que poner el
+navegador, porque necesita agregarle el *boundary*.
+
+**Nota**: `public/admin.js` (un monolito de ~1300 líneas) todavía tiene el patrón viejo, pero **es código
+muerto**: `admin.html` carga los módulos de `public/admin/*.js` y no lo referencia. Se dejó sin tocar a
+propósito; conviene borrarlo en algún momento, pero no como parte de este cambio.
+
+**Verificación**
+- 87/87 tests (7 nuevos): que el login setea la cookie con `httpOnly`+`SameSite=Strict`+`path`, que **el token
+  no viaja en el cuerpo**, que la cookie sola alcanza para autenticarse, que el logout la borra repitiendo los
+  mismos atributos, que la cookie tiene prioridad sobre el header, y que el middleware no explota si se lo
+  monta sin `cookie-parser`.
+- End-to-end con Playwright, 16/16, incluida **la prueba que da sentido a todo el cambio**: estando logueado,
+  `document.cookie` devuelve `""` y `localStorage` está vacío — es decir, el código que ejecutaría un XSS ya
+  no encuentra nada que robar. Además: la sesión sobrevive a recargar, el logout borra la cookie del navegador
+  y el servidor pasa a responder 401.
+- Se verificó aparte que **el catálogo público sigue intacto** (comparte `storage.js` con el admin): carrusel,
+  promociones, destacados, grilla, modal, buscador y cero errores de consola.
+- Se confirmó que `NODE_ENV=production` está configurado en Render, así que en producción la cookie sale con
+  `Secure` (solo viaja por HTTPS).
+
+**Pendiente relacionado**: el Panel Central (`panel-central/`) sigue usando `localStorage` con el mismo patrón
+y la misma exposición. El cambio equivalente ahí es prácticamente idéntico.

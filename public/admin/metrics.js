@@ -5,11 +5,7 @@
 async function loadMetrics() {
   try {
     const period = document.getElementById('metrics-period').value;
-    const token  = localStorage.getItem('admin_token');
-
-    const res  = await fetch('/api/metrics/dashboard?period=' + period, {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
+    const res  = await fetch('/api/metrics/dashboard?period=' + period);
 
     if (res.status === 403) {
       // Plan Básico o Premium vencido: mostramos el placeholder en vez del
