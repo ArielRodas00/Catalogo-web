@@ -83,9 +83,17 @@ app.use('/api/licencia', licenciaRouter);
 
 app.use(errorHandler);
 
-app.listen(PORT, function() {
-  console.log('Panel Central corriendo en http://localhost:' + PORT);
-});
+// Solo abrimos un puerto si nos ejecutan directamente (`node server.js`, que
+// es como arrancan el desarrollo local y Render). Un hosting serverless
+// importa este módulo y maneja el servidor por su cuenta.
+if (require.main === module) {
+  app.listen(PORT, function() {
+    console.log('Panel Central corriendo en http://localhost:' + PORT);
+  });
+}
+
+// Necesario para que un hosting serverless pueda importar la app como handler.
+module.exports = app;
 
 process.on('SIGTERM', async function() {
   console.log('SIGTERM recibido. Cerrando pool...');

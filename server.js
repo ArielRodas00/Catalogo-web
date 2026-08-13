@@ -29,7 +29,7 @@ const cors    = require('cors');
 const cookieParser = require('cookie-parser');
 const pool    = require('./db');
 const { getEffectiveBranding, brandingStyleTag, buildLogoInnerHtml, escapeHtml } = require('./branding');
-const { startLicenseCheck, getLicense } = require('./licenseCheck');
+const { startLicenseCheck, getLicense, checkLicense } = require('./licenseCheck');
 const imageStorage = require('./imagekit');
 
 const { errorHandler } = require('./middleware/errorHandler');
@@ -246,6 +246,31 @@ app.get('/api/plan', authenticateToken, function(req, res) {
   res.json(getLicense());
 });
 
+// GET /api/internal/refresh-license — lo llama el Cron de Vercel (ver
+// vercel.json) para mantener el estado de licencia caliente. Es un refuerzo,
+// no un requisito: getLicense() ya refresca por demanda cuando el cache vence
+// (ver licenseCheck.js), así que si el cron no corre el sistema funciona igual.
+//
+// No usa authenticateToken porque no lo invoca un humano con sesión, sino la
+// plataforma. Se protege con un secreto compartido, que es el patrón estándar
+// de Vercel para cron. Si CRON_SECRET no está configurado, el endpoint no
+// existe: así un deploy sin cron no queda con una ruta abierta de más.
+app.get('/api/internal/refresh-license', async function(req, res) {
+  if (!process.env.CRON_SECRET) {
+    return res.status(404).json({ error: 'No encontrado' });
+  }
+  if (req.headers['authorization'] !== 'Bearer ' + process.env.CRON_SECRET) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+
+  // Acá sí esperamos el chequeo (a diferencia de getLicense, que nunca
+  // bloquea): el único objetivo de este request es justamente refrescar, y
+  // el cron no tiene a nadie esperando del otro lado.
+  await checkLicense();
+  const license = getLicense();
+  res.json({ ok: true, plan: license.plan, estado: license.estado });
+});
+
 app.use('/api/products', productsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/metrics', metricsRouter);
@@ -253,17 +278,28 @@ app.use('/api/categories', categoriesRouter);
 
 app.use(errorHandler);
 
-app.listen(PORT, function() {
-  console.log('Servidor corriendo en http://localhost:' + PORT);
-  if (!imageStorage.isConfigured()) {
-    console.warn(
-      'IMAGEKIT_* no configurado — la subida de imágenes de producto por archivo va a fallar ' +
-      '(el filesystem de Render es efímero, no hay fallback a disco a propósito; ver AUDITORIA.md).'
-    );
-  }
-});
+// Solo abrimos un puerto si nos ejecutan directamente (`node server.js`, que
+// es como arrancan el desarrollo local y Render). Un hosting serverless
+// importa este módulo y maneja el servidor por su cuenta: si llamáramos a
+// listen() siempre, estaríamos abriendo un puerto que nadie usa.
+if (require.main === module) {
+  app.listen(PORT, function() {
+    console.log('Servidor corriendo en http://localhost:' + PORT);
+    if (!imageStorage.isConfigured()) {
+      console.warn(
+        'IMAGEKIT_* no configurado — la subida de imágenes de producto por archivo va a fallar ' +
+        '(el filesystem del hosting es efímero, no hay fallback a disco a propósito; ver AUDITORIA.md).'
+      );
+    }
+  });
+}
 
 startLicenseCheck();
+
+// Necesario para que un hosting serverless pueda importar la app y usarla
+// como handler. En Render no cambia nada: ahí se ejecuta `node server.js` y
+// el bloque de arriba abre el puerto igual que siempre.
+module.exports = app;
 
 process.on('SIGTERM', async function() {
   console.log('SIGTERM recibido. Cerrando pool...');

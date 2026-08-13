@@ -1097,3 +1097,104 @@ actualizó el árbol de archivos del `README.md`, que además de listar los arch
 
 Verificado después del borrado: 111/111 tests (87 catálogo + 24 Panel Central), y en el navegador que el
 catálogo y el admin siguen funcionando y que los archivos eliminados ahora devuelven **404**.
+
+## Preparación para migrar a Vercel (2026-08-06)
+
+El usuario decidió pasar de Render a Vercel. El disparador fue el arranque en frío de 21 segundos del plan
+gratuito de Render, pero el motivo de fondo es económico: Render cobra **USD 7 por servicio** y el proyecto
+usa el modelo "un deploy por cliente", así que el costo crece linealmente; Vercel Pro son **USD 20/mes con
+proyectos ilimitados**, lo que hace que el costo marginal por cliente tienda a cero y permite vender más
+barato. El dato que definió el momento: **todavía no hay ningún cliente pagando**, así que migrar ahora no
+tiene riesgo ni requiere coordinar downtime con nadie.
+
+Se relevó qué rompería en serverless. Dos supuestos iniciales resultaron **falsos** al verificarlos contra la
+documentación actual de Vercel, y conviene dejarlo escrito para no repetir el error: el límite de cuerpo de
+request **ya no es 4,5 MB sino 100 MB** (las subidas de imágenes nunca estuvieron en riesgo), y **Fluid
+Compute reutiliza instancias**, así que el pool de Postgres y el estado en memoria no se destruyen en cada
+request como en el serverless clásico. De los cuatro problemas que se habían anticipado, quedaron tres, y
+solo uno necesitaba código.
+
+### 1. Chequeo de licencia: refresco perezoso en vez de `setInterval`
+
+`licenseCheck.js` mantenía el estado con `setInterval` cada 6hs y un cache en memoria. En serverless no hay
+proceso de larga duración, así que ese intervalo casi nunca se dispara. Como `branding.js` también lee de
+`getLicense()`, el síntoma habría sido que **al cliente se le caen el logo, los colores y las pestañas
+Premium de forma intermitente** — justo lo que sostiene el modelo de negocio.
+
+Ahora `getLicense()` dispara el refresco por demanda cuando el cache venció, en segundo plano y sin
+esperarlo. Se conservó la propiedad que ya tenía y no se podía perder: **nunca bloquea el request**. Un flag
+evita la estampida (50 visitas con el cache vencido disparan un chequeo, no 50) y se mantuvo intacta la
+degradación a Básico a las 48hs. Funciona igual en un servidor siempre encendido que en serverless, así que
+**no ata el proyecto a ninguna plataforma** — decisión deliberada, porque ya se cambió de plataforma una vez
+por economía.
+
+**Regresión propia, detectada al verificar en producción** (y el mejor argumento para verificar cada cambio
+donde realmente corre): con el chequeo fallando de forma persistente —Panel Central caído o
+`CLIENTE_API_KEY` mal configurada, que es el estado actual de producción— `lastGood` nunca se llena, así que
+el cache siempre está "vencido" y **cada request disparaba un intento nuevo**. Con tráfico real habría sido
+una petición al Panel Central por cada visita al catálogo; el `setInterval` viejo no tenía ese problema
+porque reintentaba cada 6hs. Se agregó una **espera mínima de 5 minutos entre intentos**, independiente de si
+salieron bien, con un test que fija el caso: 100 visitas seguidas con el chequeo fallando disparan 1 sola
+consulta.
+
+También se eliminó una fuga de red en los tests: el caso de "degrada a básico" no mockeaba `fetch` y con el
+refresco perezoso pasó a hacer una petición real (lenta, y falla sin conexión). Los tests ahora esperan el
+refresco de forma determinística (`_pendingRefresh()`) en vez de dormir un rato arbitrario.
+
+### 2. Rate limiting: sin código nuevo
+
+Los 6 limitadores de `express-rate-limit` cuentan en la memoria del proceso, así que entre instancias el
+límite de 10 intentos de login cada 15 minutos deja de ser confiable. La solución elegida es **el WAF de
+Vercel** como capa principal (corre antes de la función, es consistente entre instancias y **el tráfico
+bloqueado no se factura**), dejando los limitadores actuales tal cual como respaldo portable.
+
+Se descartó un *store* de Postgres reutilizando Neon —que era la primera opción por no sumar
+infraestructura— porque el paquete `@acpr/rate-limit-postgresql` **no se actualiza desde marzo de 2024** y
+`express-rate-limit` ya va por la v8: demasiado riesgo de incompatibilidad en una pieza de seguridad.
+También se descartó Redis (Upstash): está bien mantenido, pero suma un servicio que administrar, pagar y que
+puede caerse, para un beneficio marginal a la escala actual.
+
+### 3. Pool de Postgres: cero código
+
+`db.js` ya lee `max: Number(process.env.DB_POOL_MAX) || 10`. Alcanza con usar la cadena de conexión
+*pooled* de Neon y poner `DB_POOL_MAX=3` en las variables de entorno.
+
+### El Panel Central no necesitó ningún cambio de lógica
+
+Se verificó aparte, por ser donde se controlan los planes y los clientes que pagan: **no tiene ningún
+`setInterval`** ni estado en memoria, y **no tiene trabajo en segundo plano posterior a la respuesta**. Se
+sospechaba que `maybeSyncLavadero360()` fuera *fire and forget* —lo cual en serverless se corta cuando la
+función se suspende, y habría requerido `waitUntil()`— pero `routes/clientes.js` hace `await` **antes** de
+responder, así que el trabajo termina dentro del ciclo del request. Nada que corregir.
+
+### Compatibilidad con ambos entornos
+
+- **`server.js` y `panel-central/server.js`**: `app.listen()` quedó dentro de `if (require.main === module)` y
+  ambos exportan la app. Así, ejecutar `node server.js` (desarrollo local y Render) abre el puerto igual que
+  siempre, y un hosting serverless puede importar la app como handler sin abrir un puerto que nadie usa.
+- **`vercel.json`** (raíz): declara el Cron que pega cada 6hs a `/api/internal/refresh-license`. El Panel
+  Central **no lleva `vercel.json`**: no tiene cron y Express corre sin configuración, así que un archivo
+  vacío solo sería ruido (el subdirectorio se configura en los ajustes del proyecto, no en un archivo).
+- **`GET /api/internal/refresh-license`** (nuevo, en `server.js`): lo llama el Cron. Es un **refuerzo, no un
+  requisito** — el refresco perezoso funciona igual si el cron no corre. No usa `authenticateToken` porque no
+  lo invoca un humano con sesión sino la plataforma; se protege con `CRON_SECRET`, el patrón estándar de
+  Vercel. **Si `CRON_SECRET` no está configurado, el endpoint devuelve 404**: un deploy sin cron no queda con
+  una ruta abierta de más.
+
+### Verificación
+
+- **122/122 tests** (98 catálogo + 24 Panel Central), incluidos 13 del módulo de licencia y 3 del endpoint
+  del cron. Los del módulo se corrieron 5 veces seguidas para descartar intermitencia, y con conteo de fugas
+  de red en cero.
+- Se confirmó que `node server.js` sigue arrancando normalmente en ambos proyectos tras el cambio de
+  `require.main`.
+- En el navegador: catálogo, admin (login, productos, plan) y Panel Central (login, clientes) funcionando, y
+  el endpoint del cron devolviendo 404 sin `CRON_SECRET`.
+- En producción (Render): 15 lecturas seguidas de `/api/plan` sin parpadeo, y el catálogo respondiendo normal.
+
+### Pendiente
+
+Los pasos que requieren la cuenta de Vercel (crear los proyectos, cargar variables, deploy de prueba, reglas
+del WAF y el corte final) quedan para cuando el usuario habilite el acceso. **`BASE_URL` hay que corregirlo
+al cargar las variables**: hoy apunta a un dominio viejo (`catalogo-backend.onrender.com`) y por eso el
+`sitemap.xml` publica URLs muertas.
