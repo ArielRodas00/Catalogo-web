@@ -15,6 +15,15 @@
 // bloquea el sitio — solo pierde las features Premium después de 48hs sin
 // poder confirmar el estado, para no castigar al cliente por una caída del
 // lado del Panel Central en vez de un problema real de pago.
+//
+// Cómo se mantiene fresco el estado: con un refresco PEREZOSO disparado desde
+// getLicense(), no con un setInterval. El motivo es que en un hosting
+// serverless no hay un proceso de larga duración: un setInterval de 6hs
+// prácticamente nunca llega a dispararse, y como branding.js también lee de
+// getLicense(), el síntoma sería que al cliente se le caen el logo, los
+// colores y las pestañas Premium de forma intermitente. El refresco perezoso
+// funciona igual en un servidor siempre encendido que en serverless, así que
+// no ata el proyecto a una plataforma. Ver AUDITORIA.md.
 // ============================================================
 
 const GRACE_PERIOD_MS = 48 * 60 * 60 * 1000;
@@ -25,6 +34,16 @@ function isStandalone() {
 }
 
 let lastGood = null; // { plan, activo, estado, checkedAt }
+
+// Evita la estampida: si llegan muchos requests con el cache vencido, se
+// dispara un solo chequeo y no uno por request.
+let refreshing = false;
+
+// El refresco en curso. En producción no se usa (es fire and forget), pero
+// deja que los tests lo esperen en vez de dormir un rato arbitrario: sin
+// esto, un refresco lanzado por un test termina durante el siguiente y le
+// corrompe el estado.
+let refreshPromise = null;
 
 async function checkLicense() {
   if (isStandalone()) return;
@@ -57,12 +76,36 @@ async function checkLicense() {
   }
 }
 
+// Dispara un refresco en segundo plano si el cache está vencido. NO se espera
+// (fire and forget) a propósito: getLicense() es síncrono y lo llaman rutas
+// que están respondiendo un request — esperar acá agregaría la latencia del
+// Panel Central a cada visita del catálogo.
+function maybeRefresh() {
+  if (refreshing) return;
+
+  const vencido = !lastGood || (Date.now() - lastGood.checkedAt) >= CHECK_INTERVAL_MS;
+  if (!vencido) return;
+
+  refreshing = true;
+  // checkLicense() ya atrapa sus propios errores y nunca lanza; el finally
+  // está igual para que un fallo inesperado no deje el flag trabado en true
+  // y bloquee todos los refrescos futuros.
+  refreshPromise = Promise.resolve()
+    .then(checkLicense)
+    .catch(function() { /* checkLicense ya loguea; acá solo evitamos un unhandled rejection */ })
+    .finally(function() { refreshing = false; });
+}
+
 // Devuelve el estado de licencia a usar AHORA MISMO. Nunca lanza, nunca
 // bloquea por una falla de red — degrada a Básico como mucho.
 function getLicense() {
   if (isStandalone()) {
     return { plan: 'premium', activo: true, estado: 'standalone', branding: null };
   }
+
+  // Mantiene el cache al día sin bloquear: devuelve el último valor conocido
+  // y actualiza por detrás para el próximo request.
+  maybeRefresh();
 
   if (lastGood && (Date.now() - lastGood.checkedAt) < GRACE_PERIOD_MS) {
     return lastGood;
@@ -81,14 +124,25 @@ function startLicenseCheck() {
     console.log('PANEL_CENTRAL_URL/CLIENTE_API_KEY no configurados — deploy standalone, sin restricción de plan.');
     return;
   }
-  checkLicense(); // primer chequeo al arrancar, no bloqueante
-  const interval = setInterval(checkLicense, CHECK_INTERVAL_MS);
-  interval.unref(); // no debe mantener vivo el proceso por sí solo
+  // Solo el chequeo inicial, no bloqueante. Las actualizaciones posteriores
+  // las dispara getLicense() por demanda (ver maybeRefresh): un setInterval
+  // no sobrevive en serverless, donde no hay proceso de larga duración.
+  checkLicense();
 }
 
-// Solo para tests: limpia el estado en memoria entre casos.
+// Solo para tests: limpia el estado en memoria entre casos. Incluye el flag
+// de refresco: si un test lo dejara en true, los siguientes no dispararían
+// ningún chequeo y fallarían por una razón que no tiene que ver con lo que
+// están probando.
 function _resetForTests() {
   lastGood = null;
+  refreshing = false;
+  refreshPromise = null;
 }
 
-module.exports = { startLicenseCheck, getLicense, checkLicense, _resetForTests };
+// Solo para tests: permite esperar el refresco disparado en segundo plano.
+function _pendingRefresh() {
+  return refreshPromise || Promise.resolve();
+}
+
+module.exports = { startLicenseCheck, getLicense, checkLicense, _resetForTests, _pendingRefresh };
