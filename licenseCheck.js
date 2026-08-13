@@ -29,6 +29,15 @@
 const GRACE_PERIOD_MS = 48 * 60 * 60 * 1000;
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
+// Espera mínima entre INTENTOS, independientemente de si salieron bien.
+// Sin esto, un deploy cuyo chequeo falla siempre (Panel Central caído, o una
+// CLIENTE_API_KEY mal configurada) nunca llena el cache, así que cada request
+// dispararía un intento nuevo: una petición al Panel Central por cada visita
+// al catálogo. Con el setInterval viejo eso no pasaba porque reintentaba cada
+// 6hs. 5 minutos equilibra recuperarse rápido tras una caída con no
+// castigar al Panel Central mientras el problema persiste.
+const RETRY_INTERVAL_MS = 5 * 60 * 1000;
+
 function isStandalone() {
   return !process.env.PANEL_CENTRAL_URL || !process.env.CLIENTE_API_KEY;
 }
@@ -44,6 +53,10 @@ let refreshing = false;
 // esto, un refresco lanzado por un test termina durante el siguiente y le
 // corrompe el estado.
 let refreshPromise = null;
+
+// Momento del último INTENTO (haya salido bien o mal). Es lo que evita
+// martillar al Panel Central cuando el chequeo falla de forma persistente.
+let lastAttemptAt = 0;
 
 async function checkLicense() {
   if (isStandalone()) return;
@@ -83,9 +96,17 @@ async function checkLicense() {
 function maybeRefresh() {
   if (refreshing) return;
 
-  const vencido = !lastGood || (Date.now() - lastGood.checkedAt) >= CHECK_INTERVAL_MS;
+  const ahora = Date.now();
+
+  const vencido = !lastGood || (ahora - lastGood.checkedAt) >= CHECK_INTERVAL_MS;
   if (!vencido) return;
 
+  // Aunque el cache esté vencido, respetamos la espera mínima entre intentos:
+  // si el chequeo viene fallando, lastGood nunca se llena y sin este freno
+  // cada request lanzaría una consulta nueva.
+  if (ahora - lastAttemptAt < RETRY_INTERVAL_MS) return;
+
+  lastAttemptAt = ahora;
   refreshing = true;
   // checkLicense() ya atrapa sus propios errores y nunca lanza; el finally
   // está igual para que un fallo inesperado no deje el flag trabado en true
@@ -138,6 +159,7 @@ function _resetForTests() {
   lastGood = null;
   refreshing = false;
   refreshPromise = null;
+  lastAttemptAt = 0;
 }
 
 // Solo para tests: permite esperar el refresco disparado en segundo plano.
@@ -145,4 +167,17 @@ function _pendingRefresh() {
   return refreshPromise || Promise.resolve();
 }
 
-module.exports = { startLicenseCheck, getLicense, checkLicense, _resetForTests, _pendingRefresh };
+// Solo para tests: simula que ya pasó la espera mínima entre intentos, para
+// poder probar el reintento sin dormir 5 minutos.
+function _allowRetryNowForTests() {
+  lastAttemptAt = 0;
+}
+
+module.exports = {
+  startLicenseCheck,
+  getLicense,
+  checkLicense,
+  _resetForTests,
+  _pendingRefresh,
+  _allowRetryNowForTests
+};

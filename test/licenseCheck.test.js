@@ -202,6 +202,29 @@ test('getLicense: en standalone no consulta la red ni con el cache vencido', asy
   assert.equal(mock.mock.callCount(), 0, 'un deploy standalone no depende del Panel Central');
 });
 
+test('si el chequeo falla siempre, no martilla al Panel Central en cada request', async function (t) {
+  // Regresión real detectada al desplegar: con el chequeo fallando de forma
+  // persistente (Panel Central caído, o CLIENTE_API_KEY mal configurada),
+  // lastGood nunca se llena, así que el cache siempre está "vencido". Sin una
+  // espera mínima entre intentos, cada visita al catálogo dispararía una
+  // consulta nueva — con el setInterval viejo reintentaba cada 6hs.
+  process.env.PANEL_CENTRAL_URL = 'http://panel-central.test';
+  process.env.CLIENTE_API_KEY = 'test-key';
+  license._resetForTests();
+
+  const mock = t.mock.method(globalThis, 'fetch', async function () {
+    throw new Error('ECONNREFUSED');
+  });
+
+  // 100 visitas seguidas con el chequeo fallando.
+  for (let i = 0; i < 100; i++) {
+    license.getLicense();
+    await license._pendingRefresh();
+  }
+
+  assert.equal(mock.mock.callCount(), 1, 'debe reintentar con espera, no en cada request');
+});
+
 test('un fallo del refresco no deja el flag trabado (los siguientes siguen intentando)', async function (t) {
   process.env.PANEL_CENTRAL_URL = 'http://panel-central.test';
   process.env.CLIENTE_API_KEY = 'test-key';
@@ -216,8 +239,10 @@ test('un fallo del refresco no deja el flag trabado (los siguientes siguen inten
   await license._pendingRefresh();
   assert.equal(mock.mock.callCount(), 1);
 
-  // Si el flag hubiera quedado en true, este segundo intento no dispararía
-  // nada y el deploy quedaría degradado a basico para siempre.
+  // Pasada la espera mínima entre intentos, tiene que volver a intentar. Si el
+  // flag `refreshing` hubiera quedado trabado en true, este segundo intento no
+  // dispararía nada y el deploy quedaría degradado a basico para siempre.
+  license._allowRetryNowForTests();
   license.getLicense();
   await license._pendingRefresh();
   assert.equal(mock.mock.callCount(), 2, 'tras un fallo debe poder reintentar');
