@@ -1,7 +1,21 @@
 # Desplegar en Vercel
 
+> **Estado**: el catálogo ya está desplegado y verificado en
+> **https://piezaexpress-catalogo.vercel.app**. Falta el Panel Central (ver el final).
+
 El código ya está preparado (ver `AUDITORIA.md`, sección "Preparación para migrar a Vercel"). Falta la parte
 que requiere tu cuenta: crear los proyectos y cargar las variables.
+
+## Cosas con las que tropecé al desplegar (para no repetirlas)
+
+- **El plan Hobby solo permite cron diario.** Con `0 */6 * * *` el deploy falla con
+  *"Hobby accounts are limited to daily cron jobs"*. Por eso `vercel.json` usa `0 3 * * *`. No se pierde
+  nada: el refresco por demanda de `getLicense()` es el mecanismo que realmente mantiene la licencia al día.
+- **Un `pnpm-lock.yaml` viejo rompe el build.** Aunque esté en `.gitignore`, la CLI sube los archivos
+  locales, y si Vercel ve ese lockfile usa pnpm en lugar de npm y falla con `ERR_PNPM_OUTDATED_LOCKFILE`.
+  Se borró del disco; si vuelve a aparecer, borralo.
+- **Vercel detecta Express solo**, sin configuración ni comando de build.
+- El endpoint `/api/products/upload-image` responde **201**, no 200.
 
 Son **dos proyectos separados** en Vercel, desde el mismo repositorio de GitHub:
 
