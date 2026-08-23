@@ -1301,3 +1301,45 @@ la precisó: ahora cuenta solo las consultas que **no** son la de sesión.
   conviene renovarlas antes de operar con clientes que paguen.
 - **Regla de rate limiting en el WAF de Vercel**: el limitador en memoria funcionó en la verificación, pero
   solo porque los intentos cayeron en la misma instancia; no es confiable si el tráfico se reparte.
+
+### Incidente: el 2FA tumbó producción (2026-08-23)
+
+**Qué pasó.** El commit de seguridad se desplegó a Vercel y **el sitio entero devolvió 500**, no solo los
+endpoints nuevos. Los logs de Vercel lo mostraron enseguida:
+
+```
+Error [ERR_REQUIRE_ESM]: require() of ES Module /var/task/node_modules/@scure/base/index.js
+from /var/task/node_modules/@otplib/plugin-base32-scure/dist/index.cjs not supported
+```
+
+`otplib` (la librería de TOTP) arrastra un plugin que hace `require()` de un módulo **ESM**. Node 24 en local
+lo tolera, pero el runtime de Vercel no. Y como el fallo ocurre **al cargar el módulo** —`server.js` requiere
+`routes/auth.js`, que requiere `totp.js`, que requiere `otplib`— el proceso moría antes de atender un solo
+request. De ahí que cayera todo el sitio y no únicamente el 2FA.
+
+**Por qué no lo detectaron los tests ni la verificación local.** Todo se probó con Node 24 local, que sí
+soporta `require()` de ESM. La diferencia estaba en el runtime, no en el código.
+
+**Respuesta.** Primero restaurar el servicio: `vercel promote` del último despliegue sano (2hs antes),
+confirmado con HTTP 200 en la home y en la API. Recién después, arreglar la causa.
+
+**Arreglo.** Se eliminó la dependencia: `totp.js` ahora implementa TOTP (RFC 6238 sobre RFC 4226) con
+`node:crypto`, que ya trae HMAC-SHA1. Son ~60 líneas y **no es criptografía casera**: es un algoritmo público
+y corto que se apoya en primitivas estándar. Para que "no es casera" no sea una afirmación de fe, se verificó
+de dos maneras independientes:
+
+- **Los 4 vectores de prueba oficiales del RFC 6238** pasan exactamente.
+- **Coincide con otplib** en 25/25 secretos aleatorios (y quedó un test permanente con 10).
+
+`otplib` quedó como dependencia **solo de desarrollo**, justamente para poder seguir contrastando sin que
+vuelva a producción. Se verificó que `qrcode` y todas sus dependencias son CommonJS, así que no repiten el
+problema.
+
+**Verificación específica del incidente**, además de los tests: se simuló el entorno de producción en un
+directorio aparte con `npm ci --omit=dev`, y se confirmó que (a) ni `otplib` ni `@scure/base` se instalan, y
+(b) `server.js` y `routes/auth.js` cargan sin `ERR_REQUIRE_ESM`. Esa simulación es justo el paso que faltó la
+primera vez.
+
+**Lección para el proyecto:** al agregar una dependencia nueva, probar la carga con solo las dependencias de
+producción antes de desplegar. Una librería puede funcionar perfecto en local y romper el arranque en el
+hosting.

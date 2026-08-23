@@ -37,3 +37,5 @@ scratch-*.js
 
 # Carpeta local de trabajo con imágenes originales (no es contenido del sitio)
 Images/
+.vercel
+.env*
