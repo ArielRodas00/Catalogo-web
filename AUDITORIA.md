@@ -1343,3 +1343,31 @@ primera vez.
 **Lección para el proyecto:** al agregar una dependencia nueva, probar la carga con solo las dependencias de
 producción antes de desplegar. Una librería puede funcionar perfecto en local y romper el arranque en el
 hosting.
+
+### Bug: el panel perdía su marca en Vercel (plantillas dentro de public/)
+
+Detectado por el usuario al notar que la pestaña del navegador del admin **no mostraba nombre ni favicon**.
+Al revisar, el problema era mayor que lo cosmético: `/admin.html` servía el HTML **con los marcadores sin
+reemplazar** (`__STORE_NAME__`, `__STORE_LOGO_URL__`) y **sin las variables CSS de color**, así que un cliente
+con marca propia vería su panel con los colores por defecto. `/index.html` tenía el mismo problema (los 5
+marcadores crudos); solo la ruta `/` funcionaba.
+
+**Causa.** Las plantillas vivían en `public/`, la carpeta que Vercel publica como archivos estáticos. Los
+headers lo confirmaron:
+
+| Ruta | `X-Vercel-Cache` | Quién responde |
+|---|---|---|
+| `/` | `MISS` | La función (Express) → marcadores reemplazados |
+| `/admin.html` | `HIT` | **El CDN** → HTML crudo, Express nunca se ejecuta |
+
+En Render no pasaba porque ahí Express atiende todo; el CDN de Vercel gana sobre las rutas de Express cuando
+existe un archivo con esa ruta exacta.
+
+**Arreglo.** Se movieron `index.html` y `admin.html` a `views/`. Son **plantillas, no archivos estáticos**:
+tenerlas en `public/` era el error de fondo, y este hosting simplemente lo puso en evidencia. `renderBrandedHtml()`
+ahora lee de `views/` y el CDN ya no tiene nada que servir por esas rutas. Los assets reales (CSS, JS,
+imágenes, favicon) siguen en `public/` y se sirven igual que antes.
+
+Verificado en local sobre `/`, `/index.html` y `/admin.html`: cero marcadores crudos, título correcto,
+favicon presente y color de marca aplicado en ambas páginas, más 12/12 en navegador incluyendo que el login
+sigue funcionando y que los assets estáticos responden 200.

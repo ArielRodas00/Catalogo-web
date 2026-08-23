@@ -81,11 +81,16 @@ app.use(requestLogger);
 // __BASE_URL__ reemplazados, y con las variables CSS de color inyectadas.
 // Se recalcula en cada request (getEffectiveBranding() es barato, todo en
 // memoria) para reflejar un cambio hecho en el Panel Central sin redeploy.
-// Van ANTES de express.static para interceptar estas dos rutas puntuales;
-// el resto de los archivos de public/ los sigue sirviendo el static normal.
+//
+// Las plantillas viven en views/ y NO en public/ a propósito. Cuando estaban
+// en public/, un hosting que publica esa carpeta como archivos estáticos
+// (Vercel) servía el HTML crudo desde su CDN sin pasar por Express: el
+// visitante veía literalmente "__STORE_NAME__" en la pestaña y el panel
+// perdía los colores del cliente. Son plantillas, no archivos estáticos.
+// Ver AUDITORIA.md.
 function renderBrandedHtml(fileName, res) {
   const effective = getEffectiveBranding();
-  const filePath = path.join(__dirname, 'public', fileName);
+  const filePath = path.join(__dirname, 'views', fileName);
   let html = fs.readFileSync(filePath, 'utf8');
   // __STORE_NAME__ y __STORE_LOGO_URL__ pueden venir de un formulario web
   // (Panel Central, no solo de variables de entorno puestas a mano) y
