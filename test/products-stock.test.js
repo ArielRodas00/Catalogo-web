@@ -11,6 +11,7 @@ const license = require('../licenseCheck');
 const productsRouter = require('../routes/products');
 const { errorHandler } = require('../middleware/errorHandler');
 const { withServer } = require('./helpers/testServer');
+const { mockConSesion } = require('./helpers/authDb');
 
 function buildApp() {
   const app = express();
@@ -70,6 +71,7 @@ test('POST /api/products/batch-stock: plan Básico devuelve 403 (recepción por 
   });
   await license.checkLicense();
   fetchMock.mock.restore(); // el fetch REAL vuelve para pegarle al server de prueba
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
 
   await withServer(buildApp(), async function (base) {
     const res = await fetch(base + '/api/products/batch-stock', {
@@ -97,6 +99,7 @@ test('POST /api/products/batch-stock: suma stock de un lote y confirma la transa
     },
     release: function () {}
   };
+  mockConSesion(t); // authenticateToken consulta la sesion con pool.query
   t.mock.method(pool, 'connect', async function () {
     return fakeClient;
   });
@@ -135,6 +138,7 @@ test('POST /api/products/batch-stock: hace rollback si un producto no existe', a
     },
     release: function () {}
   };
+  mockConSesion(t); // authenticateToken consulta la sesion con pool.query
   t.mock.method(pool, 'connect', async function () {
     return fakeClient;
   });
@@ -154,7 +158,8 @@ test('POST /api/products/batch-stock: hace rollback si un producto no existe', a
   });
 });
 
-test('POST /api/products/batch-stock: rechaza más de 50 productos por lote', async function () {
+test('POST /api/products/batch-stock: rechaza más de 50 productos por lote', async function (t) {
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
   const items = Array.from({ length: 51 }, function (_v, i) {
     return { id: i + 1, quantity: 1 };
   });
@@ -172,7 +177,8 @@ test('POST /api/products/batch-stock: rechaza más de 50 productos por lote', as
   });
 });
 
-test('POST /api/products/batch-stock: rechaza un body sin array de items', async function () {
+test('POST /api/products/batch-stock: rechaza un body sin array de items', async function (t) {
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
   await withServer(buildApp(), async function (base) {
     const res = await fetch(base + '/api/products/batch-stock', {
       method: 'POST',

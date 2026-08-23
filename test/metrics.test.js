@@ -10,6 +10,7 @@ const pool = require('../db');
 const license = require('../licenseCheck');
 const metricsRouter = require('../routes/metrics');
 const { withServer } = require('./helpers/testServer');
+const { mockConSesion } = require('./helpers/authDb');
 
 function buildApp() {
   const app = express();
@@ -27,7 +28,7 @@ test('GET /api/metrics/dashboard: deploy standalone (sin Panel Central) accede s
   delete process.env.CLIENTE_API_KEY;
   license._resetForTests();
 
-  t.mock.method(pool, 'query', async function () {
+  mockConSesion(t, async function () {
     return { rows: [{ count: '0' }] };
   });
 
@@ -49,6 +50,7 @@ test('GET /api/metrics/dashboard: plan Básico devuelve 403 con mensaje claro', 
   });
   await license.checkLicense();
   fetchMock.mock.restore(); // el fetch REAL vuelve para pegarle al server de prueba
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
 
   await withServer(buildApp(), async function (base) {
     const res = await fetch(base + '/api/metrics/dashboard', {
@@ -70,6 +72,7 @@ test('GET /api/metrics/dashboard: Premium pero suspendido también devuelve 403'
   });
   await license.checkLicense();
   fetchMock.mock.restore();
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
 
   await withServer(buildApp(), async function (base) {
     const res = await fetch(base + '/api/metrics/dashboard', {

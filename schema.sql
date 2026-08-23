@@ -77,6 +77,50 @@ CREATE TABLE IF NOT EXISTS producto_imagenes (
 ALTER TABLE producto_imagenes ADD COLUMN IF NOT EXISTS imagekit_file_id VARCHAR(255);
 ALTER TABLE productos ADD COLUMN IF NOT EXISTS image_imagekit_file_id VARCHAR(255);
 
+-- ============================================================
+-- Seguridad de las cuentas de administrador
+-- ============================================================
+
+-- Momento del último cambio de contraseña. El middleware de autenticación
+-- rechaza cualquier token emitido ANTES de esta fecha: así, al cambiar la
+-- contraseña se cierran todas las sesiones abiertas, que es justo lo que se
+-- necesita si sospechás que alguien vio tu clave. Sin esto, un JWT robado
+-- seguiría siendo válido hasta vencer (8hs) aunque cambies la contraseña.
+ALTER TABLE administradores ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ DEFAULT NOW();
+
+-- Rol: 'admin' puede todo; 'editor' puede gestionar productos y stock pero no
+-- tocar cuentas ni ver métricas del negocio. Por defecto 'admin' para no
+-- cambiarle los permisos a nadie que ya exista.
+ALTER TABLE administradores ADD COLUMN IF NOT EXISTS rol VARCHAR(20) NOT NULL DEFAULT 'admin';
+
+-- Segundo factor (TOTP). Nulo = sin 2FA, que es el estado por defecto: es
+-- opcional a propósito, porque para el dueño de un local puede ser fricción.
+ALTER TABLE administradores ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(255);
+ALTER TABLE administradores ADD COLUMN IF NOT EXISTS totp_activo BOOLEAN NOT NULL DEFAULT false;
+
+-- ============================================================
+-- Auditoría: quién hizo qué y cuándo
+-- ============================================================
+-- El logger de requests registra método, URL y estado, pero no la identidad
+-- de quien lo hizo. Sin esta tabla no hay forma de responder "quién borró
+-- este producto", que es la primera pregunta cuando un cliente tiene más de
+-- un empleado con acceso.
+CREATE TABLE IF NOT EXISTS auditoria (
+  id         SERIAL PRIMARY KEY,
+  usuario    VARCHAR(100),
+  usuario_id INTEGER,
+  accion     VARCHAR(50)  NOT NULL,
+  entidad    VARCHAR(50),
+  entidad_id VARCHAR(50),
+  detalle    TEXT,
+  ip         VARCHAR(64),
+  fecha      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_fecha ON auditoria(fecha DESC);
+CREATE INDEX IF NOT EXISTS idx_auditoria_usuario ON auditoria(usuario);
+CREATE INDEX IF NOT EXISTS idx_auditoria_entidad ON auditoria(entidad, entidad_id);
+
 -- Índices para performance
 CREATE INDEX IF NOT EXISTS idx_productos_category ON productos(category);
 CREATE INDEX IF NOT EXISTS idx_productos_brand ON productos(brand);

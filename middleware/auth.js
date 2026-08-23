@@ -1,7 +1,16 @@
 const jwt = require('jsonwebtoken');
+const pool = require('../db');
 const { COOKIE_NAME } = require('../authCookie');
 
-function authenticateToken(req, res, next) {
+function verificarJwt(token) {
+  return new Promise(function(resolve) {
+    jwt.verify(token, process.env.JWT_SECRET, function(err, user) {
+      resolve(err ? null : user);
+    });
+  });
+}
+
+async function authenticateToken(req, res, next) {
   // La cookie httpOnly es la vía normal del panel web (ver authCookie.js).
   // El header Authorization se sigue aceptando como alternativa para
   // clientes que no son un navegador (tests, curl, una integración futura):
@@ -16,13 +25,65 @@ function authenticateToken(req, res, next) {
     return res.status(401).json({ error: 'Token requerido' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, function(err, user) {
-    if (err) {
-      return res.status(403).json({ error: 'Token inválido o vencido' });
+  const user = await verificarJwt(token);
+  if (!user) {
+    return res.status(403).json({ error: 'Token inválido o vencido' });
+  }
+
+  // Corte de sesiones al cambiar la contraseña: rechazamos cualquier token
+  // emitido ANTES del último cambio. Sin esto, un token robado seguiría
+  // sirviendo hasta vencer (8hs) aunque la víctima cambiara su clave — que es
+  // justamente lo primero que uno hace al sospechar que se la vieron.
+  //
+  // Cuesta una consulta por request autenticado. Se acepta a conciencia: solo
+  // la pagan las rutas del panel (el catálogo público no pasa por acá), es una
+  // búsqueda por clave primaria, y cachearla reintroduciría la ventana de
+  // validez que este control existe para cerrar.
+  try {
+    const result = await pool.query(
+      'SELECT password_changed_at, rol FROM administradores WHERE id = $1',
+      [user.id]
+    );
+
+    if (result.rows.length === 0) {
+      // La cuenta fue borrada: el token es válido pero ya no corresponde a nadie.
+      return res.status(403).json({ error: 'La cuenta ya no existe' });
     }
-    req.user = user;
+
+    const fila = result.rows[0];
+    if (fila.password_changed_at) {
+      // `iat` viene en segundos; lo comparamos contra la fecha del cambio.
+      const emitido = (user.iat || 0) * 1000;
+      if (emitido < new Date(fila.password_changed_at).getTime()) {
+        return res.status(403).json({ error: 'Sesión cerrada por cambio de contraseña. Iniciá sesión de nuevo.' });
+      }
+    }
+
+    // El rol se toma SIEMPRE de la base, nunca del token: si a alguien le
+    // bajan los permisos, el cambio tiene efecto en el próximo request y no
+    // recién cuando venza su sesión.
+    req.user = Object.assign({}, user, { rol: fila.rol || 'admin' });
     next();
-  });
+  } catch (err) {
+    // Falla cerrado: es un control de autenticación, dejar pasar ante un error
+    // lo volvería inútil. Además, si la base no responde el panel no sirve
+    // igual, porque todos sus datos salen de ahí.
+    console.error('Error verificando la sesión:', err.message);
+    return res.status(503).json({ error: 'No se pudo verificar la sesión. Intentá de nuevo.' });
+  }
 }
 
-module.exports = { authenticateToken };
+// Exige un rol determinado. Se usa después de authenticateToken.
+// 'admin' puede todo; 'editor' gestiona productos y stock pero no cuentas ni
+// métricas del negocio.
+function requiereRol(...rolesPermitidos) {
+  return function(req, res, next) {
+    const rol = (req.user && req.user.rol) || 'admin';
+    if (!rolesPermitidos.includes(rol)) {
+      return res.status(403).json({ error: 'No tenés permisos para esta acción' });
+    }
+    next();
+  };
+}
+
+module.exports = { authenticateToken, requiereRol };

@@ -11,6 +11,7 @@ const imageStorage = require('../imagekit');
 const productsRouter = require('../routes/products');
 const { errorHandler } = require('../middleware/errorHandler');
 const { withServer } = require('./helpers/testServer');
+const { mockConSesion } = require('./helpers/authDb');
 
 function buildApp() {
   const app = express();
@@ -38,6 +39,7 @@ test('POST /:id/images/upload: requiere autenticación', async function () {
 });
 
 test('POST /:id/images/upload: sin ImageKit configurado, devuelve 503 (no cae en disco en silencio)', async function (t) {
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
   t.mock.method(imageStorage, 'isConfigured', function () { return false; });
   let uploadCalled = false;
   t.mock.method(imageStorage, 'uploadImage', async function () {
@@ -169,7 +171,8 @@ test('PUT /:id/images/reorder: requiere autenticación', async function () {
   });
 });
 
-test('PUT /:id/images/reorder: rechaza sin "images" o con el array vacío', async function () {
+test('PUT /:id/images/reorder: rechaza sin "images" o con el array vacío', async function (t) {
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
   await withServer(buildApp(), async function (base) {
     const res = await fetch(base + '/api/products/1/images/reorder', {
       method: 'PUT',
@@ -208,6 +211,7 @@ function buildReorderFakeClient(queries, opts) {
 
 test('PUT /:id/images/reorder: la primera imagen pasa a ser la principal, el resto se reconstruye como galería', async function (t) {
   const queries = [];
+  mockConSesion(t); // authenticateToken consulta la sesion con pool.query
   t.mock.method(pool, 'connect', async function () { return buildReorderFakeClient(queries); });
   let deletedFileIds = [];
   t.mock.method(imageStorage, 'deleteImage', async function (fileId) { deletedFileIds.push(fileId); });
@@ -249,6 +253,7 @@ test('PUT /:id/images/reorder: la primera imagen pasa a ser la principal, el res
 
 test('PUT /:id/images/reorder: si el producto no existe, hace rollback y devuelve 404', async function (t) {
   const queries = [];
+  mockConSesion(t); // authenticateToken consulta la sesion con pool.query
   t.mock.method(pool, 'connect', async function () { return buildReorderFakeClient(queries, { productExists: false }); });
 
   await withServer(buildApp(), async function (base) {
@@ -275,6 +280,7 @@ test('POST /upload-image: requiere autenticación', async function () {
 });
 
 test('POST /upload-image: sin ImageKit configurado, devuelve 503', async function (t) {
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
   t.mock.method(imageStorage, 'isConfigured', function () { return false; });
 
   await withServer(buildApp(), async function (base) {
@@ -294,9 +300,13 @@ test('POST /upload-image: sube el archivo y devuelve url + fileId, sin tocar la 
   t.mock.method(imageStorage, 'uploadImage', async function () {
     return { url: 'https://ik.imagekit.io/demo/catalogo/principal.png', fileId: 'file_principal1' };
   });
-  let queryCalled = false;
-  t.mock.method(pool, 'query', async function () {
-    queryCalled = true;
+  // La consulta de sesión de authenticateToken no cuenta: acá se está
+  // verificando que el ENDPOINT no escriba nada, no que no exista
+  // autenticación. Por eso se delega la de sesión al helper y solo se
+  // contabilizan las demás.
+  let consultasDelEndpoint = 0;
+  mockConSesion(t, async function () {
+    consultasDelEndpoint++;
     return { rows: [] };
   });
 
@@ -312,7 +322,7 @@ test('POST /upload-image: sube el archivo y devuelve url + fileId, sin tocar la 
     assert.equal(res.status, 201);
     assert.equal(body.url, 'https://ik.imagekit.io/demo/catalogo/principal.png');
     assert.equal(body.fileId, 'file_principal1');
-    assert.equal(queryCalled, false, 'este endpoint no debe tocar la base — solo sube y devuelve la url');
+    assert.equal(consultasDelEndpoint, 0, 'este endpoint no debe tocar la base — solo sube y devuelve la url');
   });
 });
 

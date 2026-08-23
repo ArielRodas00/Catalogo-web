@@ -1,7 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const pool    = require('../db');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requiereRol } = require('../middleware/auth');
 const { sanitizePeriod } = require('../middleware/validate');
 const { getLicense } = require('../licenseCheck');
 const rateLimit = require('express-rate-limit');
@@ -68,7 +68,10 @@ router.post('/search', metricsLimiter, async function(req, res, next) {
 });
 
 // GET /api/metrics/dashboard (protegido + solo plan Premium activo)
-router.get('/dashboard', authenticateToken, async function(req, res, next) {
+// Solo rol admin: las métricas son información del negocio (qué se busca,
+// qué se consulta, cuánto interés hay). Un editor gestiona el catálogo, pero
+// eso no implica acceso a los números del dueño.
+router.get('/dashboard', authenticateToken, requiereRol('admin'), async function(req, res, next) {
   try {
     const license = getLicense();
     if (license.plan !== 'premium' || !license.activo) {

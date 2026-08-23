@@ -1198,3 +1198,106 @@ Los pasos que requieren la cuenta de Vercel (crear los proyectos, cargar variabl
 del WAF y el corte final) quedan para cuando el usuario habilite el acceso. **`BASE_URL` hay que corregirlo
 al cargar las variables**: hoy apunta a un dominio viejo (`catalogo-backend.onrender.com`) y por eso el
 `sitemap.xml` publica URLs muertas.
+
+## Endurecimiento de seguridad: contraseñas, auditoría, roles y 2FA (2026-08-23)
+
+A pedido del usuario, tras un repaso de qué medidas tenía el sistema y cuáles le faltaban. Se implementaron
+las cinco que son código; las dos restantes (backups y rotación de credenciales) quedan anotadas al final
+porque no dependen del repositorio.
+
+### 1. Cambio de contraseña desde la aplicación
+
+Era el hueco más molesto en la práctica: **no existía ningún endpoint**, así que cambiar una clave obligaba a
+correr un script contra la base. Con clientes reales eso significa que cada "quiero cambiar mi contraseña"
+—o peor, cada "creo que me la vieron"— dependía de que alguien la cambiara a mano.
+
+`POST /api/auth/change-password` exige la contraseña actual **aunque la sesión ya esté abierta**: si alguien
+se sienta frente a una sesión sin bloquear, no debería poder apropiarse de la cuenta.
+
+### 2. Corte de sesiones al cambiar la contraseña
+
+Cambiar la clave no servía de nada contra un token ya robado: el JWT seguía siendo válido hasta vencer (8hs).
+Ahora `administradores.password_changed_at` marca el momento del cambio y `middleware/auth.js` **rechaza
+cualquier token emitido antes**.
+
+Cuesta una consulta por request autenticado, y se acepta a conciencia: solo la pagan las rutas del panel (el
+catálogo público no pasa por ahí), es una búsqueda por clave primaria, y cachearla reintroduciría justo la
+ventana que este control existe para cerrar. Ante un error de base **falla cerrado** (503): un control de
+autenticación que deja pasar cuando falla no es un control.
+
+### 3. Fortaleza de contraseña
+
+`validarPassword()` en `middleware/validate.js`: mínimo 10 caracteres, rechaza claves comunes, que contengan
+el nombre de usuario, o un mismo carácter repetido. Se priorizó **longitud por sobre reglas de composición**
+siguiendo la guía del NIST: exigir "una mayúscula y un símbolo" empuja a claves tipo `Password1!`, fáciles
+para una máquina y molestas para una persona.
+
+### 4. Auditoría: quién hizo qué
+
+El logger registraba método, URL y estado, pero no la identidad. Nueva tabla `auditoria` y módulo
+`auditoria.js`. Se registra de dos formas:
+
+- **Middleware automático** para toda escritura autenticada. Se hizo así, y no llamando a `registrar()` en
+  cada ruta, porque son más de diez rutas de escritura y la próxima que se agregue quedaría sin auditar si
+  dependiéramos de acordarse.
+- **Llamadas explícitas** en `routes/auth.js` para los eventos de seguridad (login, login fallido, cambio de
+  contraseña, 2FA), donde el detalle importa más que la uniformidad. Los **intentos fallidos también se
+  registran**: una racha de ellos es la señal temprana de que alguien está probando contraseñas.
+
+Principio de diseño: **auditar nunca puede romper la operación**. Si falla el INSERT, se loguea y se sigue.
+
+### 5. Roles
+
+Columna `rol` con dos valores: `admin` (todo) y `editor` (productos y stock, pero no cuentas ni métricas del
+negocio). El rol se lee **siempre de la base, nunca del token**, para que bajarle permisos a alguien tenga
+efecto en el próximo request y no cuando venza su sesión. Por defecto `admin`, para no cambiarle los permisos
+a ninguna cuenta existente.
+
+### 6. Segundo factor (TOTP)
+
+Opcional a propósito: pedirle un código al dueño de un local cada vez que entra puede ser fricción de más.
+`totp.js` envuelve a `otplib` (elegido sobre `speakeasy`, que no se actualiza desde 2022) para que el resto
+del código no dependa de su API — la v13 cambió bastante respecto de la v12.
+
+Dos decisiones que importan:
+- **El 2FA no se activa al generar el QR**, sino al confirmar un código válido. Si se activara antes y el QR
+  se escaneó mal, la cuenta quedaría inaccesible.
+- **Desactivarlo exige la contraseña**, no solo la sesión: apagar el segundo factor es exactamente lo que
+  intentaría alguien con una sesión robada.
+
+### Un bug propio, encontrado por los tests
+
+El registro de auditoría en el login usaba `Object.assign({}, req, { user })` para pasar el usuario. Eso
+**no copia `headers`** de un request de Express, así que `ipDe()` explotaba y **el login entero devolvía 500
+en vez de 401**. Se corrigió pasando el usuario como parámetro explícito en vez de clonar el request, y
+`ipDe()` quedó defensivo ante headers ausentes. Los tests lo detectaron antes de que llegara a producción.
+
+### Impacto en los tests existentes
+
+Que `authenticateToken` pase a consultar la base rompió varios tests que probaban otra cosa detrás de una
+ruta protegida: algunos fallaban con 503 y otros directamente **se colgaban** (intentaban conectar a una base
+real). Se agregó el helper `test/helpers/authDb.js` (`mockConSesion`) que responde la consulta de sesión y
+delega el resto, así ningún test necesita saber que la autenticación toca la base.
+
+Un caso mereció cuidado: el test de `POST /upload-image` afirmaba "este endpoint no toca la base". Sigue
+siendo cierto del endpoint, pero ahora la autenticación sí la consulta. En vez de borrar la afirmación se
+la precisó: ahora cuenta solo las consultas que **no** son la de sesión.
+
+### Verificación
+
+- **144/144 tests** (120 catálogo + 24 Panel Central), con 13 nuevos de contraseña/TOTP y 17 del middleware
+  (incluidos los de corte de sesión, cuenta borrada, fallo cerrado y roles).
+- **22/22 end-to-end** contra un servidor real, con el ciclo completo: cambio de contraseña, que **la sesión
+  anterior queda cerrada**, que la clave vieja deja de servir, que la auditoría registró quién hizo qué, y el
+  alta y baja de 2FA generando códigos TOTP reales. La prueba restaura la contraseña original al terminar,
+  pase lo que pase, y se verificó contra la base que quedó restaurada.
+- Se confirmó que el catálogo público sigue intacto.
+
+### Pendiente (no depende del repositorio)
+
+- **Backups**: Neon en plan gratuito da solo 6hs de ventana para restaurar. Si alguien borra el catálogo y se
+  detecta al día siguiente, no se recupera. Es el único riesgo irreversible de la lista.
+- **Rotar credenciales**: varias se compartieron por chat durante el desarrollo. No están filtradas, pero
+  conviene renovarlas antes de operar con clientes que paguen.
+- **Regla de rate limiting en el WAF de Vercel**: el limitador en memoria funcionó en la verificación, pero
+  solo porque los intentos cayeron en la misma instancia; no es confiable si el tráfico se reparte.

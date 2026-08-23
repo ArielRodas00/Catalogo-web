@@ -34,7 +34,8 @@ const imageStorage = require('./imagekit');
 
 const { errorHandler } = require('./middleware/errorHandler');
 const { requestLogger } = require('./middleware/logger');
-const { authenticateToken } = require('./middleware/auth');
+const { authenticateToken, requiereRol } = require('./middleware/auth');
+const auditoria = require('./auditoria');
 
 const productsRouter   = require('./routes/products');
 const authRouter       = require('./routes/auth');
@@ -271,10 +272,25 @@ app.get('/api/internal/refresh-license', async function(req, res) {
   res.json({ ok: true, plan: license.plan, estado: license.estado });
 });
 
+// Registra automáticamente toda escritura autenticada (ver auditoria.js).
+// Va antes de los routers para poder engancharse a la respuesta.
+app.use(auditoria.middleware);
+
 app.use('/api/products', productsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/metrics', metricsRouter);
 app.use('/api/categories', categoriesRouter);
+
+// GET /api/auditoria — historial de acciones. Solo rol admin: un editor puede
+// gestionar productos, pero el registro de quién hizo qué es información de
+// control que le corresponde al dueño de la cuenta.
+app.get('/api/auditoria', authenticateToken, requiereRol('admin'), async function(req, res, next) {
+  try {
+    res.json(await auditoria.listar(req.query.limite));
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.use(errorHandler);
 
