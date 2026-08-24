@@ -70,6 +70,51 @@ CREATE TABLE IF NOT EXISTS pagos (
   fecha TIMESTAMP DEFAULT NOW()
 );
 
+-- ============================================================
+-- Seguridad de las cuentas de super-admin
+-- ============================================================
+-- Espejo de lo que ya tiene el catálogo. Acá importa MÁS: desde este panel se
+-- ven y administran todos los clientes, sus api_key y sus pagos, así que una
+-- sesión robada acá expone todo el negocio, no un solo catálogo.
+
+-- Momento del último cambio de contraseña. El middleware rechaza cualquier
+-- token emitido ANTES de esta fecha, así cambiar la clave cierra todas las
+-- sesiones abiertas — que es lo primero que uno hace al sospechar que se la
+-- vieron. Sin esto, un token robado seguiría valiendo hasta vencer (8hs).
+ALTER TABLE administradores ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ DEFAULT NOW();
+
+-- Rol: 'admin' puede todo; 'editor' consulta clientes pero no los modifica ni
+-- ve el registro de auditoría. Por defecto 'admin' para no cambiarle los
+-- permisos a ninguna cuenta que ya exista.
+ALTER TABLE administradores ADD COLUMN IF NOT EXISTS rol VARCHAR(20) NOT NULL DEFAULT 'admin';
+
+-- Segundo factor (TOTP). Nulo = sin 2FA. Es opcional, pero acá es donde más
+-- se recomienda activarlo.
+ALTER TABLE administradores ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(255);
+ALTER TABLE administradores ADD COLUMN IF NOT EXISTS totp_activo BOOLEAN NOT NULL DEFAULT false;
+
+-- ============================================================
+-- Auditoría: quién hizo qué y cuándo
+-- ============================================================
+-- Sin esto no hay forma de responder "quién le cambió el plan a este cliente"
+-- ni "quién dio de baja esta cuenta", que son justo las preguntas que importan
+-- cuando se administra el dinero de un negocio.
+CREATE TABLE IF NOT EXISTS auditoria (
+  id         SERIAL PRIMARY KEY,
+  usuario    VARCHAR(100),
+  usuario_id INTEGER,
+  accion     VARCHAR(50)  NOT NULL,
+  entidad    VARCHAR(50),
+  entidad_id VARCHAR(50),
+  detalle    TEXT,
+  ip         VARCHAR(64),
+  fecha      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_fecha ON auditoria(fecha DESC);
+CREATE INDEX IF NOT EXISTS idx_auditoria_usuario ON auditoria(usuario);
+CREATE INDEX IF NOT EXISTS idx_auditoria_entidad ON auditoria(entidad, entidad_id);
+
 CREATE INDEX IF NOT EXISTS idx_clientes_slug ON clientes(slug);
 CREATE INDEX IF NOT EXISTS idx_clientes_api_key ON clientes(api_key);
 CREATE INDEX IF NOT EXISTS idx_clientes_producto ON clientes(producto);

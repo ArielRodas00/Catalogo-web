@@ -91,4 +91,54 @@ function validatePago(req, res, next) {
   next();
 }
 
-module.exports = { validateCliente, validatePago, PLANES, ESTADOS, PRODUCTOS };
+// ============================================================
+// Fortaleza de contraseña (espejo del catálogo — ver la nota de duplicación
+// en panel-central/totp.js)
+// ============================================================
+// Se prioriza longitud por sobre reglas de composición ("una mayúscula, un
+// símbolo...") siguiendo la guía del NIST: esas reglas empujan a claves tipo
+// "Password1!" —fáciles para una máquina, molestas para una persona— mientras
+// que el largo sí encarece el ataque.
+const PASSWORD_MIN = 10;
+
+const PASSWORD_COMUNES = [
+  'contrasena', 'contraseña', 'password', 'passw0rd', '1234567890', '0123456789',
+  'qwertyuiop', 'administrador', 'adminadmin', 'panelcentral', 'micontrasena',
+  'password123', 'admin12345', '1234512345', 'superadmin1'
+];
+
+// Devuelve un array de errores; vacío significa que la contraseña sirve.
+function validarPassword(password, username) {
+  const errores = [];
+
+  if (typeof password !== 'string' || password.length < PASSWORD_MIN) {
+    errores.push('La contraseña debe tener al menos ' + PASSWORD_MIN + ' caracteres');
+    return errores; // sin largo mínimo, el resto de los chequeos no aporta
+  }
+
+  const normalizada = password.toLowerCase();
+
+  if (PASSWORD_COMUNES.includes(normalizada)) {
+    errores.push('Esa contraseña es demasiado común, elegí otra');
+  }
+
+  if (username && normalizada.includes(String(username).toLowerCase())) {
+    errores.push('La contraseña no puede contener tu nombre de usuario');
+  }
+
+  if (/^(.)\1+$/.test(password)) {
+    errores.push('La contraseña no puede ser un mismo carácter repetido');
+  }
+
+  return errores;
+}
+
+module.exports = {
+  validateCliente,
+  validatePago,
+  validarPassword,
+  PASSWORD_MIN,
+  PLANES,
+  ESTADOS,
+  PRODUCTOS
+};

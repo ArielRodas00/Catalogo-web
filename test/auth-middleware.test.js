@@ -127,6 +127,22 @@ test('authenticateToken: acepta un token emitido DESPUÉS del cambio de contrase
   assert.equal(llamoNext, true);
 });
 
+
+test('authenticateToken: acepta un token emitido en el MISMO segundo que el cambio', async function (t) {
+  // Bug real: el iat del JWT solo tiene precisión de segundos y
+  // password_changed_at guarda milisegundos. Comparando en milisegundos, un
+  // usuario que cambiaba su clave y volvía a entrar de inmediato quedaba
+  // afuera con 'sesión cerrada' — el caso normal, no el borde.
+  const ahora = Date.now();
+  const iatSeg = Math.floor(ahora / 1000);
+  // La contraseña se cambió 750ms DESPUÉS del segundo del token, pero dentro
+  // del mismo segundo: el token es legítimo y debe aceptarse.
+  mockCuenta(t, { password_changed_at: new Date(iatSeg * 1000 + 750) });
+  const req = { headers: { authorization: 'Bearer ' + jwt.sign({ id: 1, username: 'admin', iat: iatSeg }, process.env.JWT_SECRET, { expiresIn: '1h' }) } };
+  const { res, llamoNext } = await correr(req);
+  assert.equal(llamoNext, true, 'no debe rechazar un token del mismo segundo (HTTP ' + res.statusCode + ')');
+});
+
 test('authenticateToken: rechaza si la cuenta ya no existe', async function (t) {
   mockCuenta(t, null);
   const { res, llamoNext } = await correr({ headers: { authorization: 'Bearer ' + token() } });

@@ -52,9 +52,21 @@ async function authenticateToken(req, res, next) {
 
     const fila = result.rows[0];
     if (fila.password_changed_at) {
-      // `iat` viene en segundos; lo comparamos contra la fecha del cambio.
-      const emitido = (user.iat || 0) * 1000;
-      if (emitido < new Date(fila.password_changed_at).getTime()) {
+      // Ambos lados se comparan EN SEGUNDOS. El `iat` del JWT solo tiene
+      // precisión de segundos (se trunca hacia abajo), mientras que
+      // password_changed_at guarda milisegundos: comparar en milisegundos
+      // rechazaba un token legítimo cuando el cambio de contraseña y el login
+      // siguiente caían en el mismo segundo — o sea, justo el caso normal de
+      // "cambio mi clave y vuelvo a entrar". Ver AUDITORIA.md.
+      //
+      // Contrapartida asumida: queda una ventana de hasta 1 segundo en la que
+      // un token emitido en ese mismo segundo sigue siendo válido. Es
+      // aceptable porque el escenario que este control protege —una sesión
+      // robada— usa un token de minutos u horas antes, no de la misma
+      // fracción de segundo en que la víctima cambia la contraseña.
+      const emitidoSeg = user.iat || 0;
+      const cambioSeg = Math.floor(new Date(fila.password_changed_at).getTime() / 1000);
+      if (emitidoSeg < cambioSeg) {
         return res.status(403).json({ error: 'Sesión cerrada por cambio de contraseña. Iniciá sesión de nuevo.' });
       }
     }

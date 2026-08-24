@@ -27,6 +27,8 @@ const pool    = require('./db');
 
 const { errorHandler } = require('./middleware/errorHandler');
 const { requestLogger } = require('./middleware/logger');
+const { authenticateToken, requiereRol } = require('./middleware/auth');
+const auditoria = require('./auditoria');
 
 const authRouter     = require('./routes/auth');
 const clientesRouter = require('./routes/clientes');
@@ -77,9 +79,24 @@ app.use(express.static('public', {
   }
 }));
 
+// Registra automáticamente toda escritura autenticada (ver auditoria.js).
+// Va antes de los routers para poder engancharse a la respuesta.
+app.use(auditoria.middleware);
+
 app.use('/api/auth', authRouter);
 app.use('/api/clientes', clientesRouter);
 app.use('/api/licencia', licenciaRouter);
+
+// GET /api/auditoria — historial de acciones. Solo rol admin: es el registro
+// de quién tocó qué cliente y qué pago, información de control que no le
+// corresponde a una cuenta de consulta.
+app.get('/api/auditoria', authenticateToken, requiereRol('admin'), async function(req, res, next) {
+  try {
+    res.json(await auditoria.listar(req.query.limite));
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.use(errorHandler);
 

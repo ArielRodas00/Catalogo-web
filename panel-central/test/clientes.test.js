@@ -10,6 +10,7 @@ const pool = require('../db');
 const clientesRouter = require('../routes/clientes');
 const { errorHandler } = require('../middleware/errorHandler');
 const { withServer } = require('./helpers/testServer');
+const { mockConSesion } = require('./helpers/authDb');
 
 function buildApp() {
   const app = express();
@@ -46,7 +47,8 @@ test('GET /api/clientes: devuelve la lista con el token del super-admin', async 
   });
 });
 
-test('POST /api/clientes: rechaza sin nombre/slug', async function () {
+test('POST /api/clientes: rechaza sin nombre/slug', async function (t) {
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
   await withServer(buildApp(), async function (base) {
     const res = await fetch(base + '/api/clientes', {
       method: 'POST',
@@ -57,7 +59,8 @@ test('POST /api/clientes: rechaza sin nombre/slug', async function () {
   });
 });
 
-test('POST /api/clientes: rechaza un plan inválido', async function () {
+test('POST /api/clientes: rechaza un plan inválido', async function (t) {
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
   await withServer(buildApp(), async function (base) {
     const res = await fetch(base + '/api/clientes', {
       method: 'POST',
@@ -95,7 +98,9 @@ test('POST /api/clientes: crea el cliente y le genera una api_key', async functi
 });
 
 test('PUT /api/clientes/:id: edición parcial solo del estado', async function (t) {
-  t.mock.method(pool, 'query', async function (sql, values) {
+  // La consulta de sesión de authenticateToken se delega al helper: acá se
+  // afirma sobre las consultas de la RUTA, no sobre las de autenticación.
+  mockConSesion(t, async function (sql, values) {
     assert.match(sql, /UPDATE clientes SET estado=\$1, updated_at=NOW\(\) WHERE id=\$2/);
     return { rows: [{ id: 5, estado: values[0] }] };
   });
@@ -114,7 +119,8 @@ test('PUT /api/clientes/:id: edición parcial solo del estado', async function (
 
 // --- Marca (ver AUDITORIA.md, "Branding desde el Panel Central") ---
 
-test('PUT /api/clientes/:id: rechaza un color que no es hex de 6 dígitos', async function () {
+test('PUT /api/clientes/:id: rechaza un color que no es hex de 6 dígitos', async function (t) {
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
   await withServer(buildApp(), async function (base) {
     const res = await fetch(base + '/api/clientes/5', {
       method: 'PUT',
@@ -125,7 +131,8 @@ test('PUT /api/clientes/:id: rechaza un color que no es hex de 6 dígitos', asyn
   });
 });
 
-test('PUT /api/clientes/:id: rechaza un favicon_url que no es http/https', async function () {
+test('PUT /api/clientes/:id: rechaza un favicon_url que no es http/https', async function (t) {
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
   await withServer(buildApp(), async function (base) {
     const res = await fetch(base + '/api/clientes/5', {
       method: 'PUT',
@@ -137,7 +144,9 @@ test('PUT /api/clientes/:id: rechaza un favicon_url que no es http/https', async
 });
 
 test('PUT /api/clientes/:id: acepta un color hex válido y lo guarda', async function (t) {
-  t.mock.method(pool, 'query', async function (sql, values) {
+  // Igual que arriba: la consulta de sesión va por el helper para poder
+  // afirmar solo sobre las de la ruta.
+  mockConSesion(t, async function (sql, values) {
     assert.match(sql, /color_primary=\$1/);
     return { rows: [{ id: 5, color_primary: values[0] }] };
   });
@@ -179,7 +188,8 @@ test('POST /api/clientes/:id/logo: sube un logo y lo guarda como base64', async 
   });
 });
 
-test('POST /api/clientes/:id/logo: rechaza un formato no soportado', async function () {
+test('POST /api/clientes/:id/logo: rechaza un formato no soportado', async function (t) {
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
   await withServer(buildApp(), async function (base) {
     const formData = new FormData();
     formData.append('logo', new Blob([new Uint8Array([1, 2, 3])], { type: 'application/pdf' }), 'logo.pdf');
@@ -193,7 +203,8 @@ test('POST /api/clientes/:id/logo: rechaza un formato no soportado', async funct
   });
 });
 
-test('POST /api/clientes/:id/logo: rechaza un archivo mas pesado que el limite', async function () {
+test('POST /api/clientes/:id/logo: rechaza un archivo mas pesado que el limite', async function (t) {
+  mockConSesion(t); // la ruta pasa por authenticateToken, que consulta la sesión
   await withServer(buildApp(), async function (base) {
     const formData = new FormData();
     const big = new Uint8Array(301 * 1024);

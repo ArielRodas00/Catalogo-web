@@ -1371,3 +1371,53 @@ imágenes, favicon) siguen en `public/` y se sirven igual que antes.
 Verificado en local sobre `/`, `/index.html` y `/admin.html`: cero marcadores crudos, título correcto,
 favicon presente y color de marca aplicado en ambas páginas, más 12/12 en navegador incluyendo que el login
 sigue funcionando y que los assets estáticos responden 200.
+
+## Paridad de seguridad en el Panel Central (2026-08-24)
+
+Salió de una auditoría de calidad pedida por el usuario. Al comparar ambas apps quedó a la vista un hueco que
+no se había señalado: **las seis medidas de seguridad se habían implementado solo en el catálogo**. El Panel
+Central —que es donde se ven y administran todos los clientes, sus `api_key` y sus pagos— tenía únicamente la
+cookie httpOnly. Era la cuenta que más protección merece y la que menos tenía.
+
+Se llevaron las seis: cambio de contraseña, corte de sesiones, fortaleza de clave, auditoría, roles y 2FA.
+Archivos nuevos `panel-central/totp.js` y `panel-central/auditoria.js`, más los cambios en su `schema.sql`,
+`middleware/auth.js`, `middleware/validate.js`, `routes/auth.js` y `server.js`.
+
+**Sobre la duplicación**: los módulos son espejos de los del catálogo, y quedó anotado en cada archivo por
+qué. Son dos apps con deploys, `package.json` y bases distintas, y el Panel Central se publica apuntando
+**solo a su subdirectorio**, así que un `require()` a un archivo de afuera no llegaría al paquete desplegado.
+Compartir código exigiría un paquete publicado o un monorepo, que es desproporcionado para dos apps chicas.
+La contrapartida —tocar uno obliga a tocar el otro— está escrita en el encabezado de cada archivo.
+
+### Bug encontrado al probar el ciclo completo: precisión de las fechas
+
+Con todo implementado, el guion de punta a punta falló en cadena: tras cambiar la contraseña y volver a
+entrar, **todo devolvía 403**. La causa estaba en el corte de sesiones, y **afectaba también al catálogo**:
+
+- El `iat` de un JWT tiene precisión de **segundos** (se trunca hacia abajo).
+- `password_changed_at` guarda **milisegundos**.
+
+Comparando en milisegundos, un token emitido a las `10:00:00.900` se lee como `10:00:00.000`, que es
+*anterior* a un cambio de contraseña hecho a las `10:00:00.750`. Resultado: quien cambiaba su clave y volvía
+a entrar de inmediato quedaba afuera con "sesión cerrada" — **el camino normal, no un caso borde**.
+
+Se corrigió comparando ambos lados en segundos, en las dos apps, con un test de regresión en cada una.
+
+**Contrapartida asumida y documentada en el código**: queda una ventana de hasta 1 segundo en la que un token
+emitido en ese mismo segundo sigue valiendo. Es aceptable porque el escenario que este control protege —una
+sesión robada— usa un token de minutos u horas antes, no de la misma fracción de segundo en que la víctima
+cambia la contraseña.
+
+### Verificación
+
+- **181 tests** (141 catálogo + 40 Panel Central), con 14 nuevos de seguridad del Panel y 1 de regresión por
+  cada app para el bug de precisión.
+- **18/18 end-to-end** contra el Panel Central corriendo: cambio de contraseña, corte de la sesión anterior,
+  la clave vieja deja de servir, la auditoría registra quién hizo qué (28 entradas, con usuario e IP), la
+  lista de clientes sigue accesible, y el alta y baja de 2FA con códigos TOTP reales.
+- Al terminar se verificó contra la base que la contraseña, el rol y el estado de 2FA quedaron como estaban.
+
+**Nota de método**: el guion de punta a punta se hizo **idempotente** (detecta si una corrida previa dejó la
+contraseña temporal y se recupera solo). Las dos primeras corridas dejaron el estado sucio porque su limpieza
+chocó con el propio rate limiter, y hubo que restaurar la contraseña a mano — un guion que muta estado tiene
+que poder correr dos veces seguidas.
