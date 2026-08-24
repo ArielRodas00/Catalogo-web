@@ -8,9 +8,6 @@ const modal        = document.getElementById('product-modal');
 const modalContent = document.getElementById('modal-body');
 const modalClose   = document.getElementById('modal-close');
 
-function escapeAttr(str) {
-  return String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 // Ícono real de WhatsApp (SVG inline, logo oficial) — antes se usaba un
 // ícono genérico de "chat" de Material Symbols que no representa la marca.

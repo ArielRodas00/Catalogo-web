@@ -42,7 +42,19 @@ function getPriceInfo(product) {
   };
 }
 
-// Helper para escapar HTML y prevenir XSS
+// ------------------------------------------------------------
+// Escapado para prevenir XSS
+// ------------------------------------------------------------
+// Las dos viven acá porque state.js se carga antes que el resto de los
+// módulos del catálogo (ver el orden de los <script> en views/index.html).
+// Antes escapeAttr estaba definida por triplicado —en render.js, filters.js
+// y modal.js, los tres cargados en la misma página—, con lo cual la última
+// en cargarse pisaba a las otras. Eran idénticas, así que no había un bug,
+// pero en una función de seguridad esa redundancia es una trampa: corregir
+// una copia y no las demás dejaría el comportamiento dependiendo del orden
+// de carga.
+
+// Para texto dentro del HTML.
 function escapeHTML(str) {
   if (!str) return '';
   return String(str)
@@ -50,4 +62,15 @@ function escapeHTML(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+// Para valores dentro de un atributo. Escapa además la comilla simple,
+// porque un atributo puede estar delimitado con ella.
+function escapeAttr(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }

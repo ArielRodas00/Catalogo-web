@@ -1421,3 +1421,31 @@ cambia la contraseña.
 contraseña temporal y se recupera solo). Las dos primeras corridas dejaron el estado sucio porque su limpieza
 chocó con el propio rate limiter, y hubo que restaurar la contraseña a mano — un guion que muta estado tiene
 que poder correr dos veces seguidas.
+
+### Limpieza posterior a la auditoría de calidad
+
+Los hallazgos menores de la auditoría, resueltos:
+
+- **Código muerto eliminado**: `removeFromArray()` en `public/js/filters.js` (una función que nadie llamaba)
+  e `isHomeVisible` en `public/js/render.js` (una variable que se calculaba y no se usaba). Se confirmó que
+  ninguna tenía referencias en todo el proyecto antes de borrarlas.
+- **`escapeAttr` deduplicada**: estaba definida por triplicado en `render.js`, `filters.js` y `modal.js`, los
+  tres cargados en la misma página, así que la última en cargarse pisaba a las demás. Se verificó que eran
+  **idénticas** —no había un bug de escapado— pero en una función de seguridad esa redundancia es una trampa:
+  corregir una copia y no las otras dejaría el comportamiento dependiendo del orden de los `<script>`. Ahora
+  vive sola en `state.js`, que se carga antes que el resto.
+- **Convención de manejo de errores**: `/api/internal/refresh-license` era la única de 40 rutas async sin
+  `try/catch`. No era un bug (Express 5 reenvía las promesas rechazadas al manejador de errores), pero rompía
+  la convención del proyecto.
+- **Tests del módulo de auditoría** (`test/auditoria.test.js`, 11 casos): faltaban pruebas unitarias de un
+  módulo de seguridad recién agregado. Cubren que **nunca rompe la operación** si falla el INSERT, que
+  extrae la IP real detrás de un proxy, que no registra lecturas ni escrituras anónimas, y que no duplica lo
+  que `routes/auth.js` ya audita con más detalle.
+- **Dependencias al día**: `express-rate-limit`, `helmet` y `pg` actualizados a su última versión menor.
+
+Verificado con 10/10 en navegador que el catálogo, el modal y los filtros siguen funcionando tras mover la
+función de escape, incluida una prueba de que escapa los 5 caracteres peligrosos desde su nueva ubicación.
+
+**Estado final**: 192 tests (152 catálogo + 40 Panel Central), 0 errores de lint, y las 70 advertencias
+restantes son todas falsos positivos del patrón de scripts clásicos con globales (funciones que ESLint no ve
+usadas porque se llaman desde otro archivo).

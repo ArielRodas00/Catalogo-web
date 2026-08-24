@@ -261,20 +261,24 @@ app.get('/api/plan', authenticateToken, function(req, res) {
 // plataforma. Se protege con un secreto compartido, que es el patrón estándar
 // de Vercel para cron. Si CRON_SECRET no está configurado, el endpoint no
 // existe: así un deploy sin cron no queda con una ruta abierta de más.
-app.get('/api/internal/refresh-license', async function(req, res) {
-  if (!process.env.CRON_SECRET) {
-    return res.status(404).json({ error: 'No encontrado' });
-  }
-  if (req.headers['authorization'] !== 'Bearer ' + process.env.CRON_SECRET) {
-    return res.status(401).json({ error: 'No autorizado' });
-  }
+app.get('/api/internal/refresh-license', async function(req, res, next) {
+  try {
+    if (!process.env.CRON_SECRET) {
+      return res.status(404).json({ error: 'No encontrado' });
+    }
+    if (req.headers['authorization'] !== 'Bearer ' + process.env.CRON_SECRET) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
 
-  // Acá sí esperamos el chequeo (a diferencia de getLicense, que nunca
-  // bloquea): el único objetivo de este request es justamente refrescar, y
-  // el cron no tiene a nadie esperando del otro lado.
-  await checkLicense();
-  const license = getLicense();
-  res.json({ ok: true, plan: license.plan, estado: license.estado });
+    // Acá sí esperamos el chequeo (a diferencia de getLicense, que nunca
+    // bloquea): el único objetivo de este request es justamente refrescar, y
+    // el cron no tiene a nadie esperando del otro lado.
+    await checkLicense();
+    const license = getLicense();
+    res.json({ ok: true, plan: license.plan, estado: license.estado });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Registra automáticamente toda escritura autenticada (ver auditoria.js).

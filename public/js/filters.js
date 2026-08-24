@@ -4,10 +4,6 @@
 // Depende de: state.js, render.js, storage.js
 // ============================================================
 
-function escapeAttr(str) {
-  return String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 // ------------------------------------------------------------
 // getFilteredProducts() — delega filtrado al servidor
 // ------------------------------------------------------------
@@ -528,11 +524,6 @@ document.addEventListener('click', function(e) {
   renderProducts(1);
   updateSidebarSelection();
 });
-
-function removeFromArray(arr, value) {
-  var index = arr.indexOf(value);
-  if (index !== -1) arr.splice(index, 1);
-}
 
 // Limpiar todos los filtros
 document.addEventListener('click', function(e) {

@@ -4,9 +4,6 @@
 // Depende de: state.js
 // ============================================================
 
-function escapeAttr(str) {
-  return String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 // Referencias al DOM
 const productGrid  = document.querySelector('#home-products .product-grid');
@@ -18,7 +15,6 @@ const filteredGrid = document.getElementById('filtered-grid');
 function renderSkeletons(count) {
   const gridHome = document.querySelector('#home-products .product-grid');
   const gridFilter = document.getElementById('filtered-grid');
-  const isHomeVisible = document.getElementById('home-products') && document.getElementById('home-products').style.display !== 'none';
   const isFilterVisible = document.getElementById('filter-view') && document.getElementById('filter-view').style.display !== 'none';
   const grid = isFilterVisible ? gridFilter : gridHome;
   if (!grid) return;
