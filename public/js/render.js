@@ -59,7 +59,7 @@ function createProductCard(product) {
 
   card.innerHTML =
     '<div class="product-image-wrap product-img-wrap">' +
-      '<img src="' + escapeAttr(product.image) + '" alt="' + escapeHTML(product.name) + '" loading="lazy" class="product-image product-img' + (!product.en_stock ? ' img-nostock' : '') + '" onload="this.classList.add(\'loaded\')">' +
+      '<img src="' + escapeAttr(imagenOptimizada(product.image, 400)) + '" alt="' + escapeHTML(product.name) + '" loading="lazy" class="product-image product-img' + (!product.en_stock ? ' img-nostock' : '') + '" onload="this.classList.add(\'loaded\')">' +
       (!product.en_stock ? '<div class="card-stock-overlay"></div><div class="ribbon-sin-stock">Sin stock</div>' : '') +
       '<div class="card-badges">' + badgesHTML + '</div>' +
     '</div>' +
@@ -104,7 +104,7 @@ function renderHighlightTrack(track, products) {
 
     card.innerHTML =
       '<div style="position:relative; overflow:hidden">' +
-      '<img src="' + escapeAttr(product.image) + '" alt="' + escapeHTML(product.name) + '" loading="lazy" class="hp-image product-img' + (!product.en_stock ? ' img-nostock' : '') + '" onload="this.classList.add(\'loaded\')">' +
+      '<img src="' + escapeAttr(imagenOptimizada(product.image, 400)) + '" alt="' + escapeHTML(product.name) + '" loading="lazy" class="hp-image product-img' + (!product.en_stock ? ' img-nostock' : '') + '" onload="this.classList.add(\'loaded\')">' +
       (!product.en_stock ? '<div class="card-stock-overlay" style="height:140px"></div><div class="ribbon-sin-stock">Sin stock</div>' : '') +
       '<div class="card-badges">' + badgesHTML + '</div>' +
       '</div>' +

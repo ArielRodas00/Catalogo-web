@@ -89,7 +89,7 @@ async function openModal(productId) {
   const whatsappLink = 'https://wa.me/' + product.whatsapp + '?text=' + whatsappMessage;
 
   const thumbnailsHTML = allImages.map(function(img, index) {
-    return '<img src="' + escapeAttr(img.url) + '" ' +
+    return '<img src="' + escapeAttr(imagenOptimizada(img.url, 150)) + '" ' +
       'class="thumbnail' + (index === 0 ? ' active' : '') + '" ' +
       'data-index="' + index + '" alt="Imagen ' + (index + 1) + '">';
   }).join('');
@@ -100,7 +100,7 @@ async function openModal(productId) {
     '<div class="modal-gallery">' +
       '<div class="gallery-main">' +
         (showArrows ? '<button class="gallery-arrow arrow-left" id="arrow-left">&#8592;</button>' : '') +
-        '<img src="' + escapeAttr(allImages[0].url) + '" class="gallery-main-img" id="gallery-main-img" alt="' + escapeHTML(product.name) + '">' +
+        '<img src="' + escapeAttr(imagenOptimizada(allImages[0].url, 800)) + '" class="gallery-main-img" id="gallery-main-img" alt="' + escapeHTML(product.name) + '">' +
         (showArrows ? '<button class="gallery-arrow arrow-right" id="arrow-right">&#8594;</button>' : '') +
       '</div>' +
       (allImages.length > 1 ? '<div class="gallery-thumbs" id="gallery-thumbs">' + thumbnailsHTML + '</div>' : '') +
@@ -132,14 +132,18 @@ async function openModal(productId) {
 
   // Fullscreen al hacer click en la imagen principal
   document.getElementById('gallery-main-img').addEventListener('click', function() {
-    openFullscreen(allImages[currentImageIndex].url, product.name);
+    // A pantalla completa sí se pide grande: es donde se mira el detalle de
+    // la pieza. Igual pasa por ImageKit para que entregue WebP/AVIF.
+    openFullscreen(imagenOptimizada(allImages[currentImageIndex].url, 1600), product.name);
   });
 
   // Función para cambiar imagen activa
   function setImage(index) {
     currentImageIndex = index;
     const mainImg     = document.getElementById('gallery-main-img');
-    mainImg.src       = allImages[index].url;
+    // Mismo ancho que la imagen inicial: si acá se pidiera la original, pasar
+    // de foto descargaría el archivo entero y perderíamos el ahorro.
+    mainImg.src       = imagenOptimizada(allImages[index].url, 800);
     document.querySelectorAll('.thumbnail').forEach(function(thumb, i) {
       thumb.classList.toggle('active', i === index);
     });

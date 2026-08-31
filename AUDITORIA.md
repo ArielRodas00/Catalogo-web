@@ -1494,3 +1494,64 @@ punto y coma que usa Excel en español.
   comillas escapadas, filas sin precio, sin nombre y duplicadas.
 - **13 en navegador**: el flujo completo desde el panel, verificando que la vista previa no escribe nada,
   que señala la fila exacta con problema y que los precios con punto de miles se guardan bien.
+
+## Fotos desde el celular (2026-08-31)
+
+El primer cliente va a trabajar **mayormente desde el celular**: saca la foto del repuesto y la sube ahí
+mismo. Al verificar ese flujo aparecieron dos problemas serios, ninguno visible hasta que se prueba con
+tamaños reales.
+
+### 1. Las fotos de celular no entraban
+
+El límite de subida es 5 MB y una cámara de 12 MP genera archivos de 6 a 12 MB. Medido contra el servidor:
+
+| Foto | Antes |
+|---|---|
+| 2 MB | entraba |
+| 4 MB | entraba |
+| 6 MB | **"Error interno del servidor"** |
+| 9 MB | **"Error interno del servidor"** |
+
+Peor que el fallo era el mensaje: un 500 genérico que no le dice a nadie que el problema es el peso.
+
+**Arreglo: comprimir en el navegador antes de subir** (`public/admin/comprimir.js`). Se reescala a 1600px de
+lado mayor con calidad 0,85. Medido: **una foto de 11,8 MB queda en 1 MB (92% menos) en 156 ms**.
+
+Se hace en el navegador y no en el servidor a propósito: subir el archivo entero para achicarlo del otro
+lado dejaría igual el problema real, que es la subida lenta con datos móviles.
+
+Detalles que importan: se usa `createImageBitmap` con `imageOrientation: 'from-image'` porque una foto
+sacada en vertical viene rotada en los metadatos EXIF y dibujarla sin eso la deja acostada; los GIF no se
+tocan (el canvas se quedaría con el primer cuadro); las imágenes de menos de 600 KB se dejan como están; y
+ante cualquier error se devuelve el archivo original en vez de fallar.
+
+Como respaldo, el `errorHandler` ahora traduce `LIMIT_FILE_SIZE` a un **413 con un mensaje que dice qué
+hacer**, en vez del 500 genérico.
+
+### 2. El catálogo servía las fotos a tamaño completo
+
+Más grave para el cliente, porque es silencioso: las miniaturas de 250px cargaban la imagen entera de
+1600px. **El plan gratuito de ImageKit da 20 GB de tráfico al mes y corta la entrega al superarlos** — el
+catálogo se quedaría literalmente sin fotos hasta el mes siguiente.
+
+Se agregó `imagenOptimizada()` en `state.js`, que le pide a ImageKit el ancho que se va a ver
+(`?tr=w-...,q-80,f-auto`). El `f-auto` además entrega WebP/AVIF donde el navegador lo soporta.
+
+Anchos por lugar: tarjetas 400px, carrusel 900px, miniaturas de galería 150px, imagen del modal 800px,
+pantalla completa 1600px.
+
+Medido en el navegador, cargando la home entera hasta el final:
+
+| | Peso por visita | Visitas que soportan los 20 GB |
+|---|---|---|
+| Antes | ~1,2 MB estimado | ~17.000/mes |
+| **Ahora** | **94 KB** | **~222.000/mes (7.400 por día)** |
+
+### Verificado
+
+- **9/9** de compresión en navegador, incluida la subida real a ImageKit.
+- **11/11** del panel en un teléfono (Pixel 5): entra el login, no se desborda, los botones son tocables y
+  el selector de foto ofrece Cámara y Galería.
+- **Varias fotos por producto: funciona.** Probadas 4 fotos de ~7 MP en un mismo producto: las 4 suben, se
+  guardan con su orden y la galería las devuelve. No hay límite por producto en el código.
+- 179 tests y 0 errores de lint. Cero imágenes rotas en el catálogo tras el cambio.

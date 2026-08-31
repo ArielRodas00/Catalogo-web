@@ -160,8 +160,14 @@ async function addGalleryFiles(files) {
   let successCount = 0;
   for (const item of items) {
     try {
+      // Se achica antes de subir. El caso normal es una foto sacada con el
+      // celular en el momento: sin esto, una cámara de 12 MP genera archivos
+      // de 6 a 12 MB que el servidor rechaza, y además tardarían muchísimo
+      // con datos móviles. Ver admin/comprimir.js.
+      const archivo = await comprimirImagen(item.file);
+
       const formData = new FormData();
-      formData.append('image', item.file);
+      formData.append('image', archivo);
       const res = await fetch('/api/products/upload-image', {
         method: 'POST',
         // Sin headers: la sesión va en la cookie httpOnly, y el Content-Type

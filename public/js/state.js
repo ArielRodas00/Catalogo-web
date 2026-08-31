@@ -64,6 +64,32 @@ function escapeHTML(str) {
     .replace(/"/g, '&quot;');
 }
 
+// ------------------------------------------------------------
+// imagenOptimizada() — pide la foto en el tamaño que se va a ver
+// ------------------------------------------------------------
+// Sin esto el catálogo servía la foto entera (1600px, varios cientos de KB)
+// dentro de una tarjeta de 250px. Dos consecuencias, las dos malas:
+//
+//   1. El plan gratuito de ImageKit da 20 GB de tráfico al mes y **corta la
+//      entrega de imágenes** al superarlos: el catálogo del cliente se
+//      quedaría sin fotos hasta el mes siguiente.
+//   2. Con datos móviles —que es como navega la mayoría acá— cada visita
+//      descarga diez veces más de lo necesario.
+//
+// `tr` son las transformaciones de ImageKit: se aplican en su CDN y quedan
+// cacheadas. `f-auto` entrega WebP o AVIF a los navegadores que los soportan,
+// que ahorra otro tanto sobre el JPEG.
+//
+// Si la URL no es de ImageKit (alguien pegó una dirección externa a mano) se
+// devuelve tal cual: agregarle parámetros no haría nada o rompería el enlace.
+function imagenOptimizada(url, ancho) {
+  const s = String(url || '');
+  if (!s || s.indexOf('ik.imagekit.io') === -1) return s;
+  if (s.indexOf('tr=') !== -1) return s;              // ya tiene transformación
+  const sep = s.indexOf('?') === -1 ? '?' : '&';
+  return s + sep + 'tr=w-' + ancho + ',q-80,f-auto';
+}
+
 // Para valores dentro de un atributo. Escapa además la comilla simple,
 // porque un atributo puede estar delimitado con ella.
 function escapeAttr(str) {

@@ -104,7 +104,10 @@ async function initCarousel() {
           '</div>' +
         '</div>' +
         '<div class="carousel-media">' +
-          '<img class="carousel-img" src="' + escapeAttr(product.image || '') + '" ' +
+          // El carrusel ocupa media pantalla, así que pide más ancho que una
+          // tarjeta — pero igual pasa por ImageKit: es la primera imagen que
+          // ve el visitante y la que más pesa en la carga inicial.
+          '<img class="carousel-img" src="' + escapeAttr(imagenOptimizada(product.image || '', 900)) + '" ' +
             'alt="' + escapeHTML(product.name) + '" loading="lazy">' +
         '</div>' +
       '</div>';
