@@ -23,6 +23,7 @@ const express = require('express');
 const helmet  = require('helmet');
 const cors    = require('cors');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 const pool    = require('./db');
 
 const { errorHandler } = require('./middleware/errorHandler');
@@ -66,8 +67,21 @@ app.use(express.json({ limit: '1mb' }));
 // Necesario para leer la cookie de sesión del super-admin (ver authCookie.js).
 // Express no parsea cookies por su cuenta.
 app.use(cookieParser());
+// Un POST sin Content-Type deja req.body en undefined, y cualquier ruta que
+// haga destructuring sobre el cuerpo lanza y termina en un 500. Es un pedido
+// malformado: corresponde un 400 de la validacion de cada ruta, no un error
+// del servidor. Con esto req.body siempre es un objeto.
+app.use(function(req, res, next) {
+  if (req.body === undefined) req.body = {};
+  next();
+});
+
 app.use(requestLogger);
-app.use(express.static('public', {
+// Ruta ABSOLUTA a proposito: con la relativa, en Vercel el directorio de
+// trabajo de la funcion no es la raiz del proyecto y express.static no
+// encontraba la carpeta, asi que '/' devolvia 404 (los archivos sueltos si
+// se veian, porque los sirve el CDN). Ver AUDITORIA.md.
+app.use(express.static(path.join(__dirname, 'public'), {
   etag: true,
   setHeaders: function(res, filePath) {
     if (filePath.endsWith('.html')) {

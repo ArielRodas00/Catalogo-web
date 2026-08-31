@@ -27,7 +27,7 @@ function emitirToken(admin) {
 // POST /api/auth/login
 router.post('/login', loginLimiter, async function(req, res, next) {
   try {
-    const { username, password, codigo2fa } = req.body;
+    const { username, password, codigo2fa } = req.body || {};
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Usuario y contraseña requeridos' });
@@ -101,7 +101,7 @@ router.get('/verify', authenticateToken, function(req, res) {
 // alguien se la cambie a mano.
 router.post('/change-password', loginLimiter, authenticateToken, async function(req, res, next) {
   try {
-    const { passwordActual, passwordNueva } = req.body;
+    const { passwordActual, passwordNueva } = req.body || {};
 
     if (!passwordActual || !passwordNueva) {
       return res.status(400).json({ error: 'Tenés que enviar la contraseña actual y la nueva' });
@@ -180,7 +180,7 @@ router.post('/2fa/setup', authenticateToken, async function(req, res, next) {
 // POST /api/auth/2fa/activate — confirma con un código y recién ahí lo activa.
 router.post('/2fa/activate', authenticateToken, async function(req, res, next) {
   try {
-    const { codigo } = req.body;
+    const { codigo } = req.body || {};
     if (!codigo) return res.status(400).json({ error: 'Falta el código de verificación' });
 
     const result = await pool.query('SELECT totp_secret FROM administradores WHERE id=$1', [req.user.id]);
@@ -205,7 +205,7 @@ router.post('/2fa/activate', authenticateToken, async function(req, res, next) {
 // el segundo factor es justo lo que intentaría alguien con una sesión robada.
 router.post('/2fa/disable', authenticateToken, async function(req, res, next) {
   try {
-    const { password } = req.body;
+    const { password } = req.body || {};
     if (!password) return res.status(400).json({ error: 'Tenés que confirmar con tu contraseña' });
 
     const result = await pool.query('SELECT password FROM administradores WHERE id=$1', [req.user.id]);
