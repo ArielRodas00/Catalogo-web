@@ -1449,3 +1449,48 @@ función de escape, incluida una prueba de que escapa los 5 caracteres peligroso
 **Estado final**: 192 tests (152 catálogo + 40 Panel Central), 0 errores de lint, y las 70 advertencias
 restantes son todas falsos positivos del patrón de scripts clásicos con globales (funciones que ESLint no ve
 usadas porque se llaman desde otro archivo).
+
+## Importación masiva de productos (2026-08-24)
+
+Contexto: el primer cliente real (un local de repuestos) entra esta semana. Va a cargar más de 150 productos,
+y **estos locales llevan el stock en papel, no en computadora** — no hay ningún sistema del que exportar.
+Cargar de a uno por el formulario son horas de trabajo, así que la lista se arma a mano en Excel y se sube.
+
+Se agregó `importar.js` (lógica), tres endpoints en `routes/products.js` y la pantalla en el panel.
+
+**El parser de CSV es propio, no una dependencia.** Son ~40 líneas para un formato estable desde 1978
+(RFC 4180), y el proyecto ya pagó el costo de sumar una librería chica: `otplib` arrastró un módulo ESM que
+tumbó producción entera. Maneja lo que realmente aparece en un archivo de Excel: comas dentro de campos
+entrecomillados, comillas escapadas (`""`), saltos de línea dentro de un campo, el BOM de "CSV UTF-8" y el
+punto y coma que usa Excel en español.
+
+### Decisiones que salieron del contexto del cliente
+
+- **El punto es separador de miles.** En Paraguay `12.500` son doce mil quinientos, no doce con cinco.
+  Interpretarlo como decimal habría cargado todos los precios mil veces más baratos.
+- **El WhatsApp se carga una vez en la pantalla, no por fila.** Es el mismo número para todo el local;
+  pedirlo en cada fila sería hacérselo repetir 150 veces. La columna igual existe por si algún producto
+  necesita otro número.
+- **La imagen es opcional.** Quien carga 150 repuestos rara vez tiene las 150 fotos subidas de antemano. Se
+  importa el catálogo completo y las fotos se agregan después.
+- **Sin dato de stock, el producto queda DISPONIBLE.** Esto importa más de lo que parece: cuando `en_stock`
+  es falso el catálogo muestra "Sin stock" **y deshabilita el botón de consultar**, así que el cliente final
+  ni siquiera puede preguntar. Para un local que lleva el stock en papel, un valor mal cargado es una venta
+  perdida. El default seguro es "disponible" y que la disponibilidad se resuelva en la conversación de
+  WhatsApp, que es como estos locales ya trabajan.
+- **Vista previa obligatoria antes de escribir.** El endpoint de preview no toca la base. Quien sube 150
+  productos tiene que ver qué va a entrar y qué filas están mal *antes*, no después.
+- **Reimportar no duplica.** Los nombres que ya existen se saltean y se informan, así corregir el archivo y
+  volver a subirlo es seguro.
+- **Todo o nada.** La inserción va en una transacción: un catálogo a medio cargar es peor que uno vacío,
+  porque obliga a averiguar qué entró y qué no.
+- **Los errores dicen fila y motivo**, para poder ir directo a corregir en Excel.
+
+### Verificación
+
+- **27 tests unitarios** del parser y la normalización, incluido el caso paraguayo de los miles y un intento
+  de XSS por el campo WhatsApp (misma regla que el formulario, ver el incidente anterior en este documento).
+- **16 end-to-end** contra el servidor con un CSV deliberadamente sucio: BOM, comas dentro de comillas,
+  comillas escapadas, filas sin precio, sin nombre y duplicadas.
+- **13 en navegador**: el flujo completo desde el panel, verificando que la vista previa no escribe nada,
+  que señala la fila exacta con problema y que los precios con punto de miles se guardan bien.

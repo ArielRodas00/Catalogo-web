@@ -330,6 +330,11 @@
 
   </div>
 
+  <button id="btn-import" class="btn-secondary" title="Cargar muchos productos desde un archivo de Excel">
+    <span class="material-symbols-outlined">upload_file</span>
+    Importar
+  </button>
+
   <button id="btn-new-product" class="btn-primary">
     <span class="material-symbols-outlined">add</span>
     Nuevo producto
@@ -360,6 +365,50 @@
       </section>
 
     </div><!-- /panel-productos -->
+
+      <!-- IMPORTAR DESDE EXCEL — MODAL -->
+      <!-- Cargar 150 repuestos de a uno son horas. Estos locales llevan el
+           stock en papel, así que la lista se arma en Excel y se sube acá. -->
+      <div id="import-modal" class="modal-overlay" style="display:none">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h2>Importar productos desde Excel</h2>
+            <button class="modal-x" id="import-close" aria-label="Cerrar">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+
+          <div class="modal-body-scroll">
+            <ol class="import-pasos">
+              <li>
+                Descargá la planilla de ejemplo y completala con tus productos.
+                <button id="btn-plantilla" class="btn-link">Descargar planilla</button>
+              </li>
+              <li>En Excel: <strong>Archivo → Guardar como → CSV</strong>.</li>
+              <li>Subí el archivo acá abajo. Vas a ver una vista previa antes de guardar nada.</li>
+            </ol>
+
+            <p class="import-nota">
+              Obligatorios: <strong>nombre, precio y categoría</strong>.
+              Las fotos se pueden agregar después, producto por producto.
+            </p>
+
+            <label class="form-label" for="import-whatsapp">WhatsApp del local</label>
+            <input type="text" id="import-whatsapp" class="form-input" placeholder="595981123456">
+            <small class="form-hint">Se usa para todos los productos, así no lo repetís en cada fila.</small>
+
+            <label class="form-label" for="import-file">Archivo CSV</label>
+            <input type="file" id="import-file" class="form-input" accept=".csv,text/csv">
+
+            <div id="import-resultado" style="display:none"></div>
+          </div>
+
+          <div class="modal-foot">
+            <button id="import-cancelar" class="btn-secondary">Cancelar</button>
+            <button id="import-confirmar" class="btn-primary" disabled>Importar</button>
+          </div>
+        </div>
+      </div>
 
       <!-- FORMULARIO DE PRODUCTO — MODAL (fuera de panel-productos) -->
       <div id="form-modal-overlay" class="form-modal-overlay" style="display:none">
@@ -594,6 +643,7 @@
   <script src="admin/stock.js"></script>
   <script src="admin/recepcion.js"></script>
   <script src="admin/metrics.js"></script>
+  <script src="admin/importar.js"></script>
   <script src="admin/tabs.js"></script>
   <script src="admin/init.js"></script>
 

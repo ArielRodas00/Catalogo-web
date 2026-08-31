@@ -7,6 +7,8 @@ const { authenticateToken } = require('../middleware/auth');
 const { validateProduct, sanitizeOrder } = require('../middleware/validate');
 const { getLicense } = require('../licenseCheck');
 const imageStorage = require('../imagekit');
+const importar = require('../importar');
+const auditoria = require('../auditoria');
 const rateLimit = require('express-rate-limit');
 
 const apiLimiter = rateLimit({
@@ -576,6 +578,124 @@ router.post('/batch-stock', authenticateToken, batchLimiter, async function(req,
     }
   } catch (err) {
     next(err);
+  }
+});
+
+// ============================================================
+// Importación masiva desde CSV — ver importar.js
+// ============================================================
+// Cargar 150 repuestos de a uno por el formulario son horas de trabajo, y es
+// lo primero que necesita un local con un catálogo real. Estos locales llevan
+// el stock en papel, así que el archivo se arma a mano en Excel: el
+// importador es deliberadamente tolerante con el formato.
+
+// Multer aparte del de imágenes: acá el archivo es texto y chico, así que el
+// límite es mucho menor. 2 MB alcanzan para varios miles de filas.
+const uploadCsv = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: function(req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext === '.csv' || ext === '.txt' || file.mimetype === 'text/csv') cb(null, true);
+    else cb(new Error('El archivo tiene que ser un CSV. Desde Excel: Archivo → Guardar como → CSV.'));
+  }
+});
+
+// GET /api/products/import/plantilla — archivo de ejemplo para descargar.
+// Sin esto, la primera pregunta siempre es "¿y qué columnas tiene que tener?".
+router.get('/import/plantilla', authenticateToken, function(req, res) {
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="plantilla-productos.csv"');
+  // El BOM hace que Excel abra el archivo con los acentos correctos.
+  res.send('﻿' + importar.plantillaCsv());
+});
+
+// POST /api/products/import/preview — valida SIN escribir nada.
+// Separado del import real a propósito: quien carga 150 productos tiene que
+// poder ver qué va a entrar y qué filas están mal ANTES de tocar la base.
+router.post('/import/preview', apiLimiter, authenticateToken, uploadCsv.single('archivo'), function(req, res) {
+  if (!req.file) return res.status(400).json({ error: 'Falta el archivo CSV' });
+
+  const analisis = importar.analizar(req.file.buffer.toString('utf8'), {
+    whatsappPorDefecto: req.body.whatsapp
+  });
+
+  res.json({
+    totalFilas: analisis.totalFilas,
+    validos: analisis.validos.length,
+    errores: analisis.errores,
+    // Solo una muestra: con 150 productos, devolverlos todos sería un JSON
+    // enorme para una vista previa que nadie lee entera.
+    muestra: analisis.validos.slice(0, 10).map(function(v) { return v.producto; })
+  });
+});
+
+// POST /api/products/import — inserta de verdad.
+router.post('/import', batchLimiter, authenticateToken, uploadCsv.single('archivo'), async function(req, res, next) {
+  if (!req.file) return res.status(400).json({ error: 'Falta el archivo CSV' });
+
+  const analisis = importar.analizar(req.file.buffer.toString('utf8'), {
+    whatsappPorDefecto: req.body.whatsapp
+  });
+
+  if (analisis.validos.length === 0) {
+    return res.status(400).json({
+      error: 'No hay ninguna fila válida para importar',
+      errores: analisis.errores
+    });
+  }
+
+  const client = await pool.connect();
+  try {
+    // Todo o nada: si algo falla a mitad de camino, un catálogo a medio cargar
+    // es peor que uno vacío, porque hay que averiguar qué entró y qué no.
+    await client.query('BEGIN');
+
+    // Los nombres que ya existen se saltean en vez de duplicarse: reimportar
+    // el mismo archivo (corregido, por ejemplo) no debe llenar el catálogo de
+    // repetidos.
+    const existentes = await client.query('SELECT LOWER(name) AS name FROM productos');
+    const yaEstan = new Set(existentes.rows.map(function(r) { return r.name; }));
+
+    const creados = [];
+    const salteados = [];
+
+    for (const item of analisis.validos) {
+      const p = item.producto;
+      if (yaEstan.has(p.name.toLowerCase())) {
+        salteados.push({ fila: item.fila, nombre: p.name, motivo: 'ya existe en el catálogo' });
+        continue;
+      }
+      const r = await client.query(
+        `INSERT INTO productos
+          (name, price, category, subcategoria, brand, image, description, whatsapp,
+           en_oferta, precio_oferta, en_stock, destacado, stock_cantidad, stock_minimo)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+         RETURNING id, name`,
+        [p.name, p.price, p.category, p.subcategoria, p.brand, p.image, p.description,
+         p.whatsapp, p.en_oferta, p.precio_oferta, p.en_stock, p.destacado,
+         p.stock_cantidad, p.stock_minimo]
+      );
+      creados.push(r.rows[0]);
+      yaEstan.add(p.name.toLowerCase());
+    }
+
+    await client.query('COMMIT');
+
+    auditoria.registrar(req, 'importacion', 'productos', null,
+      creados.length + ' creados, ' + salteados.length + ' salteados, ' + analisis.errores.length + ' con error');
+
+    res.status(201).json({
+      creados: creados.length,
+      salteados: salteados,
+      errores: analisis.errores,
+      totalFilas: analisis.totalFilas
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    next(err);
+  } finally {
+    client.release();
   }
 });
 
