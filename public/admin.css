@@ -2461,3 +2461,80 @@ h1, h2, h3 { font-family: var(--font-display); }
   border-bottom: 1px solid #eee;
 }
 .import-tabla th { color: #666; font-weight: 600; }
+
+/* ============================================================
+   Modal genérico (importar, cuenta) — mismo patrón visual que
+   .form-modal-overlay, que ya existía para el formulario de producto.
+   ============================================================
+   Se agregó después de detectar que el modal de importar se había escrito
+   con clases que no existían: funcionaba, pero quedaba incrustado en el
+   flujo de la página en vez de aparecer centrado sobre un fondo oscuro. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1500;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+}
+
+.modal-box {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.3rem;
+  border-bottom: 1px solid #eee;
+}
+.modal-head h2 { margin: 0; font-size: 1.1rem; }
+
+.modal-x {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  display: flex;
+  padding: 4px;
+  border-radius: 6px;
+}
+.modal-x:hover { background: #f2f2f2; color: #111; }
+
+.modal-body-scroll {
+  padding: 1.2rem 1.3rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-foot {
+  display: flex;
+  gap: .6rem;
+  justify-content: flex-end;
+  padding: 1rem 1.3rem;
+  border-top: 1px solid #eee;
+}
+
+/* En el celular el modal ocupa la pantalla entera: con 393px de ancho, un
+   diálogo centrado con márgenes deja el contenido demasiado angosto. */
+@media (max-width: 640px) {
+  .modal-overlay { padding: 0; }
+  .modal-box {
+    max-width: 100%;
+    min-height: 100vh;
+    border-radius: 0;
+  }
+  .modal-foot { position: sticky; bottom: 0; background: #fff; }
+}
