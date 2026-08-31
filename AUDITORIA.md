@@ -1555,3 +1555,50 @@ Medido en el navegador, cargando la home entera hasta el final:
 - **Varias fotos por producto: funciona.** Probadas 4 fotos de ~7 MP en un mismo producto: las 4 suben, se
   guardan con su orden y la galería las devuelve. No hay límite por producto en el código.
 - 179 tests y 0 errores de lint. Cero imágenes rotas en el catálogo tras el cambio.
+
+## Panel Central en producción (2026-08-31)
+
+Se desplegó en Vercel como proyecto aparte: **https://piezaexpress-panel.vercel.app**
+
+Base nueva en Neon (`piezaexpress-panel`), en **Virginia (us-east-1)** a propósito: es la región donde
+corren las funciones de Vercel en el plan gratuito y donde ya está la base del catálogo. Una primera
+base se había creado en São Paulo, pero cada consulta habría cruzado de Virginia a São Paulo y vuelto
+—unos 240 ms extra— así que se rehízo. Se arrancó con base limpia en vez de recuperar la de Render:
+esta solo tenía un cliente de prueba y cero pagos, y así se corta la última dependencia con Render.
+
+### Dos bugs que aparecieron recién al desplegar
+
+**1. La home devolvía 404.** `express.static('public')` usa una ruta **relativa**, y en serverless el
+directorio de trabajo de la función no es la raíz del proyecto: la carpeta no se encontraba. El
+síntoma era confuso porque `/index.html` y `/app.js` **sí** respondían — esos los sirve el CDN de
+Vercel sin pasar por Express. El catálogo se salvaba de casualidad, porque tiene una ruta explícita
+para `/`. Se pasó a `path.join(__dirname, 'public')` en las dos apps.
+
+**2. Un POST sin cuerpo devolvía 500.** Sin `Content-Type`, `express.json()` no parsea y `req.body`
+queda `undefined`, así que el destructuring del login lanzaba: un pedido malformado terminaba en un
+500 en vez de un 400, en el endpoint público de las dos apps. En vez de parchear ruta por ruta se
+agregó una guarda global después de `express.json()`.
+
+### Verificación
+
+**18/18 en producción**: la página carga, login con cookie `httpOnly` + `Secure` + `SameSite=Strict`,
+las tres rutas protegidas responden y sin sesión rechazan, se rechaza una contraseña débil, el cambio
+de contraseña cierra la sesión anterior, la auditoría registra con usuario e IP, y el 2FA se activa
+con un código TOTP real y se desactiva. Se confirmó contra la base que la contraseña, el rol y el
+estado de 2FA quedaron como estaban.
+
+219 tests (179 catálogo + 40 Panel Central), 0 errores de lint.
+
+### Pendiente
+
+- **Conectar el catálogo al Panel.** Hoy el catálogo está en modo `standalone`: da premium siempre y
+  no hay forma de cortarle el servicio a quien deje de pagar. Falta generar su `CLIENTE_API_KEY` desde
+  el Panel y cargar `PANEL_CENTRAL_URL` y `CLIENTE_API_KEY` en el catálogo.
+- **Rotar la contraseña de la base**, que se compartió por chat durante el despliegue.
+
+## REGLAS.md
+
+Se agregó `REGLAS.md` con las reglas operativas para cualquier asistente de IA que trabaje acá: no
+borrar bases nunca, preguntar antes de un cambio masivo, preguntar ante la duda, no imprimir secretos
+y cómo tratar producción. Se referencia desde `CLAUDE.md` —que es el que se carga solo— porque un
+documento que nadie lee no protege nada.
