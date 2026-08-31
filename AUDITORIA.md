@@ -1602,3 +1602,39 @@ Se agregó `REGLAS.md` con las reglas operativas para cualquier asistente de IA 
 borrar bases nunca, preguntar antes de un cambio masivo, preguntar ante la duda, no imprimir secretos
 y cómo tratar producción. Se referencia desde `CLAUDE.md` —que es el que se carga solo— porque un
 documento que nadie lee no protege nada.
+
+### Catálogo conectado al Panel Central
+
+El catálogo dejó de estar en modo `standalone`. Antes de esto daba **premium siempre** y no había
+ninguna forma de cortarle el servicio a un cliente que dejara de pagar — o sea que el modelo de
+negocio no tenía cómo sostenerse.
+
+Se dio de alta el catálogo como cliente en el Panel (`slug: piezaexpress`, plan premium, activo), se
+generó su `api_key` de 64 caracteres, y se cargaron `PANEL_CENTRAL_URL` y `CLIENTE_API_KEY` en las
+variables de Vercel del catálogo.
+
+**El branding se dejó todo en NULL a propósito.** `getEffectiveBranding()` usa `override || envDefault`
+campo por campo, así que con todo nulo el catálogo sigue usando sus variables de entorno. Se verificó
+midiendo título, color, logo y favicon **antes y después** de conectar: los cuatro idénticos.
+
+### Verificación del corte de servicio
+
+Es el mecanismo que convierte esto en un producto cobrable, así que se probó explícitamente contra
+producción (**11/11**), dejando el cliente como estaba al terminar:
+
+| Acción en el Panel | Lo que devuelve `/api/licencia` |
+|---|---|
+| Cliente suspendido | `activo: false` |
+| Cliente vencido | `activo: false` |
+| Bajado a básico | `plan: basico`, sigue activo |
+| API key inválida | 403 |
+| Sin API key | 401 |
+
+El lado del catálogo —que consume ese estado— está cubierto por **13 tests unitarios**, incluyendo que
+una cuenta suspendida se refleja como `activo:false` y que **una falla de red nunca la inventa**: si no
+se puede confirmar el estado, degrada a básico pero el sitio sigue en pie.
+
+**Dato operativo a tener presente**: el catálogo cachea la licencia **6 horas**, y además hay un cron
+diario. O sea que una suspensión tarda **hasta 6 horas** en hacer efecto en el catálogo del cliente.
+Es intencional (evita golpear al Panel en cada request y que una caída del Panel tumbe los catálogos),
+pero conviene saberlo al cortarle el servicio a alguien.
