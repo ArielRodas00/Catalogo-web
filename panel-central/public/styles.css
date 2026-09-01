@@ -218,3 +218,55 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--c
   .main { padding: 16px 10px; }
   .field-row { flex-direction: column; gap: 0; }
 }
+
+/* ============================================================
+   Mi cuenta — contraseña y verificación en dos pasos
+   ============================================================ */
+.header-actions {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+
+.cuenta-msg {
+  margin: .6rem 0;
+  padding: .55rem .7rem;
+  border-radius: 6px;
+  font-size: .88rem;
+}
+.cuenta-msg--error { background: #fdecea; color: #b3261e; }
+.cuenta-msg--ok    { background: #e8f5eb; color: #1a7f37; }
+.cuenta-ok { color: #1a7f37; }
+
+/* Fondo blanco explícito y con margen: un QR sobre fondo oscuro o sin borde
+   de silencio no lo lee ninguna cámara. */
+.dosfa-qr {
+  display: block;
+  width: 190px;
+  height: 190px;
+  margin: .5rem auto 1rem;
+  background: #fff;
+  padding: 8px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+}
+
+.dosfa-secreto {
+  display: block;
+  margin: .3rem 0 1.1rem;
+  padding: .5rem .6rem;
+  background: #f5f5f7;
+  border-radius: 6px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: .82rem;
+  letter-spacing: .06em;
+  word-break: break-all;
+  color: #333;
+}
+
+/* El código de 6 dígitos, espaciado para leerlo mientras se tipea. */
+#dosfa-codigo {
+  letter-spacing: .35em;
+  font-size: 1.15rem;
+  text-align: center;
+}

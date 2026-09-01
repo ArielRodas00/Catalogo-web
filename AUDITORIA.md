@@ -1758,3 +1758,39 @@ el otro queda viejo.
 **Cambiar la contraseña actual.** El sistema ahora la rechazaría, pero la que está guardada sigue siendo
 esa. Conviene una frase larga y sin relación con el negocio: "tortuga verde bajo la mesa" es mucho más
 fuerte que la que estaba en uso, y más fácil de recordar.
+
+### Pantalla "Mi cuenta" en el Panel Central
+
+Mismo hueco que tenía el catálogo: los endpoints existían desde la tanda de seguridad, pero el Panel no
+tenía interfaz. Acá pesa más — es la cuenta que ve y administra a todos los clientes, sus `api_key` y sus
+pagos.
+
+Se agregó el botón **Mi cuenta** en la cabecera, con cambio de contraseña y 2FA, siguiendo el patrón de
+modal que el Panel ya usaba.
+
+**Nota de método**: antes de escribir el HTML se verificó que cada clase de CSS existiera de verdad
+(`.modal-overlay`, `.modal-box`, `.field-group`…). Es la tercera vez en esta tanda que el tema aparece:
+las dos anteriores se escribieron modales con clases inexistentes, que **funcionan pero se ven mal**,
+porque el HTML no falla ante una clase que no existe.
+
+### Un hallazgo del propio test: la contraseña del Panel ya no se puede recuperar
+
+La verificación falló en su paso de limpieza, y el motivo fue revelador: **no pudo restaurar la contraseña
+original porque contiene la palabra "panel"**, que la validación nueva rechaza.
+
+O sea que la contraseña del super-admin seguía exactamente el mismo patrón que la del catálogo: una
+palabra obvia del sistema más un año. Se restauró escribiendo el hash directo en la base —la validación
+aplica a contraseñas **nuevas**, la guardada sigue sirviendo para entrar— y de paso quedó re-hasheada con
+el costo 12.
+
+**Queda pendiente para el usuario**: cambiarla. El sistema ya no aceptaría esa contraseña si intentara
+ponerla de nuevo, lo cual es la señal más clara de que conviene cambiarla.
+
+### Verificación
+
+**18/19 en navegador** (el único fallo fue el de limpieza recién descrito), con el ciclo completo: el modal
+abre como diálogo, avisa si las contraseñas no coinciden, rechaza el patrón viejo, **rechaza una contraseña
+de filtraciones conocidas consultando la API real** (`trustno1trustno1`, 6.539 apariciones), muestra el QR
+sobre fondo blanco —verificado con el color calculado, porque un QR sobre fondo oscuro no lo lee ninguna
+cámara—, se activa con un código TOTP real, exige la contraseña para desactivarlo, y al cambiar la clave
+cierra la sesión y la vieja deja de servir. Probado también en un teléfono.
