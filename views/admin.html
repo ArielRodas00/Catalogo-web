@@ -57,6 +57,10 @@
           <span class="material-symbols-outlined">storefront</span>
           Ver catálogo
         </a>
+        <button id="btn-cuenta" class="btn-ghost" title="Cambiar contraseña y verificación en dos pasos">
+          <span class="material-symbols-outlined">account_circle</span>
+          Mi cuenta
+        </button>
         <button id="btn-logout" class="btn-ghost">
           <span class="material-symbols-outlined">logout</span>
           Salir
@@ -366,6 +370,94 @@
 
     </div><!-- /panel-productos -->
 
+      <!-- MI CUENTA — MODAL -->
+      <!-- Los endpoints de cambio de contraseña y 2FA existían pero no tenían
+           interfaz: había que usarlos con curl. Un cliente que sospecha que le
+           vieron la clave tiene que poder cambiarla solo. -->
+      <div id="cuenta-modal" class="modal-overlay" style="display:none">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h2>Mi cuenta</h2>
+            <button class="modal-x" id="cuenta-close" aria-label="Cerrar">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+
+          <div class="modal-body-scroll">
+
+            <!-- Cambiar contraseña -->
+            <h3 class="cuenta-titulo">Cambiar contraseña</h3>
+            <form id="form-password" autocomplete="off">
+              <div class="field-group">
+                <label for="pass-actual">Contraseña actual</label>
+                <input type="password" id="pass-actual" required autocomplete="current-password">
+              </div>
+              <div class="field-group">
+                <label for="pass-nueva">Contraseña nueva</label>
+                <input type="password" id="pass-nueva" required autocomplete="new-password">
+                <small class="field-hint">Mínimo 10 caracteres. Una frase que recuerdes es mejor que algo corto y complicado.</small>
+              </div>
+              <div class="field-group">
+                <label for="pass-repetir">Repetir la nueva</label>
+                <input type="password" id="pass-repetir" required autocomplete="new-password">
+              </div>
+              <p id="pass-msg" class="cuenta-msg" style="display:none"></p>
+              <button type="submit" class="btn-primary" id="btn-guardar-pass">Cambiar contraseña</button>
+              <p class="field-hint">Al cambiarla se cierran todas las sesiones abiertas, incluida esta.</p>
+            </form>
+
+            <hr class="cuenta-sep">
+
+            <!-- Verificación en dos pasos -->
+            <h3 class="cuenta-titulo">Verificación en dos pasos</h3>
+            <p class="field-hint" id="dosfa-estado">Consultando…</p>
+
+            <!-- Vista cuando está desactivado -->
+            <div id="dosfa-off" style="display:none">
+              <p class="cuenta-texto">
+                Agrega un código de tu teléfono al iniciar sesión. Aunque alguien
+                sepa tu contraseña, no puede entrar sin el teléfono.
+              </p>
+              <button class="btn-secondary" id="btn-2fa-activar">Activar</button>
+            </div>
+
+            <!-- Paso de configuración: QR + confirmación -->
+            <div id="dosfa-setup" style="display:none">
+              <p class="cuenta-texto">
+                Escaneá este código con Google Authenticator (o similar) y después
+                escribí el número de 6 dígitos que te muestre.
+              </p>
+              <img id="dosfa-qr" alt="Código QR para la app de autenticación" class="dosfa-qr">
+              <p class="field-hint">¿No podés escanear? Cargá este código a mano:</p>
+              <code id="dosfa-secreto" class="dosfa-secreto"></code>
+              <form id="form-2fa" autocomplete="off">
+                <div class="field-group">
+                  <label for="dosfa-codigo">Código de 6 dígitos</label>
+                  <input type="text" id="dosfa-codigo" inputmode="numeric" maxlength="6" placeholder="000000" required>
+                </div>
+                <p id="dosfa-msg" class="cuenta-msg" style="display:none"></p>
+                <button type="submit" class="btn-primary">Confirmar y activar</button>
+                <button type="button" class="btn-secondary" id="btn-2fa-cancelar">Cancelar</button>
+              </form>
+            </div>
+
+            <!-- Vista cuando está activo -->
+            <div id="dosfa-on" style="display:none">
+              <p class="cuenta-texto cuenta-ok">Está activada. Al entrar te va a pedir el código del teléfono.</p>
+              <form id="form-2fa-off" autocomplete="off">
+                <div class="field-group">
+                  <label for="dosfa-pass">Confirmá con tu contraseña para desactivarla</label>
+                  <input type="password" id="dosfa-pass" required autocomplete="current-password">
+                </div>
+                <p id="dosfa-msg-off" class="cuenta-msg" style="display:none"></p>
+                <button type="submit" class="btn-secondary">Desactivar</button>
+              </form>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
       <!-- IMPORTAR DESDE EXCEL — MODAL -->
       <!-- Cargar 150 repuestos de a uno son horas. Estos locales llevan el
            stock en papel, así que la lista se arma en Excel y se sube acá. -->
@@ -393,12 +485,16 @@
               Las fotos se pueden agregar después, producto por producto.
             </p>
 
-            <label class="form-label" for="import-whatsapp">WhatsApp del local</label>
-            <input type="text" id="import-whatsapp" class="form-input" placeholder="595981123456">
-            <small class="form-hint">Se usa para todos los productos, así no lo repetís en cada fila.</small>
+            <div class="field-group">
+              <label for="import-whatsapp">WhatsApp del local</label>
+              <input type="text" id="import-whatsapp" placeholder="595981123456">
+              <small class="field-hint">Se usa para todos los productos, así no lo repetís en cada fila.</small>
+            </div>
 
-            <label class="form-label" for="import-file">Archivo CSV</label>
-            <input type="file" id="import-file" class="form-input" accept=".csv,text/csv">
+            <div class="field-group">
+              <label for="import-file">Archivo CSV</label>
+              <input type="file" id="import-file" accept=".csv,text/csv">
+            </div>
 
             <div id="import-resultado" style="display:none"></div>
           </div>
@@ -644,6 +740,7 @@
   <script src="admin/stock.js"></script>
   <script src="admin/recepcion.js"></script>
   <script src="admin/metrics.js"></script>
+  <script src="admin/cuenta.js"></script>
   <script src="admin/importar.js"></script>
   <script src="admin/tabs.js"></script>
   <script src="admin/init.js"></script>

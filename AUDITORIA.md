@@ -1638,3 +1638,46 @@ se puede confirmar el estado, degrada a básico pero el sitio sigue en pie.
 diario. O sea que una suspensión tarda **hasta 6 horas** en hacer efecto en el catálogo del cliente.
 Es intencional (evita golpear al Panel en cada request y que una caída del Panel tumbe los catálogos),
 pero conviene saberlo al cortarle el servicio a alguien.
+
+## Pantalla "Mi cuenta" en el panel (2026-08-31)
+
+Los endpoints de cambio de contraseña y 2FA existían desde la tanda de seguridad, pero **no tenían
+interfaz**: para cambiar una clave había que usar `curl`. No sirve para un cliente real — quien
+sospecha que le vieron la contraseña tiene que poder cambiarla solo, en el momento, sin llamar a nadie.
+
+Se agregó el botón **Mi cuenta** en la cabecera, con cambio de contraseña y verificación en dos pasos.
+
+Decisiones de la interfaz:
+
+- **Se pide repetir la contraseña nueva** y se compara en el navegador antes de mandar: es un error del
+  formulario, no algo que el servidor tenga que decidir, y el aviso llega al instante.
+- **Al cambiar la clave, el panel se recarga solo.** El servidor invalida la sesión (ver
+  `middleware/auth.js`), así que dejar el panel abierto solo produciría un error incomprensible en el
+  próximo click. Se avisa y se vuelve al login.
+- **El QR va sobre fondo blanco explícito**: un QR sobre fondo oscuro no lo lee ninguna cámara.
+- **Se muestra el código también en texto**, para quien no puede escanear.
+- **Cancelar durante la configuración** vuelve al estado anterior sin activar nada — el 2FA solo se
+  activa al confirmar un código válido.
+
+### Un bug propio, encontrado antes de subirlo
+
+El modal de importar (y este) se habían escrito con clases que **no existen** en `admin.css`
+(`.form-label`, `.form-input`, `.form-hint`). Se pasaron al patrón real del proyecto: `.field-group` con
+label e input adentro, y `.field-hint` para la ayuda. Es la segunda vez que pasa lo mismo en esta
+tanda —antes con `.modal-overlay`— así que la lección quedó clara: **verificar que la clase exista
+antes de usarla**, porque el HTML no falla, solo se ve mal.
+
+### Verificación
+
+**20/20 en navegador**, con el ciclo completo y la limpieza al final: el modal se ve como un diálogo
+centrado (no incrustado en la página), avisa si las dos contraseñas nuevas no coinciden, rechaza una
+débil, exige la actual correcta, muestra el QR y el código en texto, rechaza un código de 6 dígitos
+incorrecto, **se activa con un código TOTP real generado por nuestra propia implementación**, exige la
+contraseña para desactivarlo, y al cambiar la clave cierra la sesión, vuelve al login, la vieja deja de
+servir y la nueva funciona. Probado también en un teléfono (Pixel 5), sin desborde.
+
+**Dos fallos de la propia prueba, no de la app**, que valen como nota de método: el filtro de errores de
+consola excluía 401/403/404 pero no los 400 que generan las pruebas de contraseña incorrecta a
+propósito; y el helper de login se colgaba si quedaba una sesión abierta, porque el formulario está
+oculto. Además, la primera corrida dejó la contraseña temporal puesta —su limpieza chocó con el propio
+limitador de intentos— y hubo que restaurarla a mano. Se confirmó contra la base que quedó la original.

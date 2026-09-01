@@ -2538,3 +2538,71 @@ h1, h2, h3 { font-family: var(--font-display); }
   }
   .modal-foot { position: sticky; bottom: 0; background: #fff; }
 }
+
+/* ============================================================
+   Mi cuenta — contraseña y verificación en dos pasos
+   ============================================================ */
+.cuenta-titulo {
+  margin: 0 0 .8rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.cuenta-texto {
+  margin: 0 0 .9rem;
+  font-size: .92rem;
+  line-height: 1.55;
+  color: #555;
+}
+.cuenta-ok { color: #1a7f37; font-weight: 500; }
+
+.cuenta-sep {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 1.6rem 0 1.2rem;
+}
+
+.cuenta-msg {
+  margin: .6rem 0;
+  padding: .55rem .7rem;
+  border-radius: 6px;
+  font-size: .88rem;
+}
+.cuenta-msg--error { background: #fdecea; color: #b3261e; }
+.cuenta-msg--ok    { background: #e8f5eb; color: #1a7f37; }
+
+/* El QR se muestra a un tamaño cómodo para escanear desde otro teléfono, con
+   fondo blanco explícito: un QR sobre fondo oscuro no lo lee ninguna cámara. */
+.dosfa-qr {
+  display: block;
+  width: 190px;
+  height: 190px;
+  margin: 0 auto 1rem;
+  background: #fff;
+  padding: 8px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.dosfa-secreto {
+  display: block;
+  margin: .3rem 0 1.1rem;
+  padding: .5rem .6rem;
+  background: #f5f5f7;
+  border-radius: 6px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: .82rem;
+  letter-spacing: .06em;
+  word-break: break-all;
+  color: #333;
+}
+
+/* El código de 6 dígitos: ancho y espaciado para que se lea al tipearlo. */
+#dosfa-codigo {
+  letter-spacing: .35em;
+  font-size: 1.15rem;
+  text-align: center;
+}
+
+#form-2fa button + button,
+#form-password button + button { margin-left: .5rem; }
