@@ -138,7 +138,17 @@ test('validarPassword: rechaza las comunes y las que contienen el usuario', func
 });
 
 test('validarPassword: acepta una contraseña razonable', function () {
-  assert.deepEqual(validarPassword('panel de control 2026', 'superadmin'), []);
+  // Se cambió el ejemplo: 'panel de control 2026' ahora se rechaza, con razón
+  // —contiene "panel" (palabra obvia para este sistema) y un año, que es de lo
+  // primero que prueba un atacante. Ver password.js.
+  assert.deepEqual(validarPassword('tortuga verde bajo la mesa', 'superadmin'), []);
+  assert.deepEqual(validarPassword('kokue rape guasu', 'superadmin'), []);
+});
+
+test('validarPassword: rechaza el patrón que antes pasaba', function () {
+  // Larga, con mayúsculas, números y símbolos — y aun así predecible.
+  const errores = validarPassword('P4n3lC3ntr4l$2026!', 'superadmin');
+  assert.ok(errores.length > 0, 'no debe aceptarse');
 });
 
 // ============================================================

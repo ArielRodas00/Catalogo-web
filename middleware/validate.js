@@ -68,50 +68,11 @@ function sanitizePeriod(period) {
   return VALID_PERIODS.includes(period) ? period : '30d';
 }
 
-// Largo mínimo. Se prioriza longitud por sobre reglas de composición
-// ("una mayúscula, un símbolo...") siguiendo la guía del NIST: esas reglas
-// empujan a la gente a claves tipo "Password1!" —fáciles para una máquina,
-// molestas para una persona— mientras que el largo sí encarece el ataque.
-const PASSWORD_MIN = 10;
-
-// Claves obvias que se prueban primero en cualquier ataque de diccionario.
-// No pretende ser exhaustiva (para eso haría falta una lista de millones);
-// corta el caso realista de alguien apurado poniendo lo primero que se le
-// ocurre.
-const PASSWORD_COMUNES = [
-  'contrasena', 'contraseña', 'password', 'passw0rd', '1234567890', '0123456789',
-  'qwertyuiop', 'administrador', 'adminadmin', 'catalogo123', 'micontrasena',
-  'password123', 'admin12345', '1234512345'
-];
-
-// Devuelve un array de errores; vacío significa que la contraseña sirve.
-// Se exporta como función pura (no como middleware) porque la usan tanto el
-// cambio de contraseña como la creación de usuarios.
-function validarPassword(password, username) {
-  const errores = [];
-
-  if (typeof password !== 'string' || password.length < PASSWORD_MIN) {
-    errores.push('La contraseña debe tener al menos ' + PASSWORD_MIN + ' caracteres');
-    return errores; // sin largo mínimo, el resto de los chequeos no aporta
-  }
-
-  const normalizada = password.toLowerCase();
-
-  if (PASSWORD_COMUNES.includes(normalizada)) {
-    errores.push('Esa contraseña es demasiado común, elegí otra');
-  }
-
-  if (username && normalizada.includes(String(username).toLowerCase())) {
-    errores.push('La contraseña no puede contener tu nombre de usuario');
-  }
-
-  // Un solo carácter repetido, o una secuencia trivial.
-  if (/^(.)\1+$/.test(password)) {
-    errores.push('La contraseña no puede ser un mismo carácter repetido');
-  }
-
-  return errores;
-}
+// La fortaleza de contraseña vive ahora en password.js, que es la única
+// fuente de verdad: tener dos validadores es cómo se cuelan las
+// inconsistencias (uno se endurece y el otro queda viejo). Se re-exporta
+// desde acá porque varios módulos ya la importaban de este archivo.
+const { validarPassword, PASSWORD_MIN } = require('../password');
 
 module.exports = {
   validateProduct,

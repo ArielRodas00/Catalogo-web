@@ -32,8 +32,12 @@ test('validarPassword: rechaza un mismo carácter repetido', function () {
 
 test('validarPassword: acepta una contraseña razonable', function () {
   // Larga y sin patrones obvios; no se exigen símbolos ni mayúsculas a
-  // propósito (ver el comentario en middleware/validate.js).
-  ['reparacion de motos 2026', 'CalleMburucuya471', 'kokue rape guasu'].forEach(function (p) {
+  // propósito (ver password.js).
+  //
+  // Se quitó 'reparacion de motos 2026' de esta lista: la validación se
+  // endureció y ahora la rechaza, con razón — contiene "moto" (una palabra
+  // obvia para este sistema) y un año, que es de lo primero que se prueba.
+  ['CalleMburucuya471', 'kokue rape guasu', 'tortuga verde bajo la mesa'].forEach(function (p) {
     assert.deepEqual(validarPassword(p, 'admin'), [], 'debe aceptar: ' + p);
   });
 });

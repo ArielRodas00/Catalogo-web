@@ -1,10 +1,10 @@
 const express = require('express');
 const router  = express.Router();
-const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const pool    = require('../db');
 const { authenticateToken } = require('../middleware/auth');
-const { validarPassword } = require('../middleware/validate');
+const { validarPassword, estaFiltrada, hashear, comparar, necesitaRehash } = require('../password');
+const bloqueo = require('../bloqueo');
 const { COOKIE_NAME, cookieOptions, clearCookieOptions } = require('../authCookie');
 const auditoria = require('../auditoria');
 const totp = require('../totp');
@@ -34,7 +34,7 @@ router.post('/login', loginLimiter, async function(req, res, next) {
     }
 
     const result = await pool.query(
-      'SELECT id, username, password, totp_secret, totp_activo FROM administradores WHERE username=$1',
+      'SELECT id, username, password, totp_secret, totp_activo, intentos_fallidos, bloqueado_hasta FROM administradores WHERE username=$1',
       [username]
     );
 
@@ -44,12 +44,31 @@ router.post('/login', loginLimiter, async function(req, res, next) {
     }
 
     const admin = result.rows[0];
-    const passwordMatch = await bcrypt.compare(password, admin.password);
+
+    // Bloqueo POR CUENTA: se revisa antes de comparar la contraseña. El
+    // limitador de express-rate-limit cuenta por IP y en memoria, así que un
+    // atacante con varias IPs lo esquiva; este contador vive en la base.
+    // Ver bloqueo.js.
+    const estado = bloqueo.estaBloqueada(admin);
+    if (estado.bloqueada) {
+      auditoria.registrar(req, 'login_bloqueado', 'sesion', admin.id,
+        'cuenta bloqueada por intentos fallidos', admin);
+      return res.status(429).json({
+        error: 'Cuenta bloqueada temporalmente por intentos fallidos. Probá de nuevo en ' +
+          estado.minutosRestantes + ' minuto' + (estado.minutosRestantes === 1 ? '' : 's') + '.'
+      });
+    }
+
+    const passwordMatch = await comparar(password, admin.password);
 
     if (!passwordMatch) {
       // Se audita el intento fallido: una racha de estos es la señal
       // temprana de que alguien está probando contraseñas.
-      auditoria.registrar(req, 'login_fallido', 'sesion', admin.id, 'contraseña incorrecta', admin);
+      const r = await bloqueo.registrarFallo(admin.id);
+      auditoria.registrar(req, 'login_fallido', 'sesion', admin.id,
+        'contraseña incorrecta (intento ' + r.intentos + ')' + (r.bloqueada ? ' — CUENTA BLOQUEADA' : ''), admin);
+      // El mensaje no cambia aunque la cuenta quede bloqueada: decirlo le
+      // confirmaría al atacante que el usuario existe.
       return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
 
@@ -61,8 +80,31 @@ router.post('/login', loginLimiter, async function(req, res, next) {
       }
       const valido = await totp.verificar(codigo2fa, admin.totp_secret);
       if (!valido) {
-        auditoria.registrar(req, 'login_fallido', 'sesion', admin.id, 'código 2FA incorrecto', admin);
+        // Un código de 6 dígitos son un millón de combinaciones y cambia cada
+        // 30 segundos: sin contar estos intentos, el segundo factor sería
+        // adivinable a fuerza bruta.
+        const r = await bloqueo.registrarFallo(admin.id);
+        auditoria.registrar(req, 'login_fallido', 'sesion', admin.id,
+          'código 2FA incorrecto (intento ' + r.intentos + ')', admin);
         return res.status(401).json({ error: 'Código de verificación incorrecto' });
+      }
+    }
+
+    // Login correcto: se reinicia el contador de fallos.
+    await bloqueo.limpiarIntentos(admin.id);
+
+    // Si la contraseña estaba guardada con un costo de bcrypt viejo, se
+    // re-hashea acá al vuelo. Es el único momento en que tenemos la contraseña
+    // en claro, y así las cuentas viejas se actualizan solas sin pedirle a
+    // nadie que la cambie. Ver password.js.
+    if (necesitaRehash(admin.password)) {
+      try {
+        await pool.query('UPDATE administradores SET password=$1 WHERE id=$2',
+          [await hashear(password), admin.id]);
+      } catch (e) {
+        // No es motivo para fallar el login: la contraseña vieja sigue siendo
+        // válida, solo que con un costo menor.
+        console.error('No se pudo re-hashear la contraseña:', e.message);
       }
     }
 
@@ -119,7 +161,7 @@ router.post('/change-password', loginLimiter, authenticateToken, async function(
     }
 
     const admin = result.rows[0];
-    const coincide = await bcrypt.compare(passwordActual, admin.password);
+    const coincide = await comparar(passwordActual, admin.password);
     if (!coincide) {
       auditoria.registrar(req, 'cambio_password_fallido', 'cuenta', admin.id, 'contraseña actual incorrecta');
       return res.status(401).json({ error: 'La contraseña actual no es correcta' });
@@ -134,7 +176,23 @@ router.post('/change-password', loginLimiter, authenticateToken, async function(
       return res.status(400).json({ error: 'La contraseña nueva tiene que ser distinta de la actual' });
     }
 
-    const hash = await bcrypt.hash(passwordNueva, 10);
+    // ¿Aparece en filtraciones conocidas? Es el chequeo que atrapa el ataque
+    // que de verdad ocurre —credential stuffing con contraseñas de brechas
+    // reales— y contra el que ninguna regla de composición sirve. Se consulta
+    // con k-anonymity: la contraseña nunca sale de este servidor (ver
+    // password.js). Si el servicio no responde, deja pasar.
+    const filtracion = await estaFiltrada(passwordNueva);
+    if (filtracion.filtrada) {
+      auditoria.registrar(req, 'cambio_password_rechazado', 'cuenta', admin.id,
+        'contraseña presente en filtraciones conocidas');
+      return res.status(400).json({
+        error: 'Esa contraseña apareció en filtraciones de datos conocidas' +
+          (filtracion.veces ? ' (' + filtracion.veces.toLocaleString('es') + ' veces)' : '') +
+          '. Elegí otra distinta.'
+      });
+    }
+
+    const hash = await hashear(passwordNueva);
     // password_changed_at cierra todas las sesiones abiertas: cualquier token
     // emitido antes de este momento deja de valer (ver middleware/auth.js).
     await pool.query(
@@ -211,7 +269,7 @@ router.post('/2fa/disable', authenticateToken, async function(req, res, next) {
     const result = await pool.query('SELECT password FROM administradores WHERE id=$1', [req.user.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-    if (!(await bcrypt.compare(password, result.rows[0].password))) {
+    if (!(await comparar(password, result.rows[0].password))) {
       auditoria.registrar(req, '2fa_desactivar_fallido', 'cuenta', req.user.id, 'contraseña incorrecta');
       return res.status(401).json({ error: 'Contraseña incorrecta' });
     }

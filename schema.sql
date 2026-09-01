@@ -137,3 +137,14 @@ CREATE INDEX IF NOT EXISTS idx_productos_promocion ON productos(en_promocion, fe
 CREATE INDEX IF NOT EXISTS idx_producto_vistas_producto ON producto_vistas(producto_id);
 CREATE INDEX IF NOT EXISTS idx_whatsapp_clicks_producto ON whatsapp_clicks(producto_id);
 CREATE INDEX IF NOT EXISTS idx_productos_category_subcategoria ON productos(category, subcategoria);
+
+-- ============================================================
+-- Bloqueo por cuenta ante intentos fallidos
+-- ============================================================
+-- El límite de express-rate-limit cuenta POR IP y en la memoria del proceso.
+-- En serverless eso es débil por partida doble: las instancias se reciclan (y
+-- con ellas el contador), y un atacante con muchas IPs lo esquiva entero.
+-- Este contador vive en la base y es POR CUENTA, así que no depende de la IP
+-- ni de qué instancia atienda el request.
+ALTER TABLE administradores ADD COLUMN IF NOT EXISTS intentos_fallidos INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE administradores ADD COLUMN IF NOT EXISTS bloqueado_hasta TIMESTAMPTZ;

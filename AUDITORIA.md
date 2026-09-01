@@ -1681,3 +1681,80 @@ consola excluía 401/403/404 pero no los 400 que generan las pruebas de contrase
 propósito; y el helper de login se colgaba si quedaba una sesión abierta, porque el formulario está
 oculto. Además, la primera corrida dejó la contraseña temporal puesta —su limpieza chocó con el propio
 limitador de intentos— y hubo que restaurarla a mano. Se confirmó contra la base que quedó la original.
+
+## Auditoría de contraseñas y endurecimiento del login (2026-08-31)
+
+Salió de una pregunta directa: *¿la contraseña es segura?* La respuesta corta era **no lo suficiente**, y
+lo peor es que el sistema **la aceptaba sin objetar**.
+
+### El diagnóstico
+
+`Cat4l0g0$2026!Secure` — 20 caracteres, mayúsculas, números y símbolos. Parece fuerte y es exactamente el
+patrón que un atacante prueba primero:
+
+- `Cat4l0g0` es "catalogo" con letras cambiadas por números. **Un atacante deshace eso automáticamente**:
+  "C4t4l0g0" y "catalogo" le cuestan lo mismo.
+- `$2026` es el año actual.
+- `!Secure` es un sufijo típico.
+
+Además, **bcrypt estaba en costo 10**, el valor por defecto de hace unos quince años.
+
+Se verificó también contra Have I Been Pwned: esa contraseña **no aparece** en filtraciones. O sea que el
+problema no es que esté robada, es que es adivinable.
+
+### Lo que se implementó
+
+**1. Validación que entiende leetspeak** (`password.js`, reemplaza a la de `middleware/validate.js`).
+Normaliza las sustituciones (`4→a`, `0→o`, `$→s`…) **antes** de comparar, así cambiar letras por números
+deja de servir para esquivar los chequeos. Rechaza palabras obvias del sistema, cualquier año, secuencias
+de teclado, patrones repetidos y poca variedad de caracteres. El mínimo pasó de 10 a **12**.
+
+**2. Chequeo contra filtraciones reales** (Have I Been Pwned, k-anonymity). Se envían **solo los primeros
+5 caracteres** del SHA-1 y la comparación final se hace acá: la contraseña, y su hash completo, nunca
+salen del servidor. Verificado contra la API real — `password123` aparece **2.266.543 veces**.
+
+Este chequeo **falla ABIERTO** a propósito, al revés que la autenticación: si el servicio externo no
+responde, bloquear el cambio de contraseña sería peor que dejar pasar una sin verificar. Alguien que
+quiere cambiar su clave porque sospecha que se la vieron no puede quedar trabado por una caída ajena.
+
+**3. bcrypt de costo 10 a 12**, con **re-hash transparente** en el próximo login exitoso: las contraseñas
+viejas se actualizan solas, sin pedirle a nadie que la cambie. Cada +1 duplica el costo por intento del
+atacante; medido en este equipo, de 51 ms a 206 ms.
+
+**4. Bloqueo POR CUENTA** (`bloqueo.js`), 8 intentos → 15 minutos. Existía un límite de
+`express-rate-limit`, pero cuenta **por IP y en la memoria del proceso**, que en serverless es débil por
+partida doble: las instancias se reciclan (y el contador con ellas) y un atacante con varias IPs lo
+esquiva entero. Este contador vive en la base. También cuenta los códigos 2FA fallidos: seis dígitos son
+un millón de combinaciones, adivinables sin un tope.
+
+Se eligió 8 intentos y no 3 a conciencia: equivocarse tres veces es normal, y bloquear tan rápido invita a
+un ataque de denegación (bloquearle la cuenta a otro a propósito). El mensaje de error **no cambia** cuando
+la cuenta queda bloqueada — decirlo le confirmaría al atacante que el usuario existe.
+
+**5. Regla de WAF** en los dos proyectos, **publicada y en vivo**: 30 pedidos cada 5 minutos por IP sobre
+`/api/auth/`, y al excederse se deniega. Corre **antes** de que el pedido llegue al servidor, es
+consistente entre instancias y el tráfico bloqueado no se factura. Ninguna persona real llega a 30
+intentos en 5 minutos; un ataque automatizado sí. Verificado tras publicarla que el acceso legítimo sigue
+funcionando en las dos apps.
+
+### Una fuente de verdad
+
+`middleware/validate.js` tenía su propia `validarPassword` en las dos apps. Ahora re-exporta la de
+`password.js`: tener dos validadores es exactamente cómo se cuelan las inconsistencias — uno se endurece y
+el otro queda viejo.
+
+### Verificación
+
+- **284 tests** (222 catálogo + 62 Panel Central), 0 errores de lint. 21 nuevos solo de contraseñas,
+  incluido uno que existe para que **la contraseña vieja no vuelva a aceptarse nunca**.
+- **11/11 del bloqueo por cuenta** contra el servidor: los fallos se cuentan, un login correcto reinicia el
+  contador, al llegar al umbral se bloquea, **con la cuenta bloqueada ni la contraseña correcta entra**
+  (429), al vencer se libera sola, y todo queda auditado.
+- Chequeo de filtraciones probado contra la API real y con la red simulada, incluyendo que **solo viaja el
+  prefijo de 5 caracteres**.
+
+### Pendiente para el usuario
+
+**Cambiar la contraseña actual.** El sistema ahora la rechazaría, pero la que está guardada sigue siendo
+esa. Conviene una frase larga y sin relación con el negocio: "tortuga verde bajo la mesa" es mucho más
+fuerte que `Cat4l0g0$2026!Secure`, y más fácil de recordar.
