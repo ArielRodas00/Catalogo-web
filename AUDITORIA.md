@@ -1794,3 +1794,32 @@ de filtraciones conocidas consultando la API real** (`trustno1trustno1`, 6.539 a
 sobre fondo blanco —verificado con el color calculado, porque un QR sobre fondo oscuro no lo lee ninguna
 cámara—, se activa con un código TOTP real, exige la contraseña para desactivarlo, y al cambiar la clave
 cierra la sesión y la vieja deja de servir. Probado también en un teléfono.
+
+## Secciones vacías con el título colgado (2026-09-01)
+
+Reportado por el usuario: "Promociones" y "Destacados" mostraban su título aunque no hubiera ningún
+producto en esa sección, y quedaba un encabezado sobre el vacío.
+
+**Causa.** `carousel.js` **sí** hacía lo correcto: solo mostraba cada sección si venían productos. Pero
+`showHomeView()` en `render.js` las volvía a mostrar **sin mirar nada**:
+
+```js
+document.getElementById('section-promociones').style.display = '';
+```
+
+Ese `display = ''` borra el `display:none` del HTML y deja que gane el CSS. Y como `showHomeView()` corre
+también en la carga inicial —no solo al volver de un filtro— el título aparecía siempre.
+
+Se reprodujo en producción antes de tocar nada: `Promociones visible=true con 0 productos`.
+
+**Arreglo.** `mostrarSiTieneContenido()` muestra una sección solo si su contenedor tiene hijos. El DOM
+queda como única fuente de verdad, así que no hay que sincronizar un flag aparte con lo que realmente se
+pintó.
+
+Se encontró además un segundo caso al escribir la prueba: **el título "Todos los productos" está fijo en
+el HTML**, así que un catálogo recién creado —el día uno de un cliente nuevo— mostraría ese encabezado
+sobre una grilla vacía. También se oculta cuando no hay productos.
+
+**Verificado, 14/14**, en cuatro escenarios: sin promociones ni destacados, al volver de una búsqueda (el
+caso que reportó el usuario), con el catálogo completamente vacío, y con datos reales comprobando que las
+secciones que **sí** tienen contenido se siguen viendo y no se pierden al filtrar.

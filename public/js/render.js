@@ -180,12 +180,26 @@ function renderPaginationInto(container, current, total) {
 // ------------------------------------------------------------
 // showHomeView() — vista de inicio
 // ------------------------------------------------------------
+// Muestra una sección SOLO si su contenido tiene algo adentro.
+// Antes se les borraba el display sin mirar, y al volver de un filtro
+// reaparecían los títulos "Promociones" y "Destacados" sobre el vacío. El
+// contenido lo llenan initHighlightSections() y initCarousel() (carousel.js),
+// que ya se saltean las secciones sin productos: acá alcanza con no deshacer
+// esa decisión.
+function mostrarSiTieneContenido(idSeccion, selectorContenido) {
+  const seccion = document.getElementById(idSeccion);
+  if (!seccion) return;
+  const contenido = seccion.querySelector(selectorContenido);
+  const tiene = !!contenido && contenido.children.length > 0;
+  seccion.style.display = tiene ? '' : 'none';
+}
+
 function showHomeView(result, page) {
   isFilterView = false;
 
-  document.getElementById('hero-carousel').style.display       = '';
-  document.getElementById('section-promociones').style.display = '';
-  document.getElementById('section-destacados').style.display  = '';
+  mostrarSiTieneContenido('hero-carousel', '.carousel-track, #carousel-track');
+  mostrarSiTieneContenido('section-promociones', '#track-promociones');
+  mostrarSiTieneContenido('section-destacados', '#track-destacados');
   document.getElementById('home-products').style.display       = '';
   document.getElementById('filter-view').style.display         = 'none';
 
@@ -194,6 +208,12 @@ function showHomeView(result, page) {
 
   const grid = document.querySelector('#home-products .product-grid');
   grid.innerHTML = '';
+
+  // El título "Todos los productos" está fijo en el HTML: sin esto, un
+  // catálogo recién creado —el día uno de un cliente nuevo— mostraría ese
+  // encabezado sobre una grilla vacía.
+  const tituloTodos = document.querySelector('#home-products .section-title');
+  if (tituloTodos) tituloTodos.style.display = products.length === 0 ? 'none' : '';
 
   if (products.length === 0) {
     grid.innerHTML = '<p class="no-results">No se encontraron productos.</p>';
