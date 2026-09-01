@@ -2,10 +2,10 @@
 // password.js — Fortaleza de contraseñas y hashing
 // ============================================================
 // Reemplaza a la validación mínima que había en middleware/validate.js.
-// Salió de auditar la contraseña que estaba en uso: `Cat4l0g0$2026!Secure`
-// pasaba la validación sin problemas, pero es exactamente el patrón que un
-// atacante prueba primero — "catalogo" en leetspeak, el año actual y un
-// sufijo típico. Larga y con símbolos, pero adivinable.
+// Salió de auditar la contraseña que estaba en uso: pasaba la validación sin
+// problemas, pero seguía el patrón que un atacante prueba primero — una
+// palabra del negocio escrita en leetspeak, el año actual y un sufijo típico.
+// Larga y con símbolos, pero adivinable.
 // ============================================================
 
 const crypto = require('crypto');

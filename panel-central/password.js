@@ -3,10 +3,10 @@
 // ============================================================
 // Reemplaza a la validación mínima que había en middleware/validate.js.
 // Espejo del que está en la raíz (ver la nota de duplicación en totp.js).
-// Salió de auditar la contraseña que estaba en uso en el catálogo:
-// pasaba la validación sin problemas, pero es exactamente el patrón que un
-// atacante prueba primero — "catalogo" en leetspeak, el año actual y un
-// sufijo típico. Larga y con símbolos, pero adivinable.
+// Salió de auditar la contraseña que estaba en uso: pasaba la validación sin
+// problemas, pero seguía el patrón que un atacante prueba primero — una
+// palabra del negocio escrita en leetspeak, el año actual y un sufijo típico.
+// Larga y con símbolos, pero adivinable.
 // ============================================================
 
 const crypto = require('crypto');

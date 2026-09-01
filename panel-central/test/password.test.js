@@ -11,13 +11,14 @@ const {
 // ============================================================
 
 test('rechaza el patrón leetspeak + año', function () {
-  // `Cat4l0g0$2026!Secure` pasaba la validación anterior: 20 caracteres, con
-  // mayúsculas, números y símbolos. Pero es "catalogo" con letras cambiadas
-  // por números, el año actual y un sufijo típico — el patrón que un atacante
-  // prueba primero. Este test existe para que no vuelva a aceptarse.
-  const errores = validarPassword('Cat4l0g0$2026!Secure', 'admin');
+  // Este es el PATRON que usaba la contraseña real (no la contraseña en sí).
+  // Pasaba la validación anterior: 20 caracteres, con mayúsculas, números y
+  // símbolos. Pero es una palabra del negocio en leetspeak, el año actual y un
+  // sufijo típico — lo primero que prueba un atacante. El test existe para que
+  // ese patrón no vuelva a aceptarse.
+  const errores = validarPassword('R3pu3st0$2026!Segur', 'admin');
   assert.ok(errores.length > 0, 'no debe aceptarse');
-  assert.ok(errores.some((e) => /catalogo/i.test(e)), 'debe señalar el leetspeak');
+  assert.ok(errores.some((e) => /repuesto/i.test(e)), 'debe señalar el leetspeak');
 });
 
 test('el leetspeak no sirve para esquivar los chequeos', function () {

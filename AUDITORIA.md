@@ -1689,10 +1689,10 @@ lo peor es que el sistema **la aceptaba sin objetar**.
 
 ### El diagnóstico
 
-`Cat4l0g0$2026!Secure` — 20 caracteres, mayúsculas, números y símbolos. Parece fuerte y es exactamente el
+La contraseña en uso tenía 20 caracteres, con mayúsculas, números y símbolos. Parece fuerte y seguía exactamente el
 patrón que un atacante prueba primero:
 
-- `Cat4l0g0` es "catalogo" con letras cambiadas por números. **Un atacante deshace eso automáticamente**:
+- Empezaba con una palabra del negocio escrita en leetspeak. **Un atacante deshace eso automáticamente**:
   "C4t4l0g0" y "catalogo" le cuestan lo mismo.
 - `$2026` es el año actual.
 - `!Secure` es un sufijo típico.
@@ -1757,4 +1757,4 @@ el otro queda viejo.
 
 **Cambiar la contraseña actual.** El sistema ahora la rechazaría, pero la que está guardada sigue siendo
 esa. Conviene una frase larga y sin relación con el negocio: "tortuga verde bajo la mesa" es mucho más
-fuerte que `Cat4l0g0$2026!Secure`, y más fácil de recordar.
+fuerte que la que estaba en uso, y más fácil de recordar.
