@@ -15,6 +15,13 @@ Este proyecto administra datos de clientes reales que pagan. Lo esencial:
 
 Ver `REGLAS.md` para el detalle, la lista de bases que no se tocan y las reglas de despliegue.
 
+## Trabajo pendiente a propósito
+
+Cuando el usuario diga que **el cliente ya pagó**, leer `docs/CUANDO-EL-CLIENTE-PAGUE.md`: tiene la
+lista de lo que se dejó pendiente para ese momento (dominio, plan Pro, los dos huecos de
+posicionamiento, el alta del cliente, backups y rotación de credenciales). No es deuda olvidada, es
+trabajo que no tenía sentido hacer antes.
+
 ---
 
 ## graphify
